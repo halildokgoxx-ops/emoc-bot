@@ -1,6 +1,7 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
+set PORT=3001
 if exist dur.stop del dur.stop
 for %%f in (bot.log) do if %%~zf GTR 5000000 move /y bot.log bot-eski.log >nul 2>&1
 :dongu

@@ -1,28 +1,16 @@
-// 🌐 EMOÇ Web Panel — bot ile AYNI process'te çalışır (Render'da tek servis!).
-// Discord OAuth2 girişi → sunucularını seç → tüm bot ayarlarını webden yönet.
+// 🌖 EMOÇ Köprü — Render'da TEK BAŞINA çalışır (bota discord.js ile BAĞLANMAZ).
+// Discord OAuth2 girişi burada yapılır; ayarlar BOT_API_URL'deki bota
+// x-bridge-secret ile iletilir. Kalıcı veri TUTMAZ (bot tarafında durur).
+// Çalıştır: npm run kopru
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
-const { getGuild, setGuild, save } = require('../src/db');
 
 const sessions = new Map(); // sid -> { token, exp, user }
 setInterval(() => {
   const simdi = Date.now();
   for (const [k, v] of sessions) if (v.exp < simdi) sessions.delete(k);
 }, 3600_000).unref?.();
-
-// Webden değiştirilebilir ayar şeması: key -> tip
-const SEMA = {
-  antiLink: 'bool', antiKufur: 'bool', antiSpam: 'bool', antiRaid: 'bool',
-  antiBot: 'bool', capsEngel: 'bool', altKoruma: 'bool',
-  logKanal: 'kanal', hosgeldinKanal: 'kanal', cikisKanal: 'kanal',
-  sayacKanal: 'kanal', repBildirimKanal: 'kanal', partnerKanal: 'kanal',
-  partnerChat: 'kanal', partnerYetkiliKanal: 'kanal', itirafKanal: 'kanal',
-  gununSorusuKanal: 'kanal',
-  otoRol: 'rol', partnerYetkiliRol: 'rol',
-  hosgeldinMesaj: 'yazi:500', partnerText: 'yazi:1500',
-  sayacHedef: 'sayi:0:100000', repSuresiDk: 'sayi:0:4320',
-};
 
 async function discordAPI(token, yol, init = {}) {
   const r = await fetch(`https://discord.com/api/v10${yol}`, {
@@ -41,43 +29,50 @@ function oturum(req) {
   return { sid: m[1], ...s };
 }
 
-function temizle(tip, v, guild) {
-  if (tip === 'bool') return v === true;
-  if (tip === 'rol' || tip === 'kanal') {
-    if (!v) return null;
-    const id = String(v).replace(/\D/g, '');
-    if (!/^\d{15,25}$/.test(id)) return null;
-    const col = tip === 'rol' ? guild.roles.cache : guild.channels.cache;
-    return col.has(id) ? id : null;
+const BOT = () => (process.env.BOT_API_URL || '').replace(/\/$/, '');
+const SIR = () => process.env.BRIDGE_SECRET || '';
+
+async function botAPI(yol, init = {}) {
+  if (!BOT() || !SIR()) {
+    const e = new Error('Köprü ayarı eksik: BOT_API_URL + BRIDGE_SECRET env gerekli!');
+    e.kod = 500;
+    throw e;
   }
-  if (tip.startsWith('yazi')) {
-    const max = parseInt(tip.split(':')[1], 10) || 500;
-    return String(v || '').slice(0, max);
+  const r = await fetch(BOT() + yol, {
+    ...init,
+    headers: { 'x-bridge-secret': SIR(), 'Content-Type': 'application/json', ...(init.headers || {}) },
+  });
+  if (!r.ok) {
+    const e = new Error('bot ' + r.status);
+    e.kod = r.status;
+    throw e;
   }
-  if (tip.startsWith('sayi')) {
-    const [, , min, max] = tip.split(':').map(Number);
-    let n = parseInt(v, 10);
-    if (isNaN(n)) n = 0;
-    return Math.max(min, Math.min(max, n));
-  }
-  return null;
+  return r.json();
 }
 
-function startWeb(client) {
+function yonetebilirMi(g) {
+  try { return g.owner || (BigInt(g.permissions) & 0x20n); }
+  catch { return false; }
+}
+
+function startKopru() {
   const app = express();
   app.use(express.json({ limit: '200kb' }));
   app.use(express.static(path.join(__dirname, 'public')));
-  try { require('./botapi').mountBotAPI(app, client); } catch (e) { console.error('Bot API açılamadı:', e.message); }
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 3100;
   const bazURL = () => (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
 
-  app.get('/health', (req, res) => res.json({
-    ok: true, bot: client.user ? client.user.tag : '?',
-    sunucu: client.guilds.cache.size, uptime: Math.floor(process.uptime()),
-  }));
+  app.get('/health', async (req, res) => {
+    let bot = null;
+    try {
+      const p = await botAPI('/api/bot/ping');
+      bot = { tag: p.bot, sunucu: p.sunucu };
+    } catch (e) { bot = { hata: e.message }; }
+    res.json({ ok: true, kopru: true, bot });
+  });
 
   app.get('/davet', (req, res) => {
-    const id = process.env.CLIENT_ID || (client.user && client.user.id) || '';
+    const id = process.env.CLIENT_ID || '';
     res.redirect(`https://discord.com/oauth2/authorize?client_id=${id}&permissions=8&scope=bot%20applications.commands`);
   });
 
@@ -127,16 +122,6 @@ function startWeb(client) {
     }
   });
 
-  async function erisebilir(sess, guildId) {
-    const guild = client.guilds.cache.get(guildId);
-    if (!guild) return null;
-    const gs = await discordAPI(sess.token, '/users/@me/guilds');
-    const g = gs.find((x) => x.id === guildId);
-    if (!g) return null;
-    if (!(g.owner || (BigInt(g.permissions) & 0x20n))) return null; // Sunucuyu Yönet
-    return { guild, bilgi: g };
-  }
-
   app.get('/api/me', (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
@@ -148,9 +133,13 @@ function startWeb(client) {
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
     try {
       const gs = await discordAPI(s.token, '/users/@me/guilds');
+      let botSunucu = [];
+      try {
+        const j = await botAPI('/api/bot/guilds');
+        botSunucu = j.guilds || [];
+      } catch (e) { return res.status(502).json({ hata: 'bota-erisilemiyor', detay: e.message }); }
       const liste = gs
-        .filter((x) => x.owner || (BigInt(x.permissions) & 0x20n))
-        .filter((x) => client.guilds.cache.has(x.id))
+        .filter((x) => yonetebilirMi(x) && botSunucu.includes(x.id))
         .map((x) => ({ id: x.id, ad: x.name, ikon: x.icon, sahip: !!x.owner }));
       res.json({ guilds: liste });
     } catch { res.status(500).json({ hata: 'discord-erisilemedi' }); }
@@ -160,47 +149,32 @@ function startWeb(client) {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
     try {
-      const bulunan = await erisebilir(s, req.params.id);
-      if (!bulunan) return res.status(403).json({ hata: 'yetki-yok' });
-      const { guild } = bulunan;
-      const g = getGuild(guild.id);
-      const ayarlar = {};
-      for (const k of Object.keys(SEMA)) ayarlar[k] = g[k] ?? null;
-      const kanallar = [...guild.channels.cache.values()]
-        .filter((k) => k.type === 0 || k.type === 2)
-        .map((k) => ({ id: k.id, ad: k.name, tip: k.type === 0 ? 'yazi' : 'ses' }))
-        .slice(0, 150);
-      const roller = [...guild.roles.cache.values()]
-        .filter((r) => r.id !== guild.id && !r.managed)
-        .map((r) => ({ id: r.id, ad: r.name, renk: r.hexColor }))
-        .slice(0, 100);
-      res.json({ id: guild.id, ad: guild.name, ayarlar, kanallar, roller });
-    } catch { res.status(500).json({ hata: 'sunucu-hatasi' }); }
+      const gs = await discordAPI(s.token, '/users/@me/guilds');
+      const g = gs.find((x) => x.id === req.params.id);
+      if (!g || !yonetebilirMi(g)) return res.status(403).json({ hata: 'yetki-yok' });
+      const j = await botAPI(`/api/bot/guild/${req.params.id}`);
+      res.json(j);
+    } catch (e) { res.status(e.kod === 404 ? 404 : 502).json({ hata: 'bot-hatasi', detay: e.message }); }
   });
 
   app.post('/api/guild/:id', async (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
     try {
-      const bulunan = await erisebilir(s, req.params.id);
-      if (!bulunan) return res.status(403).json({ hata: 'yetki-yok' });
-      const { guild } = bulunan;
-      const yama = {};
-      const govde = req.body || {};
-      for (const [k, tip] of Object.entries(SEMA)) {
-        if (!(k in govde)) continue;
-        yama[k] = temizle(tip, govde[k], guild);
-      }
-      setGuild(guild.id, yama);
-      save();
-      res.json({ ok: true, sayi: Object.keys(yama).length });
-    } catch { res.status(500).json({ hata: 'kaydedilemedi' }); }
+      const gs = await discordAPI(s.token, '/users/@me/guilds');
+      const g = gs.find((x) => x.id === req.params.id);
+      if (!g || !yonetebilirMi(g)) return res.status(403).json({ hata: 'yetki-yok' });
+      const j = await botAPI(`/api/bot/guild/${req.params.id}`, { method: 'POST', body: JSON.stringify(req.body || {}) });
+      res.json(j);
+    } catch (e) { res.status(e.kod === 404 ? 404 : 502).json({ hata: 'bot-hatasi', detay: e.message }); }
   });
 
   app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
   app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
 
-  app.listen(PORT, () => console.log(`🌐 Web panel: http://localhost:${PORT} (dışa: ${bazURL()})`));
+  app.listen(PORT, () => console.log(`🌖 Köprü açık: http://localhost:${PORT} → bot: ${BOT() || '(ayarlanmadı!)'}`));
 }
 
-module.exports = { startWeb, SEMA, temizle, discordAPI };
+if (require.main === module) startKopru();
+
+module.exports = { startKopru };

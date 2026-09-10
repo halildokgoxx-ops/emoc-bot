@@ -71,6 +71,18 @@ Kurunca OTOMATİK: 🎭 oto-rol → Üye • 📋 log • 👋 HG/çıkış • 
 ⚠️ Mevcut kanallar/roller silinir — önce `/sunucu bilgi` ile önizle, butonla onayla!
 🏅 İtibar rolleri: `/itibar rol ekle puan:50 rol:@Altın` • liste: `/itibar rol liste` • puana ulaşan rolü otomatik kapar!
 
+## 🌖 Köprü Modu (bot başka yerde, panel Render'da)
+- Botun `.env`ine `BRIDGE_SECRET=...` yaz (uzun rastgele, üretildi bile!).
+- Botun çalıştığı yerin **herkese açık adresi** lazım (örn: `https://bot.ornek.com`).
+- Render'da `emoc-kopru` servisi (`npm run kopru`): env → `CLIENT_ID`, `CLIENT_SECRET`, `BASE_URL` (=Render URL'in), `BOT_API_URL` (=bot adresin), `BRIDGE_SECRET` (=botla BİREBİR aynı!).
+- Panelden giriş yapan yetkili, botun sunucularını webden yönetir. Token Render'a **hiç verilmez**! 🔒
+
+## 🌖 Köprü Modu (bot başka yerde, panel Render'da)
+- Botun `.env`ine `BRIDGE_SECRET=...` yaz (uzun rastgele!).
+- Botun çalıştığı yerin **herkese açık adresi** lazım (örn: `https://bot.ornek.com`).
+- Render'da `emoc-kopru` servisi (`npm run kopru`): env → `CLIENT_ID`, `CLIENT_SECRET`, `BASE_URL` (=Render URL'in), `BOT_API_URL` (=bot adresin), `BRIDGE_SECRET` (=botla BİREBİR aynı!).
+- Panelden giriş yapan yetkili, botun sunucularını webden yönetir. Token Render'a **hiç verilmez**! 🔒
+
 ## ⚠️ Önemli
 - Tokeni kimseyle paylaşma! Sızarsa Developer Portal → Reset Token.
 - Partner başvurusu için botun **DM izni** açık olmalı (ret/kabul bildirimi için).

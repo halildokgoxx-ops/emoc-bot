@@ -1,26 +1,24 @@
 services:
+  # 🌖 EMOÇ Köprü — SADECE web panel! Bot BAŞKA yerde çalışır.
+  # Bu servis TOKEN içermez; BOT_API_URL üzerinden bota bağlanır.
   - type: web
-    name: emoc
+    name: emoc-kopru
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: npm run kopru
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: 20.11.0
-      - key: TOKEN
-        sync: false
-      - key: PREFIX
-        value: "!"
       - key: CLIENT_ID
         sync: false
       - key: CLIENT_SECRET
         sync: false
       - key: BASE_URL
         sync: false
-      - key: SESSION_SECRET
-        generateValue: true
-      - key: OWNER_ID
+      - key: BOT_API_URL
+        sync: false
+      - key: BRIDGE_SECRET
         sync: false
