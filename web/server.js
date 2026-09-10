@@ -55,10 +55,13 @@ function temizle(tip, v, guild) {
     return String(v || '').slice(0, max);
   }
   if (tip.startsWith('sayi')) {
-    const [, , min, max] = tip.split(':').map(Number);
+    const parca = tip.split(':');
+    const min = Number(parca[1] ?? 0) || 0;
+    const max = Number(parca[2] ?? 0) || 0;
     let n = parseInt(v, 10);
-    if (isNaN(n)) n = 0;
-    return Math.max(min, Math.min(max, n));
+    if (isNaN(n)) n = min;
+    if (max > 0) n = Math.min(max, n);
+    return Math.max(min, n);
   }
   return null;
 }

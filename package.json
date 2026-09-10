@@ -8,6 +8,7 @@
     "deploy": "node deploy-slash.js",
     "emoji": "node emoji-kur.js",
     "kopru": "node web/bridge.js",
+    "test": "node test.js",
     "dev": "node --watch index.js"
   },
   "dependencies": {

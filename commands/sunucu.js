@@ -445,15 +445,7 @@ async function buildEt(guild, client, interaction) {
       const kural = KURALLAR_YAZI.replaceAll('{sunucu}', guild.name).replaceAll('{parti}', E(client, 'parti', '🎉'));
       await isaret.kurallar.send({ content: kural.slice(0, 1900) }).catch(() => {});
     }
-    if (isaret.partnerText) {
-      await isaret.partnerText.send({
-        embeds: [kart(client, {
-          baslik: '💎 Sunucu Tanıtımımız',
-          aciklama: VARSAYILAN_PARTNER_TEXT.replace('{sunucu}', guild.name).replace('{üye}', `${guild.memberCount}`).replace('{davet}', '*otomatik eklenir*'),
-          altbilgi: 'Değiştirmek için: /partner ayarla',
-        })],
-      }).catch(() => {});
-    }
+    // 💎・partner-text kanalı durur ama OTOMATİK MESAJ ATILMAZ (admin /partner ayarla ile yönetir)
   } catch {}
 
   // Komut kanalını en son sil

@@ -14,6 +14,8 @@ const PREFIX_ONLY = new Set([
   'espri', 'tersyazi', 'tkm', 'dogruluk', 'cesaret', 'yazitura', 'zar', 'askolcer',
   'op', 'yumruk', 'gunluk-gorev', 'motivasyon', 'ticket-ekle', 'ticket-cikar',
   'hosgeldin-mesaj', 'emoji-cal', 'itiraf-ayarla', 'vitrin-ekle', 'kanal-bilgi',
+  'rol-olustur', 'rol-sil', 'rol-renk', 'kanal-ac', 'kanal-sil',
+  'toplu-rol', 'forceban', 'tempban', 'davet-olustur',
 ]);
 
 function asciiAd(s) {
