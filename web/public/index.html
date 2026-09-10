@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✦ EMOÇ — Discord Bot Paneli</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="sarmal">
+  <nav class="nav">
+    <div><div class="logo">✦ EMOÇ</div><div class="logo-kucuk">DISCORD BOT PANELİ</div></div>
+    <a class="btn btn-ghost" href="/login">Giriş Yap →</a>
+  </nav>
+  <section class="hero">
+    <h1>Sunucunu<br>Webden Yönet</h1>
+    <p>Discord ile giriş yap, sunucunu seç, tüm bot ayarlarını şık panelden değiştir.<br>Kod yok, komut ezberi yok. ✨</p>
+    <div class="hero-butonlar">
+      <a class="btn" href="/login">🔗 Discord ile Giriş</a>
+      <a class="btn btn-ghost" href="/davet">➕ Botu Sunucuna Ekle</a>
+    </div>
+    <div class="istatistik" id="istatistik">
+      <div class="istat"><b>💬</b><span>Yükleniyor...</span></div>
+    </div>
+  </section>
+  <section class="ozellikler">
+    <div class="kart"><div class="ikon">🛡️</div><h3>7 Kalkan Tek Tıkla</h3><p>Anti-link, anti-küfür, anti-spam, anti-raid, anti-bot, caps engeli, alt hesap koruması.</p></div>
+    <div class="kart"><div class="ikon">⭐</div><h3>İtibar Sistemi</h3><p>Bekleme süresi, bildirim kanalı, rozet rol ödülleri — hepsi buradan.</p></div>
+    <div class="kart"><div class="ikon">🤝</div><h3>Oto-Partner</h3><p>Partner kanalları, yetkili rolü ve tanıtım yazını düzenle.</p></div>
+    <div class="kart"><div class="ikon">📋</div><h3>Log & Karşılama</h3><p>Log, hoşgeldin, sayaç ve itiraf kanallarını seç, mesajları yaz.</p></div>
+  </section>
+  <div class="altbilgi">✦ EMOÇ • Premium Discord Deneyimi</div>
+</div>
+<script>
+fetch('/health').then(r => r.json()).then(j => {
+  document.getElementById('istatistik').innerHTML =
+    `<div class="istat"><b>🌍 ${j.sunucu}</b><span>Sunucu</span></div>` +
+    `<div class="istat"><b>⚡ Çevrimiçi</b><span>Bot Durumu</span></div>` +
+    `<div class="istat"><b>🤖 ${j.bot.split('#')[0]}</b><span>Bot</span></div>`;
+}).catch(() => {});
+const p = new URLSearchParams(location.search);
+if (p.get('hata')) alert('Giriş başarısız! Site adresi (BASE_URL) ve Client Secret ayarlarını kontrol et.');
+</script>
+</body>
+</html>
