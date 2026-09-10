@@ -203,7 +203,9 @@ function startWeb(client) {
   app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
   app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
 
-  app.listen(PORT, () => console.log(`🌐 Web panel: http://localhost:${PORT} (dışa: ${bazURL()})`));
+  if (process.env.ENABLE_WEB === '0') { console.log('🌐 Web panel kapalı (ENABLE_WEB=0)'); return; }
+  const server = app.listen(PORT, () => console.log(`🌐 Web panel: http://localhost:${PORT} (dışa: ${bazURL()})`));
+  server.on('error', (e) => console.error('🌐 Web panel açılamadı, bot çalışmaya devam ediyor:', e.message));
 }
 
 module.exports = { startWeb, SEMA, temizle, discordAPI };

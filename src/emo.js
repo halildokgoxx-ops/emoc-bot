@@ -28,8 +28,9 @@ const HARITA = {
 function _bul(client, anahtar) {
   try {
     const col = client && client.application && client.application.emojis && client.application.emojis.cache;
-    if (!col) return null;
-    return col.find((e) => e.name === HARITA[anahtar]) || null;
+    if (!col || !col.size) return null;
+    // 1) Kayıtlı kısa ad  2) Birebir emoji adı (103 özel emojinle direkt kullan!)
+    return col.find((e) => e.name === HARITA[anahtar]) || col.find((e) => e.name === anahtar) || null;
   } catch { return null; }
 }
 

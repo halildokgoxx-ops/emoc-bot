@@ -15,7 +15,7 @@ const PREFIX_ONLY = new Set([
   'op', 'yumruk', 'gunluk-gorev', 'motivasyon', 'ticket-ekle', 'ticket-cikar',
   'hosgeldin-mesaj', 'emoji-cal', 'itiraf-ayarla', 'vitrin-ekle', 'kanal-bilgi',
   'rol-olustur', 'rol-sil', 'rol-renk', 'kanal-ac', 'kanal-sil',
-  'toplu-rol', 'forceban', 'tempban', 'davet-olustur',
+  'toplu-rol', 'forceban', 'tempban', 'davet-olustur', 'rol-bilgi',
 ]);
 
 function asciiAd(s) {
@@ -100,6 +100,12 @@ function buildSlashPayload(commands) {
     if (cmd.name === 'itibar' || cmd.name === 'itibar-top') {
       continue; // /itibar alt komutları bunları kapsıyor (bak/top)
     }
+    if (cmd.name === 'cekilis') {
+      continue; // /cekilis grubu var (baslat/bitir/iptal), prefix !cekilis duruyor
+    }
+    if (cmd.name === 'rol-al') {
+      continue; // /rol-al grubu var, prefix !rol-al duruyor
+    }
     const def = slashTanimi(cmd, inferOptions(cmd));
     if (!def) { eksikler.push(cmd.name); continue; }
     if (harita.has(def.name)) { eksikler.push(cmd.name + ' (çakışma)'); continue; }
@@ -121,6 +127,20 @@ function buildSlashPayload(commands) {
     const r = require('../commands/itibar');
     if (r.itibarSlash) {
       payload.push(r.itibarSlash.data);
+    }
+  } catch {}
+  // Özel: /cekilis grubu
+  try {
+    const ck = require('../commands/cekilis');
+    if (ck.cekilisSlash) {
+      payload.push(ck.cekilisSlash.data);
+    }
+  } catch {}
+  // Özel: /rol-al grubu
+  try {
+    const rl = require('../commands/roller');
+    if (rl.rolAlSlash) {
+      payload.push(rl.rolAlSlash.data);
     }
   } catch {}
   // Özel: /sunucu grubu
@@ -206,6 +226,16 @@ async function handleSlash(interaction, client, harita) {
   if (interaction.commandName === 'itibar') {
     const r = require('../commands/itibar');
     return r.itibarSlash.execute(interaction, client);
+  }
+  // /cekilis grubu
+  if (interaction.commandName === 'cekilis') {
+    const ck = require('../commands/cekilis');
+    return ck.cekilisSlash.execute(interaction, client);
+  }
+  // /rol-al grubu
+  if (interaction.commandName === 'rol-al') {
+    const rl = require('../commands/roller');
+    return rl.rolAlSlash.execute(interaction, client);
   }
   // /sunucu grubu
   if (interaction.commandName === 'sunucu') {

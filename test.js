@@ -104,5 +104,31 @@ T('gif', !!require('./src/gif').animeGif);
 T('logger', !!require('./src/logger').logSilinen);
 T('embeds rozet', require('./src/embeds').repRozet(100) === '💎 ELMAS');
 
-console.log(`\n📊 SONUÇ: ${pass} geçti, ${fail} kaldı`);
-process.exit(fail ? 1 : 0);
+// ---------- 6. web köprü entegrasyonu (gerçek HTTP, sahte istemci) ----------
+(async () => {
+  T('bridge modülü yükleniyor', (() => { try { require('./web/bridge'); return true; } catch { return false; } })());
+  T('botapi 403 kalkanı + şekil', await (async () => {
+    try {
+      const express = require('express');
+      const { mountBotAPI } = require('./web/botapi');
+      const app = express();
+      mountBotAPI(app, { user: null, guilds: { cache: new Map() } });
+      const srv = await new Promise((res) => { const s = app.listen(0, () => res(s)); });
+      const port = srv.address().port;
+      const onceki = process.env.BRIDGE_SECRET;
+      process.env.BRIDGE_SECRET = 'test-gizli-123';
+      const kod1 = await fetch(`http://localhost:${port}/api/bot/ping`).then((r) => r.status).catch(() => 0);
+      const kod2 = await fetch(`http://localhost:${port}/api/bot/ping`, { headers: { 'x-bridge-secret': 'yanlis' } }).then((r) => r.status).catch(() => 0);
+      const j3 = await fetch(`http://localhost:${port}/api/bot/ping`, { headers: { 'x-bridge-secret': 'test-gizli-123' } }).then((r) => r.json()).catch(() => ({}));
+      const j4 = await fetch(`http://localhost:${port}/api/bot/guilds`, { headers: { 'x-bridge-secret': 'test-gizli-123' } }).then((r) => r.json()).catch(() => ({}));
+      const j5 = await fetch(`http://localhost:${port}/api/bot/guild/123`, { method: 'POST', headers: { 'x-bridge-secret': 'test-gizli-123', 'Content-Type': 'application/json' }, body: '{}' }).then((r) => r.status).catch(() => 0);
+      await new Promise((res) => srv.close(res));
+      if (onceki === undefined) delete process.env.BRIDGE_SECRET; else process.env.BRIDGE_SECRET = onceki;
+      return kod1 === 403 && kod2 === 403 && j3.ok === true && Array.isArray(j4.guilds) && j5 === 404;
+    } catch { return false; }
+  })());
+
+  console.log(`\n📊 SONUÇ: ${pass} geçti, ${fail} kaldı`);
+  await new Promise((r) => setTimeout(r, 300)); // kapanan soketler bitsin (win libuv)
+  process.exit(fail ? 1 : 0);
+})();

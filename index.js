@@ -115,6 +115,19 @@ client.once('clientReady', async () => {
   setInterval(() => {
     try { require('./commands/topluluk').gununSorusuTara(client); } catch {}
   }, 5 * 60_000);
+  // Bitmemiş çekilişleri zamanla (restart-dayanıklı)
+  try {
+    const { db } = require('./src/db');
+    const d = db();
+    if (!d.cekilisler) d.cekilisler = {};
+    const { cekilisBitir } = require('./commands/cekilis');
+    for (const [id, c] of Object.entries(d.cekilisler)) {
+      if (c.bitmis) continue;
+      const kalan = c.bitis - Date.now();
+      if (kalan <= 0) cekilisBitir(client, id);
+      else setTimeout(() => cekilisBitir(client, id), Math.min(kalan, 2147483647));
+    }
+  } catch {}
 });
 
 // ---- Mesaj sistemi ----
@@ -682,6 +695,14 @@ client.on('interactionCreate', async (interaction) => {
       if (interaction.customId.startsWith('gv_')) {
         const gv = require('./commands/guvenlik');
         return gv.handleGuvButton(interaction, client);
+      }
+      if (interaction.customId.startsWith('cekilis_katil_')) {
+        const ck = require('./commands/cekilis');
+        return ck.handleCekilisButton(interaction, client);
+      }
+      if (interaction.customId.startsWith('rolal_')) {
+        const rl = require('./commands/roller');
+        return rl.handleRolAlButton(interaction, client);
       }
       if (interaction.customId.startsWith('partner_kabul_') || interaction.customId.startsWith('partner_red_')) {
         const arr = require('./commands/partner');
