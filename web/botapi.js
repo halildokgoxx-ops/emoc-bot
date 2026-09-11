@@ -128,6 +128,25 @@ function mountBotAPI(app, client) {
     } catch { res.status(500).json({ hata: 'gonderilemedi' }); }
   });
 
+  router.get('/admin/kodlar', (req, res) => {
+    try {
+      const d = require('../src/db').db();
+      const kodlar = Object.entries((d.premium && d.premium.kodlar) || {}).map(([kod, k]) => ({
+        kod, gun: k.gun, kullanan: !!k.kullanan, tarih: k.tarih || null,
+      })).sort((a, b) => (b.tarih || 0) - (a.tarih || 0)).slice(0, 100);
+      res.json({ kodlar });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  router.post('/admin/kod-uret', (req, res) => {
+    try {
+      const { kodUret, sureParse } = require('../src/premium');
+      const gun = sureParse((req.body || {}).sure || '30d') || 30;
+      const kod = kodUret(Math.min(36500, gun), 'WEB-ADMIN');
+      res.json({ ok: true, kod });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.use('/api/bot', express.json({ limit: '200kb' }), router);
 }
 

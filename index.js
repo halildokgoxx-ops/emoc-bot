@@ -365,6 +365,32 @@ client.on('messageCreate', async (message) => {
         }
       }
     } catch {}
+    // --- EmocAI kanal sohbeti (premium, komutsuz) ---
+    try {
+      const gAI = getGuild(message.guild.id);
+      if (gAI.aiKanal && message.channel.id === gAI.aiKanal && !message.content.startsWith(prefix) && premiumMu(message.guild.id)) {
+        const AI = require('./src/ai');
+        if (AI.sogumaKontrol(message.author.id)) {
+          const kalan = AI.kalanHak(message.guild.id, message.author.id, true);
+          if (kalan <= 0) {
+            await message.reply('⏳ Bugünkü AI hakkın bitti! Yarın yine beklerim 😉').catch(() => {});
+          } else {
+            await message.channel.sendTyping().catch(() => {});
+            try {
+              const cevap = await AI.aiCevapla({
+                guildAd: message.guild.name, kullaniciAd: message.author.username,
+                soru: message.content.slice(0, 500), kanalId: message.channel.id, premium: true,
+              });
+              AI.hakTuket(message.guild.id, message.author.id);
+              await message.reply(`✦ ${cevap.slice(0, 1900)}`).catch(() => {});
+            } catch {
+              await message.reply('❌ Şu an cevap veremiyorum!').catch(() => {});
+            }
+          }
+        }
+        return;
+      }
+    } catch {}
     // --- Komut değilse çık ---
     if (!message.content.startsWith(prefix)) return;
     const args = message.content.slice(prefix.length).trim().split(/ +/);

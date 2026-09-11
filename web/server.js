@@ -228,6 +228,27 @@ function startWeb(client) {
     } catch { res.status(500).json({ hata: 'gonderilemedi' }); }
   });
 
+  app.get('/api/admin/kodlar', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const d = require('../src/db').db();
+      const kodlar = Object.entries((d.premium && d.premium.kodlar) || {}).map(([kod, k]) => ({
+        kod, gun: k.gun, kullanan: !!k.kullanan, tarih: k.tarih || null,
+      })).sort((a, b) => (b.tarih || 0) - (a.tarih || 0)).slice(0, 100);
+      res.json({ kodlar });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  app.post('/api/admin/kod-uret', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const { kodUret, sureParse } = require('../src/premium');
+      const gun = sureParse((req.body || {}).sure || '30d') || 30;
+      const kod = kodUret(Math.min(36500, gun), 'WEB-ADMIN');
+      res.json({ ok: true, kod });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.get('/api/guilds', async (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });

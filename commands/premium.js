@@ -18,6 +18,7 @@ const AVANTAJLAR =
   '📨 **/davet-odul** — X davet edene otomatik rol!\n' +
   '🏰 **/sunucu kur** — tek tıkla dehşet sunucu\n' +
   '🎉 **Çekiliş PRO** — 30 gün süre, 1000 katılımcı (free: 7 gün/200)\n' +
+  '✦ **EmocAI PRO** — 100/gün hak + komutsuz sohbet kanalı (`/premium ai-kanal`)!\n' +
   '🎁 Günlük x2 • 🚀 XP x2 • ⭐ Profil mührü';
 
 // Free yazarsa premium hatası veren kapı
@@ -206,6 +207,13 @@ const premiumSlash = {
         options: [{ type: 3, name: 'kod', description: 'EMOC-XXXX-XXXX', required: true }],
       },
       { type: 1, name: 'bilgi', description: 'Bu sunucunun premium durumu + avantajlar' },
+      {
+        type: 1, name: 'ai-kanal', description: '👑 Komutsuz EmocAI sohbet kanalı!',
+        options: [
+          { type: 3, name: 'islem', description: 'İşlem', required: true, choices: [{ name: 'Ayarla', value: 'ayarla' }, { name: 'Kapat', value: 'kapat' }, { name: 'Durum', value: 'durum' }] },
+          { type: 7, name: 'kanal', description: 'AI sohbet kanalı', required: false },
+        ],
+      },
     ],
   },
   async execute(interaction, client) {
@@ -222,6 +230,22 @@ const premiumSlash = {
       });
     }
     const b = P.premiumBilgi(interaction.guild.id);
+    if (alt === 'ai-kanal') {
+      if (!premKontrol(interaction)) return;
+      const islem = interaction.options.getString('islem');
+      if (islem === 'kapat') {
+        setGuild(interaction.guild.id, { aiKanal: null });
+        return interaction.reply({ embeds: [ok('✦ EmocAI kanalı kapatıldı.')] });
+      }
+      if (islem === 'durum') {
+        const k = getGuild(interaction.guild.id).aiKanal;
+        return interaction.reply({ content: k ? `✦ EmocAI kanalı: <#${k}> — komutsuz sohbet aktif! (Premium: 100/gün)` : 'Kapalı.', ephemeral: true });
+      }
+      const kanal = interaction.options.getChannel('kanal');
+      if (!kanal || !kanal.isTextBased()) return interaction.reply({ content: 'Yazı kanalı seç!', ephemeral: true });
+      setGuild(interaction.guild.id, { aiKanal: kanal.id });
+      return interaction.reply({ embeds: [ok(`✦ ${kanal} artık **EmocAI sohbet kanalı**!\nKomutsuz yaz, EmocAI cevaplasın! (Premium: 100/gün) 💬`)] });
+    }
     return interaction.reply({
       embeds: [kart(client, {
         renk: b ? RENK.altin : RENK.ana,

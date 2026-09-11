@@ -174,6 +174,18 @@ function startKopru() {
     catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   });
 
+  app.get('/api/admin/kodlar', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI('/api/bot/admin/kodlar')); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
+  app.post('/api/admin/kod-uret', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI('/api/bot/admin/kod-uret', { method: 'POST', body: JSON.stringify(req.body || {}) })); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
   app.get('/api/guilds', async (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });

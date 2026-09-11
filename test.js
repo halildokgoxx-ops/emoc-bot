@@ -140,9 +140,17 @@ T('premiumMu yok', PR.premiumMu('0') === false);
 // ---------- 8. premium OP + level grupları ----------
 const PRM = require('./commands/premium');
 T('premium 12 OP komut', (PRM.premiumKomutlar || []).length === 12, String((PRM.premiumKomutlar || []).length));
-T('premium grup 2 alt', (PRM.premiumSlash?.data?.options || []).length === 2);
+T('premium grup altlar', ['aktiflestir', 'bilgi', 'ai-kanal'].every((n) => (require('./commands/premium').premiumSlash?.data?.options || []).some((o) => o.name === n)));
 T('OP slash hepsi kayitli', ['yapiskan', 'oto-cevap', 'yedek', 'giris-dm', 'seviye-hiz', 'sayac-pro', 'hosgeldin', 'gorusuruz', 'oto-roller', 'tag', 'oto-cekilis', 'davet-odul'].every((n) => r.payload.some((p) => p.name === n)));
 T('level grubu kayitli', r.payload.some((p) => p.name === 'level'));
+
+// ---------- 9. EmocAI ----------
+const AIM = require('./src/ai');
+T('EmocAI kimlik', AIM.SYSTEM.includes('EmocAI'));
+T('model yedekli', !!AIM.MODEL && !!AIM.MODEL && AIM.MODEL !== 'llama-3.3-70b-versatile');
+T('limit free/prem', AIM.limitFor(false) === 15 && AIM.limitFor(true) === 100);
+T('ai-kanal premiumda', (require('./commands/premium').premiumSlash?.data?.options || []).some((o) => o.name === 'ai-kanal'));
+T('/ai komutu var', (() => { try { return !!require('./commands/ai'); } catch { return false; } })());
 
   console.log(`\n📊 SONUÇ: ${pass} geçti, ${fail} kaldı`);
   await new Promise((r) => setTimeout(r, 300)); // kapanan soketler bitsin (win libuv)

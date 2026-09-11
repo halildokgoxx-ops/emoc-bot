@@ -188,6 +188,12 @@ async function adminAc() {
       </div>
       <div class="bolum"><h2>👑 Premium Sunucular</h2>${j.premium.length ? j.premium.map(satir).join('') : '<p class="bos">Yok</p>'}</div>
       <div class="bolum"><h2>🆓 Free Sunucular</h2>${j.free.length ? j.free.map(satir).join('') : '<p class="bos">Yok</p>'}</div>
+      <div class="bolum"><h2>🎟️ Premium Kodları</h2>
+        <div class="satir"><label>Yeni kod üret</label><div style="display:flex;gap:6px;align-items:center">
+        <input type="text" id="kod-sure" placeholder="30d / 1y / sinirsiz" style="width:150px">
+        <button class="btn btn-kucuk" onclick="kodUret()">Üret</button></div></div>
+        <div id="kod-liste"><p class="bos">Yükleniyor...</p></div>
+      </div>
       <div class="bolum"><h2>📢 Duyuru Gönder</h2>
         <div class="satir"><label>Sunucu</label><select id="d-sunucu"></select></div>
         <div class="satir"><label>Kanal</label><select id="d-kanal"><option>Önce sunucu seç</option></select></div>
@@ -199,6 +205,7 @@ async function adminAc() {
     ss.innerHTML = tumu.map((s) => `<option value="${s.id}">${s.ad}</option>`).join('');
     ss.onchange = adminKanalDoldur;
     adminKanalDoldur();
+    kodListesi();
   } catch { ed.innerHTML = '<div class="hata-kutu">Yüklenemedi!</div>'; }
 }
 
@@ -232,6 +239,28 @@ async function duyuruGonder() {
     toast('📨 Duyuru gönderildi!');
     document.getElementById('d-mesaj').value = '';
   } catch { toast('❌ Gönderilemedi!'); }
+}
+
+async function kodListesi() {
+  const kutu = document.getElementById('kod-liste');
+  if (!kutu) return;
+  try {
+    const j = await api('/api/admin/kodlar');
+    const liste = j.kodlar || [];
+    if (!liste.length) { kutu.innerHTML = '<p class="bos">Henüz kod yok.</p>'; return; }
+    kutu.innerHTML = liste.slice(0, 20).map((k) =>
+      `<div class="satir"><label><code>${k.kod}</code><small>📅 ${k.gun >= 36500 ? 'SINIRSIZ' : k.gun + ' gün'} ${k.kullanan ? '• ✅ kullanıldı' : '• ⏳ boşta'}</small></label></div>`
+    ).join('');
+  } catch { kutu.innerHTML = '<p class="bos">Yüklenemedi.</p>'; }
+}
+
+async function kodUret() {
+  const sure = (document.getElementById('kod-sure') || {}).value || '30d';
+  try {
+    const j = await api('/api/admin/kod-uret', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sure }) });
+    toast(`🎟️ Kod üretildi: ${j.kod}`);
+    kodListesi();
+  } catch { toast('❌ Üretilemedi!'); }
 }
 
 baslat();

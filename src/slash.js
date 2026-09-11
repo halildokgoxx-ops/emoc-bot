@@ -18,7 +18,7 @@ const PREFIX_ONLY = new Set([
   'toplu-rol', 'forceban', 'tempban', 'davet-olustur', 'rol-bilgi',
   'rol-liste', 'sunucu-banner', 'itiraf',
   'unban', 'kilitac', 'yavasmod', 'rolver', 'rolal', 'nick',
-  'uyari-sil', 'uyarilar', 'susturulanlar', 'banlist', 'log-ayarla', 'hosgeldin-ayarla', 'kura', 'nick',
+  'uyari-sil', 'uyarilar', 'susturulanlar', 'banlist', 'log-ayarla', 'hosgeldin-ayarla', 'kura', 'nick', 'botbilgi',
 ]);
 
 function asciiAd(s) {
