@@ -192,6 +192,30 @@ function startKopru() {
     catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   });
 
+  async function yasakliKontrol(req, res) {
+    const s = oturum(req);
+    if (!s) { res.status(401).json({ hata: 'giris-yok' }); return null; }
+    const gid = req.params.id || (req.body || {}).guildId;
+    try {
+      const gs = await discordAPI(s.token, '/users/@me/guilds');
+      const g = gs.find((x) => x.id === gid);
+      if (!g || !(g.owner || (BigInt(g.permissions) & 0x20n))) { res.status(403).json({ hata: 'yetki-yok' }); return null; }
+    } catch { res.status(500).json({ hata: 'discord' }); return null; }
+    return gid;
+  }
+
+  app.get('/api/yasakli/:id', async (req, res) => {
+    if (!(await yasakliKontrol(req, res))) return;
+    try { res.json(await botAPI(`/api/bot/yasakli/${req.params.id}`)); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
+  app.post('/api/yasakli', async (req, res) => {
+    if (!(await yasakliKontrol(req, res))) return;
+    try { res.json(await botAPI('/api/bot/yasakli', { method: 'POST', body: JSON.stringify(req.body || {}) })); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
   app.get('/api/guilds', async (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });

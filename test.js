@@ -152,6 +152,10 @@ T('limit free/prem', AIM.limitFor(false) === 15 && AIM.limitFor(true) === 100);
 T('ai-kanal premiumda', (require('./commands/premium').premiumSlash?.data?.options || []).some((o) => o.name === 'ai-kanal'));
 T('/ai komutu var', (() => { try { return !!require('./commands/ai'); } catch { return false; } })());
 
+T('medya gif ayikla', (() => { const r = u.medyaAyikla('selam https://cdn.discord.com/a.gif oley'); return r.resim === 'https://cdn.discord.com/a.gif' && r.metin.includes('selam'); })());
+T('medya yok', (() => { const r = u.medyaAyikla('sadece yazi'); return r.resim === null; })());
+T('SEMA yeni alanlar', ['cikisMesaj', 'sayacMesaj', 'seviyeHiz', 'girisDM'].every((k) => k in require('./web/server').SEMA));
+
   console.log(`\n📊 SONUÇ: ${pass} geçti, ${fail} kaldı`);
   await new Promise((r) => setTimeout(r, 300)); // kapanan soketler bitsin (win libuv)
   process.exit(fail ? 1 : 0);

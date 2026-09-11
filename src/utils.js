@@ -74,4 +74,12 @@ function davetKoduBul(text) {
   return m ? m[1] : null;
 }
 
-module.exports = { parseSure, sureYaz, rastgele, gunlukSeed, seedRandom, kufurMu, linkMu, dolandiriciMi, davetKoduBul };
+// Mesajdaki ilk resim/gif linkini ayıkla (panelden gif ekleme için)
+const RESIM_RE = /(https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(\?\S*)?)/i;
+function medyaAyikla(metin) {
+  const m = String(metin || '').match(RESIM_RE);
+  if (!m) return { metin: String(metin || ''), resim: null };
+  return { metin: String(metin).replace(m[0], '').trim(), resim: m[0] };
+}
+
+module.exports = { parseSure, sureYaz, rastgele, gunlukSeed, seedRandom, kufurMu, linkMu, dolandiriciMi, davetKoduBul, medyaAyikla };

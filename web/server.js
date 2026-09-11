@@ -21,7 +21,8 @@ const SEMA = {
   gununSorusuKanal: 'kanal',
   otoRol: 'rol', partnerYetkiliRol: 'rol',
   hosgeldinMesaj: 'yazi:500', partnerText: 'yazi:1500',
-  sayacHedef: 'sayi:0:100000', repSuresiDk: 'sayi:0:4320',
+  cikisMesaj: 'yazi:500', sayacMesaj: 'yazi:500', girisDM: 'yazi:1000',
+  sayacHedef: 'sayi:0:100000', repSuresiDk: 'sayi:0:4320', seviyeHiz: 'sayi:1:5',
 };
 
 async function discordAPI(token, yol, init = {}) {
@@ -260,6 +261,46 @@ function startWeb(client) {
         return res.json({ ok: true });
       }
       res.status(404).json({ hata: 'bulunamadi' });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  // 🚫 Yasaklı kelime yönetimi (yönetici yetkisi + botun olduğu sunucu)
+  async function yasakliYetki(req, res) {
+    const s = oturum(req);
+    if (!s) { res.status(401).json({ hata: 'giris-yok' }); return null; }
+    const gid = req.params.id || (req.body || {}).guildId;
+    const guild = client.guilds.cache.get(gid);
+    if (!guild) { res.status(404).json({ hata: 'yok' }); return null; }
+    try {
+      const gs = await discordAPI(s.token, '/users/@me/guilds');
+      const g = gs.find((x) => x.id === gid);
+      if (!g || !(g.owner || (BigInt(g.permissions) & 0x20n))) { res.status(403).json({ hata: 'yetki-yok' }); return null; }
+    } catch { res.status(500).json({ hata: 'discord' }); return null; }
+    return guild;
+  }
+
+  app.get('/api/yasakli/:id', async (req, res) => {
+    const guild = await yasakliYetki(req, res);
+    if (!guild) return;
+    res.json({ kelimeler: getGuild(guild.id).yasakli || [] });
+  });
+
+  app.post('/api/yasakli', async (req, res) => {
+    const guild = await yasakliYetki(req, res);
+    if (!guild) return;
+    try {
+      const { islem, kelime } = req.body || {};
+      const g = getGuild(guild.id);
+      if (!Array.isArray(g.yasakli)) g.yasakli = [];
+      const k = String(kelime || '').toLocaleLowerCase('tr').trim().slice(0, 50);
+      if (islem === 'ekle') {
+        if (!k) return res.status(400).json({ hata: 'bos' });
+        if (!g.yasakli.includes(k)) g.yasakli.push(k);
+      } else if (islem === 'sil') {
+        g.yasakli = g.yasakli.filter((x) => x !== k);
+      } else return res.status(400).json({ hata: 'islem' });
+      save();
+      res.json({ ok: true, kelimeler: g.yasakli });
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 

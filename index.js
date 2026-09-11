@@ -562,11 +562,13 @@ client.on('guildMemberAdd', async (member) => {
         } else {
           const txt = (g.hosgeldinMesaj || '👋 Hoşgeldin {kullanıcı}! {sunucu} sunucusuna katıldın. {üye}. üyesin! 🎉')
             .replace(/{kullanıcı}/g, `${member}`).replace(/{sunucu}/g, member.guild.name).replace(/{üye}/g, `${member.guild.memberCount}`);
-          let gif = null;
-          try { gif = await require('./src/gif').animeGif('wave'); } catch {}
+          const { medyaAyikla } = require('./src/utils');
+          const { metin, resim } = medyaAyikla(txt);
+          let gif = resim || null;
+          try { if (!gif) gif = await require('./src/gif').animeGif('wave'); } catch {}
           const e = new EmbedBuilder().setColor(config.colors.success).setTitle(`👋 Hoşgeldin, ${member.user.username}!`)
             .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-            .setDescription(`${txt}${supheli ? '\n\n⚠️ *Hesap 7 günden yeni, dikkat!*' : ''}`)
+            .setDescription(`${metin}${supheli ? '\n\n⚠️ *Hesap 7 günden yeni, dikkat!*' : ''}`)
             .setImage(gif || null)
             .setFooter({ text: `${member.guild.name} • ${member.guild.memberCount}. üye 🎉` }).setTimestamp();
           k.send({ embeds: [e] }).catch(() => {});
@@ -582,6 +584,15 @@ client.on('guildMemberAdd', async (member) => {
           k.send(`🎯 **HEDEF TAMAMLANDI!** ${g.sayacHedef} üyeye ulaştık! 🎉`).catch(() => {});
           const { setGuild } = require('./src/db');
           setGuild(member.guild.id, { sayacHedef: 0, sayacKanal: null });
+        } else if (g.sayacMesaj) {
+          const { medyaAyikla } = require('./src/utils');
+          const ham = String(g.sayacMesaj)
+            .replace(/{kullanıcı}/g, `${member}`).replace(/{sunucu}/g, member.guild.name)
+            .replace(/{üye}/g, `${member.guild.memberCount}`).replace(/{hedef}/g, `${g.sayacHedef}`).replace(/{kalan}/g, `${kalan}`);
+          const { metin, resim } = medyaAyikla(ham);
+          const e2 = new EmbedBuilder().setColor(config.colors.main).setDescription(metin || '*...*').setTimestamp();
+          if (resim) e2.setImage(resim);
+          k.send({ embeds: [e2] }).catch(() => {});
         } else {
           k.send(`📥 ${member} katıldı! **${g.sayacHedef}** üye olmasına **${kalan}** kaldı!`).catch(() => {});
         }
@@ -612,6 +623,16 @@ client.on('guildMemberRemove', async (member) => {
           const { hgVedaEmbed } = require('./commands/premium');
           const t = String(g.vedaEmbed.mesaj || '').replace(/{kullanıcı}/g, member.user.tag).replace(/{sunucu}/g, member.guild.name).slice(0, 1500);
           k.send({ embeds: [hgVedaEmbed(member.client, member.guild, member.user, { baslik: g.vedaEmbed.baslik, mesaj: t }, false)] }).catch(() => {});
+        } else if (g.cikisMesaj) {
+          const { medyaAyikla } = require('./src/utils');
+          const ham = String(g.cikisMesaj)
+            .replace(/{kullanıcı}/g, `${member}`).replace(/{sunucu}/g, member.guild.name).replace(/{üye}/g, `${member.guild.memberCount}`);
+          const { metin, resim } = medyaAyikla(ham);
+          const e = new EmbedBuilder().setColor(config.colors.main).setTitle(`👋 ${member.user.username} ayrıldı`)
+            .setThumbnail(member.user.displayAvatarURL({ size: 128 }))
+            .setDescription(metin || '*...*').setTimestamp();
+          if (resim) e.setImage(resim);
+          k.send({ embeds: [e] }).catch(() => {});
         } else {
           k.send(`👋 **${member.user.tag}** aramızdan ayrıldı. Güle güle...`).catch(() => {});
         }

@@ -1,15 +1,19 @@
 :root {
-  --bg: #0b0b16;
-  --bg2: #121224;
-  --cam: rgba(255, 255, 255, 0.06);
-  --cizgi: rgba(255, 255, 255, 0.1);
+  --bg: #07070d;
+  --bg2: #0d0d1a;
+  --cam: rgba(255, 255, 255, 0.045);
+  --cam2: rgba(255, 255, 255, 0.08);
+  --cizgi: rgba(255, 255, 255, 0.09);
   --mor: #8b5cf6;
   --pembe: #ec4899;
-  --yazi: #f1f1f8;
-  --soluk: #a5a5c0;
+  --camgobegi: #22d3ee;
+  --altin: #ffc93c;
+  --yazi: #f4f4fa;
+  --soluk: #9a9ab5;
   --yesil: #00e676;
   --kirmizi: #ff3d71;
-  --yaricap: 18px;
+  --yaricap: 16px;
+  --golge: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -18,10 +22,14 @@ body {
   color: var(--yazi);
   min-height: 100vh;
   background-image:
-    radial-gradient(800px 400px at 15% -5%, rgba(139, 92, 246, 0.25), transparent),
-    radial-gradient(700px 380px at 90% 10%, rgba(236, 72, 153, 0.18), transparent),
-    radial-gradient(600px 500px at 50% 110%, rgba(0, 212, 255, 0.1), transparent);
+    radial-gradient(900px 420px at 12% -5%, rgba(139, 92, 246, 0.22), transparent),
+    radial-gradient(760px 400px at 88% 8%, rgba(236, 72, 153, 0.14), transparent),
+    radial-gradient(700px 520px at 50% 112%, rgba(34, 211, 238, 0.07), transparent);
   background-attachment: fixed;
+}
+h1, h2, h3, .logo, .bolum h2, .modal-kutu2 h3 {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.01em;
 }
 a { color: inherit; }
 .sarmal { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
@@ -142,3 +150,70 @@ select option { background: #1a1a2e; }
 ::selection { background: rgba(236, 72, 153, 0.45); }
 .btn:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--pembe); outline-offset: 2px; }
+
+/* ---- Panel: yan menü düzeni ---- */
+.panel-duzen { display: grid; grid-template-columns: 210px 1fr; gap: 16px; align-items: start; }
+.kenar { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 16px;
+  background: var(--cam); border: 1px solid var(--cizgi); border-radius: var(--yaricap); padding: 10px; }
+.kenar-btn { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 12px;
+  background: transparent; border: 1px solid transparent; color: var(--soluk);
+  font-family: 'Space Grotesk', 'Inter', sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; text-align: left; transition: all 0.18s; width: 100%; }
+.kenar-btn:hover { background: var(--cam2); color: var(--yazi); }
+.kenar-btn.aktif { background: linear-gradient(90deg, rgba(139,92,246,.22), rgba(236,72,153,.14));
+  border-color: rgba(139,92,246,.45); color: #fff;
+  box-shadow: inset 3px 0 0 var(--mor); }
+.icerik { min-width: 0; animation: icerikGir 0.25s ease; }
+@keyframes icerikGir { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 760px) {
+  .panel-duzen { grid-template-columns: 1fr; }
+  .kenar { position: static; flex-direction: row; overflow-x: auto; }
+  .kenar-btn { white-space: nowrap; }
+}
+
+/* ---- Yazı editör modalı ---- */
+.modal-arka { position: fixed; inset: 0; background: rgba(4, 4, 10, 0.72);
+  backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center;
+  z-index: 200; padding: 18px; }
+.modal-arka.acik { display: flex; }
+.modal-kutu2 { width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+  background: linear-gradient(180deg, #14141f, #0d0d17);
+  border: 1px solid rgba(139, 92, 246, 0.35); border-radius: 20px; padding: 26px;
+  box-shadow: var(--golge), 0 0 50px rgba(139, 92, 246, 0.15);
+  animation: modalGir 0.25s ease; }
+@keyframes modalGir { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: none; } }
+.modal-kutu2 h3 { font-size: 19px; margin-bottom: 14px; }
+.cip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.cip-row::before { content: 'Değişkenler:'; width: 100%; font-size: 11px; font-weight: 800;
+  letter-spacing: 2px; color: var(--soluk); margin-bottom: 2px; }
+.cip { background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #d6c8ff; border-radius: 999px; padding: 6px 13px; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: monospace; transition: all 0.15s; }
+.cip:hover { background: rgba(139, 92, 246, 0.32); transform: translateY(-1px); }
+.modal-kutu2 textarea { max-width: 100%; min-height: 110px; margin: 10px 0 4px;
+  font-size: 15px; line-height: 1.6; }
+.gif-ipucu { font-size: 12px; color: var(--soluk); margin: 6px 0 12px; }
+.onizleme-kutu { background: rgba(0, 0, 0, 0.3); border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; }
+.onizleme-baslik { font-size: 10px; font-weight: 800; letter-spacing: 2px; color: var(--soluk); margin-bottom: 8px; }
+.onizleme-mesaj { background: #1e1f2e; border-radius: 0 12px 12px 12px; padding: 10px 14px; font-size: 14px; }
+.onizleme-mesaj b { color: #c4b5fd; }
+.onizleme-mesaj span { color: var(--soluk); font-size: 11px; font-weight: 400; }
+.onizleme-mesaj p { margin-top: 4px; line-height: 1.55; word-break: break-word; }
+.onizleme-mesaj img { max-width: 100%; max-height: 220px; border-radius: 10px; margin-top: 8px; display: block; }
+.modal-alt { display: flex; justify-content: flex-end; gap: 10px; }
+
+/* ---- Yasaklı kelime çipleri ---- */
+.yasak-liste { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 8px; }
+.yasak-cip { display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255, 61, 113, 0.1); border: 1px solid rgba(255, 61, 113, 0.35);
+  border-radius: 999px; padding: 7px 8px 7px 14px; font-size: 14px; font-weight: 600; }
+.yasak-cip b { cursor: pointer; background: rgba(255, 61, 113, 0.2); border-radius: 50%;
+  width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; transition: background 0.15s; }
+.yasak-cip b:hover { background: var(--kirmizi); }
+
+/* ---- Bölüm başlıkları ---- */
+.bolum h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.bolum h2::after { content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, rgba(139,92,246,.4), transparent); }

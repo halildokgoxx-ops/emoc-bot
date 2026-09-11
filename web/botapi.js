@@ -162,6 +162,31 @@ function mountBotAPI(app, client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
+  router.get('/yasakli/:id', (req, res) => {
+    const guild = client.guilds.cache.get(req.params.id);
+    if (!guild) return res.status(404).json({ hata: 'yok' });
+    res.json({ kelimeler: getGuild(guild.id).yasakli || [] });
+  });
+
+  router.post('/yasakli', (req, res) => {
+    try {
+      const { guildId, islem, kelime } = req.body || {};
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ hata: 'yok' });
+      const g = getGuild(guild.id);
+      if (!Array.isArray(g.yasakli)) g.yasakli = [];
+      const k = String(kelime || '').toLocaleLowerCase('tr').trim().slice(0, 50);
+      if (islem === 'ekle') {
+        if (!k) return res.status(400).json({ hata: 'bos' });
+        if (!g.yasakli.includes(k)) g.yasakli.push(k);
+      } else if (islem === 'sil') {
+        g.yasakli = g.yasakli.filter((x) => x !== k);
+      } else return res.status(400).json({ hata: 'islem' });
+      save();
+      res.json({ ok: true, kelimeler: g.yasakli });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.use('/api/bot', express.json({ limit: '200kb' }), router);
 }
 
