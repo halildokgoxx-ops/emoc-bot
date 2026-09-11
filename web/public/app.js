@@ -94,12 +94,21 @@ async function baslat() {
       };
       kutu.appendChild(d);
     });
-    sunucuAc(guilds[0].id, guilds[0].ad);
   } catch (e) { /* login'e yönlendi */ }
+}
+
+function sunucuGeri() {
+  document.getElementById('sunucular-wrap').classList.remove('gizli');
+  document.getElementById('editor').classList.add('gizli');
+  document.getElementById('duzen').classList.remove('tekli');
+  SID = null;
 }
 
 async function sunucuAc(id, ad) {
   SID = id;
+  document.getElementById('sunucular-wrap').classList.add('gizli');
+  document.getElementById('editor').classList.remove('gizli');
+  document.getElementById('duzen').classList.add('tekli');
   document.getElementById('editor').innerHTML = '<div class="yukleniyor">Ayarlar yükleniyor...</div>';
   try {
     const j = await api(`/api/guild/${id}`);
@@ -119,7 +128,7 @@ function secenekler(liste, deger, bosAd) {
 
 function ciz(ad) {
   const b = BOLUM.find((x) => x.id === AKTIF_SEKME) || BOLUM[0];
-  let html = `<h2 style="margin-bottom:14px">⚙️ ${ad}</h2><div class="panel-duzen">`;
+  let html = `<div class="geri-bar"><button class="btn btn-ghost btn-kucuk" onclick="sunucuGeri()">← Sunucular</button><b>⚙️ ${ad}</b></div><div class="panel-duzen">`;
   html += `<aside class="kenar">` + BOLUM.map((x) =>
     `<button class="kenar-btn${x.id === b.id ? ' aktif' : ''}" onclick="sekmeAc('${x.id}')">${x.baslik}</button>`
   ).join('') + `</aside><div class="icerik" id="icerik">`;

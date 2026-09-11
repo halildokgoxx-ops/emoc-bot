@@ -254,3 +254,62 @@ select option { background: #1a1a2e; }
 @media (max-width: 760px) {
   .liste-ekle input, .liste-ekle select { max-width: 100%; flex: 1; }
 }
+
+/* ============ YUMI TARZI TEMA (düz, sade, modern) ============ */
+body {
+  background-color: #0a0a13;
+  background-image:
+    radial-gradient(700px 320px at 50% -5%, rgba(124, 92, 246, 0.12), transparent),
+    radial-gradient(500px 300px at 95% 20%, rgba(124, 92, 246, 0.06), transparent);
+}
+.gizli { display: none !important; }
+
+/* Üst bar: ince, yapışkan */
+.panel-ust { position: sticky; top: 0; z-index: 60;
+  background: rgba(10, 10, 19, 0.88); backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  margin: 0 -20px; padding: 12px 20px; }
+
+/* Butonlar: düz mor */
+.btn { background: #7c5cf6; box-shadow: 0 4px 14px rgba(124, 92, 246, 0.28); border-radius: 12px; }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124, 92, 246, 0.4); }
+.btn-ghost { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: none; }
+
+/* Kartlar: düz, ince çizgi */
+.bolum, .kart, .kenar { background: #10101c; border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: none; backdrop-filter: none; }
+.kart:hover { transform: none; border-color: rgba(124, 92, 246, 0.35); }
+.kenar-btn { border-radius: 10px; }
+.kenar-btn.aktif { background: rgba(124, 92, 246, 0.14); border-color: transparent;
+  box-shadow: inset 3px 0 0 #7c5cf6; }
+
+/* Sunucu seçim ızgarası */
+.sunucular.ag { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.sunucular.ag .sunucu { padding: 18px; border-radius: 16px; background: #10101c;
+  border: 1px solid rgba(255, 255, 255, 0.07); }
+.sunucular.ag .sunucu:hover { border-color: rgba(124, 92, 246, 0.5); transform: translateY(-2px); }
+.sunucular.ag .sunucu img, .sunucular.ag .sunucu .harf { width: 52px; height: 52px; }
+.sunucular.ag .sunucu b { font-size: 15px; }
+
+/* Geri barı */
+.geri-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.geri-bar b { font-size: 20px; font-family: 'Space Grotesk', 'Inter', sans-serif; }
+
+/* Düzen: tek sütun (sunucu listesi <-> tam ekran ayarlar) */
+.duzen { grid-template-columns: 1fr; }
+
+/* Hap rozet */
+.hap { display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 1px;
+  color: #c4b5fd; background: rgba(124, 92, 246, 0.14); border: 1px solid rgba(124, 92, 246, 0.35);
+  border-radius: 999px; padding: 5px 14px; text-transform: uppercase; }
+
+/* Toggle: düz mor */
+.toggle input:checked + .ray { background: #7c5cf6; }
+
+/* Girdiler: koyu ve köşeli */
+select, input[type='text'], input[type='number'], textarea {
+  background: #0a0a14; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+/* Bölüm başlıkları: sade */
+.bolum h2 { font-size: 15px; }
+.bolum h2::after { background: rgba(255, 255, 255, 0.08); }
