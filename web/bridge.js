@@ -186,19 +186,27 @@ function startKopru() {
     catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   });
 
+  app.post('/api/admin/kod-sil', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI('/api/bot/admin/kod-sil', { method: 'POST', body: JSON.stringify(req.body || {}) })); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
   app.get('/api/guilds', async (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
     try {
       const gs = await discordAPI(s.token, '/users/@me/guilds');
       let botSunucu = [];
+      let premSet = new Set();
       try {
         const j = await botAPI('/api/bot/guilds');
         botSunucu = j.guilds || [];
+        premSet = new Set(j.prem || []);
       } catch (e) { return res.status(502).json({ hata: 'bota-erisilemiyor', detay: e.message }); }
       const liste = gs
         .filter((x) => yonetebilirMi(x) && botSunucu.includes(x.id))
-        .map((x) => ({ id: x.id, ad: x.name, ikon: x.icon, sahip: !!x.owner }));
+        .map((x) => ({ id: x.id, ad: x.name, ikon: x.icon, sahip: !!x.owner, prem: premSet.has(x.id) }));
       res.json({ guilds: liste });
     } catch { res.status(500).json({ hata: 'discord-erisilemedi' }); }
   });

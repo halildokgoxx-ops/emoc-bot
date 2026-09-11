@@ -8,10 +8,18 @@
 <meta name="theme-color" content="#0b0b16">
 <meta name="description" content="EMOÇ — Discord sunucunun süper gücü. Güvenlik, itibar, çekiliş, partner ve dahası!">
 <link rel="stylesheet" href="/styles.css">
+<style>
+#ilerleme { position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+  background: linear-gradient(90deg, var(--mor, #8b5cf6), var(--pembe, #ec4899));
+  z-index: 100; box-shadow: 0 0 12px rgba(236,72,153,.7); }
+.premium-kart { border: 1px solid rgba(255,201,60,.55) !important;
+  background: linear-gradient(135deg, rgba(255,201,60,.12), rgba(236,72,153,.10)) !important; }
+</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
+<div id="ilerleme"></div>
 <div class="sarmal">
   <nav class="nav">
     <div><div class="logo">✦ EMOÇ</div><div class="logo-kucuk">SUPER BOT</div></div>
@@ -104,8 +112,18 @@ fetch('/health').then(r => r.json()).then(j => {
   document.getElementById('istatistik').innerHTML =
     `<div class="istat"><b>🌍 ${j.sunucu ?? '?'}</b><span>Sunucu</span></div>` +
     `<div class="istat"><b>⚡ Çevrimiçi</b><span>Bot Durumu</span></div>` +
-    `<div class="istat"><b>🤖 ${(j.bot || '?').split('#')[0]}</b><span>Bot</span></div>`;
+    `<div class="istat"><b>🤖 ${(j.bot || '?').split('#')[0]}</b><span>Bot</span></div>` +
+    `<div class="istat"><b>📖 <span id="komut-sayi">…</span></b><span>Komut</span></div>`;
+  fetch('/api/komutlar').then(r => r.json()).then(k => {
+    const el = document.getElementById('komut-sayi');
+    if (el) el.textContent = k.sayi || '?';
+  }).catch(() => {});
 }).catch(() => {});
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const oran = h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight);
+  document.getElementById('ilerleme').style.width = `${Math.round(oran * 100)}%`;
+}, { passive: true });
 fetch('/api/istatistik').then(r => r.json()).then(j => {
   const g = document.getElementById('sunucu-grid');
   if (!j.oneCikan || !j.oneCikan.length) { g.innerHTML = '<div class="kart"><p>Yakında burada! 🚀</p></div>'; return; }

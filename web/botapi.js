@@ -24,7 +24,9 @@ function mountBotAPI(app, client) {
   }));
 
   router.get('/guilds', (req, res) => {
-    res.json({ guilds: [...client.guilds.cache.keys()] });
+    const { premiumMu } = require('../src/premium');
+    const ids = [...client.guilds.cache.keys()];
+    res.json({ guilds: ids, prem: ids.filter((id) => { try { return premiumMu(id); } catch { return false; } }) });
   });
 
   router.get('/guild/:id', (req, res) => {
@@ -144,6 +146,19 @@ function mountBotAPI(app, client) {
       const gun = sureParse((req.body || {}).sure || '30d') || 30;
       const kod = kodUret(Math.min(36500, gun), 'WEB-ADMIN');
       res.json({ ok: true, kod });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  router.post('/admin/kod-sil', (req, res) => {
+    try {
+      const d = require('../src/db').db();
+      const kod = String((req.body || {}).kod || '').trim().toUpperCase();
+      if (d.premium?.kodlar?.[kod]) {
+        delete d.premium.kodlar[kod];
+        require('../src/db').save();
+        return res.json({ ok: true });
+      }
+      res.status(404).json({ hata: 'bulunamadi' });
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 

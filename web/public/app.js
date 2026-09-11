@@ -73,7 +73,7 @@ async function baslat() {
       const d = document.createElement('div');
       d.className = 'sunucu' + (i === 0 ? ' aktif' : '');
       const ikon = ikonURL(g);
-      d.innerHTML = `${ikon ? `<img src="${ikon}">` : `<div class="harf">${g.ad[0]}</div>`}<div><b>${g.ad}</b><span>${g.sahip ? '👑 Sahip' : '🛡️ Yetkili'}</span></div>`;
+      d.innerHTML = `${ikon ? `<img src="${ikon}">` : `<div class="harf">${g.ad[0]}</div>`}<div><b>${g.ad} ${g.prem ? '👑' : ''}</b><span>${g.sahip ? '👑 Sahip' : '🛡️ Yetkili'}${g.prem ? ' • PREMIUM' : ''}</span></div>`;
       d.onclick = () => {
         document.querySelectorAll('.sunucu').forEach((x) => x.classList.remove('aktif'));
         d.classList.add('aktif');
@@ -249,7 +249,7 @@ async function kodListesi() {
     const liste = j.kodlar || [];
     if (!liste.length) { kutu.innerHTML = '<p class="bos">Henüz kod yok.</p>'; return; }
     kutu.innerHTML = liste.slice(0, 20).map((k) =>
-      `<div class="satir"><label><code>${k.kod}</code><small>📅 ${k.gun >= 36500 ? 'SINIRSIZ' : k.gun + ' gün'} ${k.kullanan ? '• ✅ kullanıldı' : '• ⏳ boşta'}</small></label></div>`
+      `<div class="satir"><label><code>${k.kod}</code><small>📅 ${k.gun >= 36500 ? 'SINIRSIZ' : k.gun + ' gün'} ${k.kullanan ? '• ✅ kullanıldı' : '• ⏳ boşta'}</small></label><button class="btn btn-ghost btn-kucuk" onclick="kodSil('${k.kod}')">🗑️</button></div>`
     ).join('');
   } catch { kutu.innerHTML = '<p class="bos">Yüklenemedi.</p>'; }
 }
@@ -261,6 +261,15 @@ async function kodUret() {
     toast(`🎟️ Kod üretildi: ${j.kod}`);
     kodListesi();
   } catch { toast('❌ Üretilemedi!'); }
+}
+
+async function kodSil(kod) {
+  if (!confirm(`Silinsin mi?\n${kod}`)) return;
+  try {
+    await api('/api/admin/kod-sil', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kod }) });
+    toast('🗑️ Kod silindi!');
+    kodListesi();
+  } catch { toast('❌ Silinemedi!'); }
 }
 
 baslat();

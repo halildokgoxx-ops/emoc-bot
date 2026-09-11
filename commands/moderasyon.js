@@ -120,7 +120,7 @@ module.exports = [
     usage: '!purge <sayı> [filtre]',
     perms: [PermissionFlagsBits.ManageMessages],
     slashOptions: [
-      { type: 'integer', name: 'sayi', description: 'Kaç mesaj taransın (1-100)', required: true },
+      { type: 'integer', name: 'sayi', description: 'Kaç mesaj taransın (free 100, 👑 200)', required: true },
       { type: 'user', name: 'kullanici', description: 'Sadece bu kullanıcının mesajları', required: false },
       { type: 'string', name: 'filtre', description: 'Filtre', required: false, choices: [{ name: '🤖 Botlar', value: 'botlar' }, { name: '🔗 Linkliler', value: 'link' }, { name: '📎 Dosyalılar', value: 'dosya' }, { name: '📦 Embedliler', value: 'embed' }] },
       { type: 'string', name: 'kelime', description: 'Bu kelimeyi içerenler', required: false },
@@ -137,8 +137,10 @@ module.exports = [
     },
     async run(message, args) {
       const { linkMu } = require('../src/utils');
+      const premPurge = require('../src/premium').premiumMu(message.guild.id);
+      const maksPurge = premPurge ? 200 : 100;
       const sayi = parseInt(args[0], 10);
-      if (!sayi || sayi < 1 || sayi > 100) return message.reply({ embeds: [err('1-100 arası sayı yaz!\n`!purge 20` • `!purge 20 @kullanıcı` • `!purge 30 botlar` • `!purge 30 link` • `!purge 30 dosya` • `!purge 30 kelime:spam`')] });
+      if (!sayi || sayi < 1 || sayi > maksPurge) return message.reply({ embeds: [err(premPurge ? '1-200 arası sayı yaz!' : '1-100 arası sayı yaz! (👑 Premium ile 200!)')] });
       const hedef = message.mentions.users.first();
       const rest = args.slice(1).filter(a => !/^<@!?\d+>$/.test(a)).join(' ').toLowerCase();
       const km = rest.match(/kelime:(.+)/);
@@ -159,8 +161,16 @@ module.exports = [
       liste = liste.slice(0, sayi);
       if (!liste.length) return message.reply({ embeds: [err(`Eşleşen mesaj yok! (${taranan} mesaj tarandı)\n💡 14 günden eskiler ve 📌 pinliler atlanır.`)] });
 
-      const silinen = await message.channel.bulkDelete(liste, true).catch(() => null);
-      if (!silinen) return message.reply({ embeds: [err('Silemedim! Yetkimi kontrol et.')] });
+      let toplam = 0;
+      for (let i = 0; i < liste.length; i += 100) {
+        const parca = liste.slice(i, i + 100);
+        const s = await message.channel.bulkDelete(parca, true).catch(() => null);
+        if (!s) break;
+        toplam += s.size;
+        if (parca.length === 100 && i + 100 < liste.length) await new Promise((r) => setTimeout(r, 1200));
+      }
+      if (!toplam) return message.reply({ embeds: [err('Silemedim! Yetkimi kontrol et.')] });
+      const silinen = { size: toplam };
       const filtreAd = hedef ? `${hedef.tag}` : (anahtar || 'filtre yok');
       const e = new EmbedBuilder().setColor(config.colors.success).setTitle('🧹 Purge Tamamlandı!')
         .addFields(

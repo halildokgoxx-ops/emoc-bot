@@ -228,15 +228,29 @@ module.exports = [
       { type: 'string', name: 'sik2', description: '2. şık', required: true },
       { type: 'string', name: 'sik3', description: '3. şık', required: false },
       { type: 'string', name: 'sik4', description: '4. şık', required: false },
+      { type: 'string', name: 'sik5', description: '5. şık (👑)', required: false },
+      { type: 'string', name: 'sik6', description: '6. şık (👑)', required: false },
+      { type: 'string', name: 'sik7', description: '7. şık (👑)', required: false },
+      { type: 'string', name: 'sik8', description: '8. şık (👑)', required: false },
+      { type: 'string', name: 'sik9', description: '9. şık (👑)', required: false },
     ],
-    slashArgs: (i) => [`${i.options.getString('soru')} | ${i.options.getString('sik1')} | ${i.options.getString('sik2')}${i.options.getString('sik3') ? ` | ${i.options.getString('sik3')}` : ''}${i.options.getString('sik4') ? ` | ${i.options.getString('sik4')}` : ''}`],
+    slashArgs: (i) => {
+      let s = `${i.options.getString('soru')} | ${i.options.getString('sik1')} | ${i.options.getString('sik2')}`;
+      for (const k of ['sik3', 'sik4', 'sik5', 'sik6', 'sik7', 'sik8', 'sik9']) {
+        const v = i.options.getString(k);
+        if (v) s += ` | ${v}`;
+      }
+      return [s];
+    },
     async run(message, args) {
+      const premAnket = require('../src/premium').premiumMu(message.guild.id);
+      const maksSik = premAnket ? 9 : 4;
       const parts = args.join(' ').split('|').map(s => s.trim()).filter(Boolean);
-      if (parts.length < 3) return message.reply({ embeds: [err('Kullanım: `!anket Soru | Evet | Hayır` (en az 2 şık, en fazla 4)')] });
+      if (parts.length < 3) return message.reply({ embeds: [err('Kullanım: `!anket Soru | Evet | Hayır` (en az 2 şık)')] });
       const [soru, ...siklar] = parts;
-      if (siklar.length > 4) return message.reply({ embeds: [err('En fazla 4 şık olabilir!')] });
-      const emojiler = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
-      const e = new EmbedBuilder().setColor(config.colors.main).setTitle(`📊 ${soru}`).setDescription(siklar.map((s, i) => `${emojiler[i]} **${s}**`).join('\n')).setFooter({ text: `Başlatan: ${message.author.username}` }).setTimestamp();
+      if (siklar.length > maksSik) return message.reply({ embeds: [err(premAnket ? 'En fazla 9 şık olabilir!' : 'En fazla 4 şık olabilir! (👑 Premium ile 9 şık!)')] });
+      const emojiler = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣'];
+      const e = new EmbedBuilder().setColor(config.colors.main).setTitle(`📊 ${soru}`).setDescription(siklar.map((s, i) => `${emojiler[i]} **${s}**`).join('\n')).setFooter({ text: `Başlatan: ${message.author.username}${premAnket ? ' • 👑 Premium anket' : ''}` }).setTimestamp();
       const msg = await message.reply({ embeds: [e] });
       for (let i = 0; i < siklar.length; i++) await msg.react(emojiler[i]).catch(() => {});
     },
@@ -284,9 +298,11 @@ module.exports = [
     usage: '!hatırlat <süre> <yazı>',
     async run(message, args) {
       const { parseSure, sureYaz } = require('../src/utils');
+      const premHat = require('../src/premium').premiumMu(message.guild.id);
       const sure = parseSure(args[0]);
       const yazi = args.slice(1).join(' ');
-      if (!sure || sure < 10_000) return message.reply({ embeds: [err('Süre en az 10sn olmalı! `!hatırlat 10m ders çalış`')] });
+      const maksHat = premHat ? 7 * 86400_000 : 6 * 3600_000;
+      if (!sure || sure < 10_000 || sure > maksHat) return message.reply({ embeds: [err(premHat ? 'Süre 10sn-7gün arası olmalı!' : 'Süre 10sn-6saat arası! (👑 Premium ile 7 güne kadar!)')] });
       if (!yazi) return message.reply({ embeds: [err('Ne hatırlatayım? `!hatırlat 1h mola ver`')] });
       message.reply({ embeds: [ok(`⏰ Tamam! **${sureYaz(sure)}** sonra hatırlatacağım: *${yazi}*`)] });
       setTimeout(() => message.reply(`${message.author} ⏰ **Hatırlatma:** ${yazi}`).catch(() => {}), sure);

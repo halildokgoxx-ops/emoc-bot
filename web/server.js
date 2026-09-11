@@ -249,6 +249,20 @@ function startWeb(client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
+  app.post('/api/admin/kod-sil', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const d = require('../src/db').db();
+      const kod = String((req.body || {}).kod || '').trim().toUpperCase();
+      if (d.premium?.kodlar?.[kod]) {
+        delete d.premium.kodlar[kod];
+        require('../src/db').save();
+        return res.json({ ok: true });
+      }
+      res.status(404).json({ hata: 'bulunamadi' });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.get('/api/guilds', async (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
@@ -257,7 +271,7 @@ function startWeb(client) {
       const liste = gs
         .filter((x) => x.owner || (BigInt(x.permissions) & 0x20n))
         .filter((x) => client.guilds.cache.has(x.id))
-        .map((x) => ({ id: x.id, ad: x.name, ikon: x.icon, sahip: !!x.owner }));
+        .map((x) => ({ id: x.id, ad: x.name, ikon: x.icon, sahip: !!x.owner, prem: require('../src/premium').premiumMu(x.id) }));
       res.json({ guilds: liste });
     } catch { res.status(500).json({ hata: 'discord-erisilemedi' }); }
   });
