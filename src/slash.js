@@ -17,6 +17,8 @@ const PREFIX_ONLY = new Set([
   'rol-olustur', 'rol-sil', 'rol-renk', 'kanal-ac', 'kanal-sil',
   'toplu-rol', 'forceban', 'tempban', 'davet-olustur', 'rol-bilgi',
   'rol-liste', 'sunucu-banner', 'itiraf',
+  'unban', 'kilitac', 'yavasmod', 'rolver', 'rolal', 'nick',
+  'uyari-sil', 'uyarilar', 'susturulanlar', 'banlist', 'log-ayarla', 'hosgeldin-ayarla', 'kura', 'nick',
 ]);
 
 function asciiAd(s) {
@@ -107,6 +109,12 @@ function buildSlashPayload(commands) {
     if (cmd.name === 'rol-al') {
       continue; // /rol-al grubu var, prefix !rol-al duruyor
     }
+    if (cmd.name === 'level') {
+      continue; // /level grubu var, prefix !level duruyor
+    }
+    if (cmd.name === 'premium') {
+      continue; // /premium grubu var, prefix !premium duruyor
+    }
     const def = slashTanimi(cmd, inferOptions(cmd));
     if (!def) { eksikler.push(cmd.name); continue; }
     if (harita.has(def.name)) { eksikler.push(cmd.name + ' (çakışma)'); continue; }
@@ -144,11 +152,27 @@ function buildSlashPayload(commands) {
       payload.push(rl.rolAlSlash.data);
     }
   } catch {}
-  // Özel: /premium grubu
+  // Özel: /level grubu (ücretsiz)
+  try {
+    const lv = require('../commands/topluluk');
+    if (lv.levelSlash) {
+      payload.push(lv.levelSlash.data);
+    }
+  } catch {}
+  // Özel: /premium grubu + 12 OP premium komut
   try {
     const pr = require('../commands/premium');
     if (pr.premiumSlash) {
       payload.push(pr.premiumSlash.data);
+    }
+    for (const k of (pr.premiumKomutlar || [])) {
+      if (k && k.data && k.data.name) {
+        if (!payload.some((p) => p.name === k.data.name)) {
+          payload.push(k.data);
+        } else {
+          eksikler.push(k.data.name + ' (çakışma)');
+        }
+      }
     }
   } catch {}
   // Özel: /sunucu grubu
@@ -245,10 +269,21 @@ async function handleSlash(interaction, client, harita) {
     const rl = require('../commands/roller');
     return rl.rolAlSlash.execute(interaction, client);
   }
+  // /level grubu
+  if (interaction.commandName === 'level') {
+    const lv = require('../commands/topluluk');
+    return lv.levelSlash.execute(interaction, client);
+  }
   // /premium grubu
   if (interaction.commandName === 'premium') {
     const pr = require('../commands/premium');
     return pr.premiumSlash.execute(interaction, client);
+  }
+  // OP premium komutlar (normal isimler: /yapiskan, /tag...)
+  {
+    const pr = require('../commands/premium');
+    const op = (pr.premiumKomutlar || []).find((k) => k.data.name === interaction.commandName);
+    if (op) return op.execute(interaction, client);
   }
   // /sunucu grubu
   if (interaction.commandName === 'sunucu') {

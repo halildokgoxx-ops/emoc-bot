@@ -137,6 +137,13 @@ T('premiumMu yok', PR.premiumMu('0') === false);
     } catch { return false; }
   })());
 
+// ---------- 8. premium OP + level grupları ----------
+const PRM = require('./commands/premium');
+T('premium 12 OP komut', (PRM.premiumKomutlar || []).length === 12, String((PRM.premiumKomutlar || []).length));
+T('premium grup 2 alt', (PRM.premiumSlash?.data?.options || []).length === 2);
+T('OP slash hepsi kayitli', ['yapiskan', 'oto-cevap', 'yedek', 'giris-dm', 'seviye-hiz', 'sayac-pro', 'hosgeldin', 'gorusuruz', 'oto-roller', 'tag', 'oto-cekilis', 'davet-odul'].every((n) => r.payload.some((p) => p.name === n)));
+T('level grubu kayitli', r.payload.some((p) => p.name === 'level'));
+
   console.log(`\n📊 SONUÇ: ${pass} geçti, ${fail} kaldı`);
   await new Promise((r) => setTimeout(r, 300)); // kapanan soketler bitsin (win libuv)
   process.exit(fail ? 1 : 0);

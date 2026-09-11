@@ -60,6 +60,7 @@ async function yardimEmbed(client, kategori = null) {
     if (c.name.startsWith('partner')) return '`/partner` (alt komut)';
     if (c.name === 'itibar' || c.name === 'itibar-top') return '`/itibar` (alt komut)';
     if (c.category === 'Premium') return '`/premium` (alt komut)';
+    if (c.name === 'level') return '`/level` (alt komut)';
     if (c.name === '1') return '`!1`';
     if (c.name === '-1') return '`!-1`';
     if (slashMod && slashMod.isSlash(c.name)) return `\`/${c.name}\``;

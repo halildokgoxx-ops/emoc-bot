@@ -270,3 +270,5 @@ module.exports = [];
 module.exports.cekilisSlash = cekilisSlash;
 module.exports.cekilisBitir = cekilisBitir;
 module.exports.handleCekilisButton = handleCekilisButton;
+module.exports.cekilisEmbed = cekilisEmbed;
+module.exports.cekilisRow = cekilisRow;

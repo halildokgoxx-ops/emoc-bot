@@ -56,6 +56,7 @@ console.log(`✅ ${toplam} komut yüklendi (${cmdFiles.length} dosya)`);
 // ---- Spam + Raid + İhlal takip ----
 const spamMap = new Map(); // userId -> [timestamps]
 const joinMap = new Map(); // guildId -> [timestamps]
+const davetCache = new Map(); // guildId -> Map(davetKodu -> {kullanim, sahibi})
 const ihlalMap = new Map(); // `${gid}_${uid}` -> { sayi, son } (5dk pencerede 3 ihlal = oto-timeout)
 const sonMesajMap = new Map(); // userId -> { icerik, sayi, zaman } (tekrar spam)
 function ihlalKaydet(gid, uid) {
@@ -129,6 +130,39 @@ client.once('clientReady', async () => {
       else setTimeout(() => cekilisBitir(client, id), Math.min(kalan, 2147483647));
     }
   } catch {}
+  // Oto-çekiliş (premium, 5dk kontrol)
+  setInterval(async () => {
+    try {
+      const CK = require('./commands/cekilis');
+      for (const [, guild] of client.guilds.cache) {
+        const liste = (getGuild(guild.id).otoCekilis || []).filter((o) => o.kanal && o.aralik && o.odul);
+        if (!liste.length) continue;
+        const d = require('./src/db').db();
+        if (!d.cekilisler) d.cekilisler = {};
+        for (const o of liste) {
+          if (Date.now() - (o.son || 0) < o.aralik) continue;
+          const kanal = guild.channels.cache.get(o.kanal);
+          if (!kanal || !kanal.isTextBased()) continue;
+          o.son = Date.now();
+          require('./src/db').save();
+          const c = {
+            id: null, guildId: guild.id, channelId: kanal.id,
+            isim: o.odul, odul: o.odul, bitis: Date.now() + Math.min(o.aralik, 7 * 86400_000),
+            sart: 'yok', kazanan: 1, maks: 0, min: 0,
+            katilan: [], bitmis: false, olusturan: client.user.id,
+          };
+          const oniz = { ...c, id: '...' };
+          const msg = await kanal.send({ embeds: [CK.cekilisEmbed(client, guild, oniz)], components: [CK.cekilisRow(client, oniz)] }).catch(() => null);
+          if (!msg) continue;
+          c.id = msg.id;
+          d.cekilisler[c.id] = c;
+          require('./src/db').save();
+          await msg.edit({ embeds: [CK.cekilisEmbed(client, guild, c)], components: [CK.cekilisRow(client, c)] }).catch(() => {});
+          setTimeout(() => CK.cekilisBitir(client, c.id), Math.min(7 * 86400_000, 2147483647));
+        }
+      }
+    } catch {}
+  }, 5 * 60_000);
   // Premium süre kontrolü (saatte bir, bitenleri loga yaz)
   setInterval(async () => {
     try {
@@ -195,7 +229,10 @@ client.on('messageCreate', async (message) => {
       } catch {}
       const roket = E(client, 'roket', '🚀');
       const parti = E(client, 'parti', '🎉');
-      message.channel.send({
+      const hedefKanal = getGuild(message.guild.id).levelBildirimKanal
+        ? (message.guild.channels.cache.get(getGuild(message.guild.id).levelBildirimKanal) || message.channel)
+        : message.channel;
+      hedefKanal.send({
         embeds: [new EmbedBuilder().setColor(config.colors.gold)
           .setTitle(`${roket} SEVİYE ATLADI! ${parti}`)
           .setThumbnail(message.author.displayAvatarURL({ size: 128 }))
@@ -431,30 +468,83 @@ client.on('guildMemberAdd', async (member) => {
         await member.send(txt).catch(() => {});
       }
     } catch {}
-    // Oto-rol
+    // Oto-rol (+ premium çoklu)
     if (g.otoRol) {
       const rol = member.guild.roles.cache.get(g.otoRol);
       if (rol) await member.roles.add(rol).catch(() => {});
     }
+    if (g.otoRolCoklu && g.otoRolCoklu.length) {
+      for (const rid of g.otoRolCoklu.slice(0, 3)) {
+        const r = member.guild.roles.cache.get(rid);
+        if (r) await member.roles.add(r).catch(() => {});
+      }
+    }
+    // 📨 Davet takibi + sayaç + davet ödülleri (premium)
+    try {
+      if (premiumMu(member.guild.id)) {
+        let davetEdenId = null;
+        try {
+          let onceki = davetCache.get(member.guild.id);
+          if (!onceki) {
+            const davetler = await member.guild.invites.fetch().catch(() => null);
+            onceki = new Map();
+            if (davetler) for (const [kod, d] of davetler) onceki.set(kod, { kullanim: d.uses || 0, sahibi: d.inviterId || null });
+            davetCache.set(member.guild.id, onceki);
+          } else {
+            const simdi = await member.guild.invites.fetch().catch(() => null);
+            if (simdi) {
+              for (const [kod, d] of simdi) {
+                const eski = onceki.get(kod);
+                if (eski && (d.uses || 0) > eski.kullanim) davetEdenId = d.inviterId || eski.sahibi;
+                onceki.set(kod, { kullanim: d.uses || 0, sahibi: d.inviterId || (eski ? eski.sahibi : null) });
+              }
+            }
+          }
+        } catch {}
+        if (davetEdenId && !member.user.bot) {
+          const inv = getUser(member.guild.id, davetEdenId);
+          inv.davetSayisi = (inv.davetSayisi || 0) + 1;
+          getUser(member.guild.id, member.id).davetEden = davetEdenId;
+          for (const dr of (getGuild(member.guild.id).davetRolleri || [])) {
+            if (inv.davetSayisi >= dr.sayi) {
+              const rr = member.guild.roles.cache.get(dr.rolId);
+              const invUye = await member.guild.members.fetch(davetEdenId).catch(() => null);
+              if (rr && invUye && !invUye.roles.cache.has(rr.id)) {
+                await invUye.roles.add(rr).catch(() => {});
+                const lc0 = getGuild(member.guild.id).logKanal ? member.guild.channels.cache.get(getGuild(member.guild.id).logKanal) : null;
+                if (lc0) lc0.send(`📨 ${invUye} **${inv.davetSayisi}** davet yaptı → ${rr} kazandı!`).catch(() => {});
+              }
+            }
+          }
+          save();
+        }
+        try { await require('./commands/premium').premiumSayacGuncelle(client, member.guild, member, davetEdenId); } catch {}
+      }
+    } catch {}
 
     // Hesap yaşı kontrolü (şüpheli)
     const yas = Date.now() - member.user.createdTimestamp;
     const supheli = yas < 7 * 86400_1000;
 
-    // Hoşgeldin (anime gifli modern embed)
+    // Hoşgeldin (premium embed varsa o, yoksa klasik)
     if (g.hosgeldinKanal) {
       const k = member.guild.channels.cache.get(g.hosgeldinKanal);
       if (k) {
-        const txt = (g.hosgeldinMesaj || '👋 Hoşgeldin {kullanıcı}! {sunucu} sunucusuna katıldın. {üye}. üyesin! 🎉')
-          .replace(/{kullanıcı}/g, `${member}`).replace(/{sunucu}/g, member.guild.name).replace(/{üye}/g, `${member.guild.memberCount}`);
-        let gif = null;
-        try { gif = await require('./src/gif').animeGif('wave'); } catch {}
-        const e = new EmbedBuilder().setColor(config.colors.success).setTitle(`👋 Hoşgeldin, ${member.user.username}!`)
-          .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-          .setDescription(`${txt}${supheli ? '\n\n⚠️ *Hesap 7 günden yeni, dikkat!*' : ''}`)
-          .setImage(gif || null)
-          .setFooter({ text: `${member.guild.name} • ${member.guild.memberCount}. üye 🎉` }).setTimestamp();
-        k.send({ embeds: [e] }).catch(() => {});
+        if (g.hgEmbed && premiumMu(member.guild.id)) {
+          const { hgVedaEmbed } = require('./commands/premium');
+          k.send({ embeds: [hgVedaEmbed(client, member.guild, member, g.hgEmbed, true)] }).catch(() => {});
+        } else {
+          const txt = (g.hosgeldinMesaj || '👋 Hoşgeldin {kullanıcı}! {sunucu} sunucusuna katıldın. {üye}. üyesin! 🎉')
+            .replace(/{kullanıcı}/g, `${member}`).replace(/{sunucu}/g, member.guild.name).replace(/{üye}/g, `${member.guild.memberCount}`);
+          let gif = null;
+          try { gif = await require('./src/gif').animeGif('wave'); } catch {}
+          const e = new EmbedBuilder().setColor(config.colors.success).setTitle(`👋 Hoşgeldin, ${member.user.username}!`)
+            .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
+            .setDescription(`${txt}${supheli ? '\n\n⚠️ *Hesap 7 günden yeni, dikkat!*' : ''}`)
+            .setImage(gif || null)
+            .setFooter({ text: `${member.guild.name} • ${member.guild.memberCount}. üye 🎉` }).setTimestamp();
+          k.send({ embeds: [e] }).catch(() => {});
+        }
       }
     }
     // Sayaç
@@ -491,8 +581,17 @@ client.on('guildMemberRemove', async (member) => {
     const g = getGuild(member.guild.id);
     if (g.cikisKanal) {
       const k = member.guild.channels.cache.get(g.cikisKanal);
-      if (k) k.send(`👋 **${member.user.tag}** aramızdan ayrıldı. Güle güle...`).catch(() => {});
+      if (k) {
+        if (g.vedaEmbed && premiumMu(member.guild.id)) {
+          const { hgVedaEmbed } = require('./commands/premium');
+          const t = String(g.vedaEmbed.mesaj || '').replace(/{kullanıcı}/g, member.user.tag).replace(/{sunucu}/g, member.guild.name).slice(0, 1500);
+          k.send({ embeds: [hgVedaEmbed(member.client, member.guild, member.user, { baslik: g.vedaEmbed.baslik, mesaj: t }, false)] }).catch(() => {});
+        } else {
+          k.send(`👋 **${member.user.tag}** aramızdan ayrıldı. Güle güle...`).catch(() => {});
+        }
+      }
     }
+    try { await require('./commands/premium').premiumSayacGuncelle(member.client, member.guild, null, null); } catch {}
     // Sayaç çıkışı
     if (g.sayacHedef && g.sayacKanal) {
       const k = member.guild.channels.cache.get(g.sayacKanal);
@@ -718,6 +817,25 @@ client.on('voiceStateUpdate', async (e, y) => {
 });
 
 // ---- Slash + Buton + Menü + Modal ----
+client.on('userUpdate', async (eski, yeni) => {
+  try {
+    if (!eski || eski.username === yeni.username) return;
+    const yeniAd = yeni.username.toLocaleLowerCase('tr');
+    for (const [, guild] of client.guilds.cache) {
+      try {
+        const ts = getGuild(guild.id).tagSistemi;
+        if (!ts || !ts.tag || !ts.rolId) continue;
+        const uye = await guild.members.fetch(yeni.id).catch(() => null);
+        if (!uye || uye.user.bot) continue;
+        const rol = guild.roles.cache.get(ts.rolId);
+        if (!rol) continue;
+        const varMi = yeniAd.includes(String(ts.tag).toLocaleLowerCase('tr'));
+        if (varMi && !uye.roles.cache.has(rol.id)) await uye.roles.add(rol).catch(() => {});
+        else if (!varMi && uye.roles.cache.has(rol.id)) await uye.roles.remove(rol).catch(() => {});
+      } catch {}
+    }
+  } catch {}
+});
 client.on('interactionCreate', async (interaction) => {
   try {
     // 1) Slash komutlar
