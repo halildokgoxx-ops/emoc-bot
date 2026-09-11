@@ -142,6 +142,11 @@ function startKopru() {
     catch { res.json({ sunucu: 0, uye: 0, oneCikan: [] }); }
   });
 
+  app.get('/api/vitrin', async (req, res) => {
+    try { res.json(await botAPI('/api/bot/vitrin')); }
+    catch { res.json({ vitrin: [] }); }
+  });
+
   app.get('/api/komutlar', async (req, res) => {
     try { res.json(await botAPI('/api/bot/komutlar')); }
     catch { res.json({ komutlar: [], sayi: 0 }); }

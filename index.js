@@ -704,6 +704,46 @@ client.on('guildMemberUpdate', async (eski, yeni) => {
         else if (!yeni.premiumSince && eski.premiumSince && yeni.roles.cache.has(bRol.id)) await yeni.roles.remove(bRol).catch(() => {});
       }
     } catch {}
+    // 🚀 Destek sunucusuna boost → en büyük sunucunda PREMIUM!
+    try {
+      if (!eski.premiumSince && yeni.premiumSince) {
+        if (!globalThis._destekId) {
+          try {
+            const dav = await client.fetchInvite('urYcW4ubqT').catch(() => null);
+            if (dav && dav.guild) globalThis._destekId = dav.guild.id;
+          } catch {}
+        }
+        if (globalThis._destekId && yeni.guild.id === globalThis._destekId) {
+          const P = require('./src/premium');
+          const adaylar = [];
+          for (const [, g] of client.guilds.cache) {
+            if (g.id === globalThis._destekId) continue;
+            let uye = g.members.cache.get(yeni.id);
+            if (!uye) uye = await g.members.fetch(yeni.id).catch(() => null);
+            if (uye && !uye.user.bot) adaylar.push(g);
+          }
+          adaylar.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
+          if (adaylar.length) {
+            const hedef = adaylar[0];
+            const mevcut = P.premiumBilgi(hedef.id);
+            const gun = 30;
+            if (mevcut) P.premiumVer(hedef.id, Math.ceil((mevcut.bitis - Date.now()) / 86400000) + gun);
+            else P.premiumVer(hedef.id, gun);
+            try {
+              await yeni.send(`🚀 **Boost için teşekkürler!** Desteğinin karşılığı olarak **${hedef.name}** sunucunda **👑 PREMIUM** aktifleşti (30 gün)! İyi eğlenceler! 💜`);
+            } catch {}
+            try {
+              const DB = require('./src/db');
+              const lcId = DB.getGuild(hedef.id).logKanal;
+              const lc = lcId ? hedef.channels.cache.get(lcId) : null;
+              if (lc) lc.send(`🚀 ${yeni} destek sunucusuna boost bastı → **${hedef.name}** sunucusunda 👑 PREMIUM aktif!`).catch(() => {});
+            } catch {}
+          } else {
+            try { await yeni.send('🚀 Boost için teşekkürler! Botun olduğu bir sunucuya katıl, premiumu en kalabalık sunucuna açayım! 💜'); } catch {}
+          }
+        }
+      }
+    } catch {}
     // Timeout değişimi
     const eT = eski.communicationDisabledUntilTimestamp;
     const yT = yeni.communicationDisabledUntilTimestamp;

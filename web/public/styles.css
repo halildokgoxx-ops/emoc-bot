@@ -255,6 +255,20 @@ select option { background: #1a1a2e; }
   .liste-ekle input, .liste-ekle select { max-width: 100%; flex: 1; }
 }
 
+/* ---- Premium kilit overlay ---- */
+.kilitli-bolum { position: relative; overflow: hidden; }
+.kilitli-bolum .bulanik { filter: blur(6px); opacity: 0.45; pointer-events: none; user-select: none; }
+.kilit-overlay { position: absolute; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: rgba(7, 7, 13, 0.55); backdrop-filter: blur(2px); border-radius: var(--yaricap);
+  text-align: center; padding: 24px; }
+.kilit-overlay h3 { font-size: 20px; }
+.kilit-overlay p { color: var(--soluk); font-size: 14px; line-height: 1.7; }
+.kilit-overlay code { background: rgba(139, 92, 246, 0.16); padding: 2px 8px; border-radius: 6px; }
+.prem-roz { font-size: 11px; font-weight: 800; color: #1a1206;
+  background: linear-gradient(90deg, #ffd76a, #ffb800); border-radius: 999px; padding: 3px 10px;
+  vertical-align: middle; }
+
 /* ============ YUMI TARZI TEMA (düz, sade, modern) ============ */
 body {
   background-color: #0a0a13;

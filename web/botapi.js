@@ -43,7 +43,20 @@ function mountBotAPI(app, client) {
       .filter((r) => r.id !== guild.id && !r.managed)
       .map((r) => ({ id: r.id, ad: r.name, renk: r.hexColor }))
       .slice(0, 100);
-    res.json({ id: guild.id, ad: guild.name, ayarlar, kanallar, roller });
+    res.json({ id: guild.id, ad: guild.name, ayarlar, kanallar, roller, prem: (() => { try { return require('../src/premium').premiumMu(guild.id); } catch { return false; } })() });
+  });
+
+  router.get('/vitrin', (req, res) => {
+    try {
+      const d = require('../src/db').db();
+      const liste = (d.vitrin || []).slice(0, 12).map((x) => ({
+        ad: String(x.ad || x.name || 'Sunucu').slice(0, 60),
+        desc: String(x.desc || x.aciklama || '').slice(0, 160),
+        uye: x.uye ?? x.members ?? null,
+        davet: String(x.davet || x.invite || ''),
+      })).filter((x) => x.davet);
+      res.json({ vitrin: liste });
+    } catch { res.json({ vitrin: [] }); }
   });
 
   router.post('/guild/:id', (req, res) => {

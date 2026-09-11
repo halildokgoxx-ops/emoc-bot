@@ -15,11 +15,13 @@ setInterval(() => {
 const SEMA = {
   antiLink: 'bool', antiKufur: 'bool', antiSpam: 'bool', antiRaid: 'bool',
   antiBot: 'bool', capsEngel: 'bool', altKoruma: 'bool',
+  yapiskan: 'bool',
   linkMuaf: 'muaf', kufurMuaf: 'muaf', spamMuaf: 'muaf', capsMuaf: 'muaf', yasakMuaf: 'muaf',
   logKanal: 'kanal', hosgeldinKanal: 'kanal', cikisKanal: 'kanal',
   sayacKanal: 'kanal', repBildirimKanal: 'kanal', partnerKanal: 'kanal',
   partnerChat: 'kanal', partnerYetkiliKanal: 'kanal', itirafKanal: 'kanal',
   gununSorusuKanal: 'kanal',
+  aiKanal: 'kanal',
   otoRol: 'rol', partnerYetkiliRol: 'rol',
   hosgeldinMesaj: 'yazi:500', partnerText: 'yazi:1500',
   cikisMesaj: 'yazi:500', sayacMesaj: 'yazi:500', girisDM: 'yazi:1000',
@@ -445,8 +447,21 @@ function startWeb(client) {
         .filter((r) => r.id !== guild.id && !r.managed)
         .map((r) => ({ id: r.id, ad: r.name, renk: r.hexColor }))
         .slice(0, 100);
-      res.json({ id: guild.id, ad: guild.name, ayarlar, kanallar, roller });
+      res.json({ id: guild.id, ad: guild.name, ayarlar, kanallar, roller, prem: (() => { try { return require('../src/premium').premiumMu(guild.id); } catch { return false; } })() });
     } catch { res.status(500).json({ hata: 'sunucu-hatasi' }); }
+  });
+
+  app.get('/api/vitrin', (req, res) => {
+    try {
+      const d = require('../src/db').db();
+      const liste = (d.vitrin || []).slice(0, 12).map((x) => ({
+        ad: String(x.ad || x.name || 'Sunucu').slice(0, 60),
+        desc: String(x.desc || x.aciklama || '').slice(0, 160),
+        uye: x.uye ?? x.members ?? null,
+        davet: String(x.davet || x.invite || ''),
+      })).filter((x) => x.davet);
+      res.json({ vitrin: liste });
+    } catch { res.json({ vitrin: [] }); }
   });
 
   app.post('/api/guild/:id', async (req, res) => {

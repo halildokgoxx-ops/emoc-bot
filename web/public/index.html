@@ -24,9 +24,10 @@
   <nav class="nav">
     <div><div class="logo">✦ EMOÇ</div><div class="logo-kucuk">SUPER BOT</div></div>
     <div style="display:flex;gap:10px">
-      <a class="btn btn-ghost btn-kucuk" href="#ozellikler">Özellikler</a>
-      <a class="btn btn-ghost btn-kucuk" href="#sunucular">Sunucular</a>
-      <a class="btn btn-ghost btn-kucuk" href="#kaynaklar">Kaynaklar</a>
+      <a class="btn btn-ghost btn-kucuk" href="#ozellikler">✨ Özellikler</a>
+      <a class="btn btn-ghost btn-kucuk" href="#sunucular">🌍 Sunucular</a>
+      <a class="btn btn-ghost btn-kucuk" href="#kaynaklar">📚 Kaynaklar</a>
+      <a class="btn btn-ghost btn-kucuk" href="#premium">👑 Premium</a>
       <a class="btn btn-kucuk" href="/login">Giriş →</a>
     </div>
   </nav>
@@ -49,8 +50,13 @@
   </section>
 
   <section id="sunucular">
-    <h2 class="bolum-baslik buyume">Bize Güvenen Sunucular 🌍</h2>
+    <h2 class="bolum-baslik buyume">🌍 Bize Güvenen Sunucular</h2>
     <div class="ozellikler" id="sunucu-grid"><div class="kart"><p>Yükleniyor...</p></div></div>
+  </section>
+
+  <section id="vitrin">
+    <h2 class="bolum-baslik buyume">🌟 Topluluk Vitrini <small>(gerçek sunucular, gerçek davetler)</small></h2>
+    <div class="ozellikler" id="vitrin-grid"><div class="kart"><p>Yükleniyor...</p></div></div>
   </section>
 
   <section id="kaynaklar">
@@ -65,8 +71,11 @@
   <section id="premium">
     <h2 class="bolum-baslik buyume">👑 Premium'a Geç, Uç! 🚀</h2>
     <div class="ozellikler">
-      <div class="kart buyume"><div class="ikon">🆓</div><h3>Free — ₺0</h3><p>✔ 127 komutun tamamı<br>✔ İtibar + çekiliş + ticket<br>✔ Güvenlik kalkanları<br>✔ EmocAI 15/gün</p></div>
-      <div class="kart tiklanabilir buyume" id="premium-karti" style="border-color:var(--altin, #FFC93C)"><div class="ikon">👑</div><h3>Premium — Krallara</h3><p>12 OP komut: yapışkan rol, oto-cevap, yedek, giriş DM, sayaç-pro, tag, oto-çekiliş + EmocAI 100/gün!</p></div>
+      <div class="kart buyume"><div class="ikon">🆓</div><h3>Free — ₺0</h3><p>✔ 142 komutun tamamı<br>✔ İtibar + çekiliş + ticket<br>✔ Güvenlik kalkanları<br>✔ EmocAI 15/gün</p></div>
+      <div class="kart tiklanabilir buyume premium-kart" id="premium-karti"><div class="ikon">👑</div><h3>Premium — Krallara</h3><p>🧲 Yapışkan rol • 🤖 Oto-cevap • 💾 Sunucu yedeği • 💌 Giriş DM • 🚀 5x XP • 🎯 PRO sayaç • 👋 Embed karşılama • 🎭 Çoklu oto-rol • 🏷️ Tag rolü • 🎉 Oto-çekiliş • 📨 Davet ödülü • 🏰 Tek-tık sunucu kurulumu + EmocAI 100/gün!</p></div>
+    </div>
+    <div class="ozellikler">
+      <div class="kart buyume"><div class="ikon">🚀</div><h3>Boost ile Premium Kap!</h3><p>Destek sunucumuza <b>2 boost</b> bas → bot seni bulur, <b>en kalabalık sunucunda</b> premiumu otomatik açar! Kodla uğraşmak yok. 💜</p></div>
     </div>
   </section>
 
@@ -132,6 +141,20 @@ fetch('/api/istatistik').then(r => r.json()).then(j => {
     const d = document.createElement('div');
     d.className = 'kart buyume';
     d.innerHTML = `${s.ikon ? `<img src="${s.ikon}" style="width:56px;height:56px;border-radius:50%">` : `<div class="ikon">🌍</div>`}<h3>${s.ad}</h3><p>👥 ${s.uye} üye</p>`;
+    g.appendChild(d);
+  });
+}).catch(() => {});
+fetch('/api/vitrin').then(r => r.json()).then(j => {
+  const g = document.getElementById('vitrin-grid');
+  if (!g) return;
+  const liste = j.vitrin || [];
+  if (!liste.length) { g.innerHTML = '<div class="kart"><p>Vitrin yakında doluyor! 🚀</p></div>'; return; }
+  g.innerHTML = '';
+  liste.forEach((s) => {
+    const d = document.createElement('div');
+    d.className = 'kart buyume';
+    d.innerHTML = `<h3>🌍 ${String(s.ad).slice(0, 40)}</h3><p>${String(s.desc || '').slice(0, 120)}</p><p>👥 ${s.uye || '?'} üye</p>`;
+    if (s.davet) { d.classList.add('tiklanabilir'); d.onclick = () => window.open(s.davet, '_blank'); }
     g.appendChild(d);
   });
 }).catch(() => {});

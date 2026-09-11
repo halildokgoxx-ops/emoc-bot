@@ -3,23 +3,23 @@
 // (her sunucuda!) <:isim:id> olarak kullanılabilir. Yüklü değilse unicode yedeğe düşer,
 // yani bot emojisiz de asla bozuk görünmez.
 const HARITA = {
-  yildiz: 'emoc_yildiz',   // ⭐
-  kupa: 'emoc_kupa',       // 🏆
-  kalkan: 'emoc_kalkan',   // 🛡️
-  zil: 'emoc_zil',         // 🔔
+  yildiz: '9275yellowstar',
+  kupa: '493187giftinglegend',
+  kalkan: '369989modshield',
+  zil: '944992bell',
   sessiz: 'emoc_sessiz',   // 🔕
-  tac: 'emoc_tac',         // 👑
-  elmas: 'emoc_elmas',     // 💎
+  tac: '11140owner',
+  elmas: '86637diamond',
   ates: 'emoc_ates',       // 🔥
-  parti: 'emoc_parti',     // 🎉
-  tik: 'emoc_tik',         // ✅
-  carpi: 'emoc_carpi',     // ❌
-  uyari: 'emoc_uyari',     // ⚠️
-  parilti: 'emoc_parilti', // ✨
-  kalp: 'emoc_kalp',       // ❤️
-  para: 'emoc_para',       // 🪙
-  madalya: 'emoc_madalya', // 🏅
-  el: 'emoc_el',           // 🤝
+  parti: '75695heywumpus',
+  tik: '495202greentick',
+  carpi: '814373redtick',
+  uyari: '14224redalert',
+  parilti: '4544221starratingids',
+  kalp: '86692naheart002',
+  para: '5272nacashicon',
+  madalya: '2637805starratingids',
+  el: '6574partner',
   goz: 'emoc_goz',         // 👀 trend
   kurukafa: 'emoc_kurukafa', // 💀 trend
   roket: 'emoc_roket',     // 🚀

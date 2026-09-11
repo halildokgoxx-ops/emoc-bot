@@ -92,8 +92,7 @@ async function repVer(message, args, miktar, client) {
     }
   }
 
-  if (sebep === undefined) sebep = args.slice(1).join(' ') || 'Sebep belirtilmedi';
-  if (sebep.length > 200) return message.reply({ embeds: [err('Sebep en fazla 200 karakter olabilir!')] });
+  if (sebep === undefined) sebep = args.slice(1).join(' ').slice(0, 200) || '—';
 
   const hedefData = getUser(message.guild.id, hedef.id);
 
@@ -110,19 +109,13 @@ async function repVer(message, args, miktar, client) {
   try { rolOdul = await repRolKontrol(message.guild, hedef.id, hedefData.rep); } catch {}
 
   const cli = client || message.client;
-  const yildiz = E(cli, 'yildiz', '⭐');
   const tik = E(cli, 'tik', '✅');
   const e = new EmbedBuilder()
     .setColor(miktar === 1 ? config.colors.success : config.colors.error)
-    .setTitle(`${miktar === 1 ? `${yildiz} +1 İtibar Verildi!` : '💔 −1 İtibar Alındı!'}`)
-    .setThumbnail(hedef.user.displayAvatarURL({ size: 128 }))
-    .addFields(
-      { name: '👤 Kullanıcı', value: `${hedef}`, inline: true },
-      { name: `${yildiz} Yeni Puan`, value: `**${hedefData.rep}** (${repRozet(hedefData.rep)})`, inline: true },
-      { name: '📝 Sebep', value: sebep, inline: false },
-      { name: '🤝 Veren', value: `${message.author}`, inline: true },
-    )
-    .setFooter({ text: `${tik} ${hedef.user.username} • ${repRozet(hedefData.rep)}` })
+    .setDescription(miktar === 1
+      ? `${tik} **İtibar atıldı!** ${hedef} \`+1\` → yeni puan: **${hedefData.rep}**`
+      : `💔 **İtibar alındı!** ${hedef} \`-1\` → yeni puan: **${hedefData.rep}**`)
+    .setImage('https://cdn.discordapp.com/emojis/1547743717836857404.gif')
     .setTimestamp();
   if (rolOdul.length) e.addFields({ name: '🎭 Rol Ödülü!', value: rolOdul.join(' '), inline: false });
   return message.reply({ embeds: [e] });
@@ -132,13 +125,13 @@ module.exports = [
   {
     name: '1', aliases: ['+1', 'rep-ver'], category: 'İtibar',
     description: 'Etiketle ya da mesaja cevap vererek +1 itibar ver!',
-    usage: '!1 @kullanıcı <sebep> | mesaja cevapla: !1 <sebep>',
+    usage: '!1 @kullanıcı | mesaja cevapla: !1',
     run: (m, a, c) => repVer(m, a, 1, c),
   },
   {
     name: '-1', aliases: ['-rep', 'eksirep'], category: 'İtibar',
-    description: 'Etiketlediğin kullanıcıdan -1 itibar alır. (!-1 @kullanıcı <sebep>)',
-    usage: '!-1 @kullanıcı <sebep>',
+    description: 'Etiketlediğin kullanıcıdan -1 itibar alır.',
+    usage: '!-1 @kullanıcı',
     run: (m, a, c) => repVer(m, a, -1, c),
   },
   {

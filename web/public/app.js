@@ -35,11 +35,18 @@ const BOLUM = [
     { k: 'yasakMuaf', ad: 'Yasaklı kelimeden muaf' },
   ]},
   { id: 'listeler', baslik: '📊 Ödül & Liste Sistemleri', listeler: true, alanlar: [] },
+  { id: 'premium', baslik: '👑 Premium Ayarlar', premium: true, alanlar: [
+    { k: 'yapiskan', ad: 'Yapışkan rol (çıkanın rolü saklanır)', t: 'bool' },
+    { k: 'aiKanal', ad: 'EmocAI sohbet kanalı', t: 'kanal' },
+    { k: 'seviyeHiz', ad: 'Seviye XP hızı (1-5x)', t: 'sayi' },
+    { k: 'girisDM', ad: 'Giriş DM metni', t: 'yazi-karti', degiskenler: ['kullanıcı', 'sunucu', 'üye'] },
+  ]},
 ];
 
 let AKTIF_SEKME = 'koruma';
 
 let SID = null, KANALLAR = [], ROLLER = [], FORM = {};
+let PREMIUM_AKTIF = false;
 
 function toast(mesaj) {
   const t = document.getElementById('toast');
@@ -115,6 +122,7 @@ async function sunucuAc(id, ad) {
     KANALLAR = j.kanallar;
     ROLLER = j.roller;
     FORM = { ...j.ayarlar };
+    PREMIUM_AKTIF = !!j.prem;
     ciz(ad);
   } catch {
     document.getElementById('editor').innerHTML = `<div class="hata-kutu">Yüklenemedi! Bot bu sunucuda mı?</div>`;
@@ -154,6 +162,32 @@ function ciz(ad) {
     }).join('') + `</div>`;
   } else if (b.listeler) {
     html += `<div class="bolum"><h2>${b.baslik}</h2><div id="liste-alani"><p class="bos">Yükleniyor...</p></div></div>`;
+  } else if (b.premium) {
+    if (!PREMIUM_AKTIF) {
+      html += `<div class="bolum kilitli-bolum"><h2>${b.baslik}</h2>
+        <div class="kilit-overlay"><div style="font-size:44px">👑🔒</div>
+        <h3>Premium Gerekli!</h3>
+        <p>Bu sunucuda premium aktif değil.<br>Kodun varsa bota <code>/premium aktiflestir</code> yaz,<br>yoksa destek sunucusundan edin!</p>
+        <a class="btn btn-kucuk" href="https://discord.gg/urYcW4ubqT" target="_blank">💬 Destek Sunucusu</a></div>
+        <div class="bulanik">${b.alanlar.map((a) => `<div class="satir"><label>✏️ ${a.ad}</label></div>`).join('')}</div></div>`;
+    } else {
+      html += `<div class="bolum"><h2>${b.baslik} <span class="prem-roz">👑 AKTİF</span></h2>` + b.alanlar.map((a) => {
+        const v = FORM[a.k];
+        if (a.t === 'yazi-karti') {
+          const ham = v ? String(v) : '';
+          const ozet = ham ? ham.slice(0, 90).replace(/</g, '&lt;') + (ham.length > 90 ? '…' : '') : '<i class="ayar-yok">ayarlı değil</i>';
+          return `<div class="satir"><label>✏️ ${a.ad}<small>${ozet}</small></label><button class="btn btn-ghost btn-kucuk" onclick="yaziAc('${a.k}')">Düzenle</button></div>`;
+        }
+        if (a.t === 'bool' || !a.t) {
+          return `<div class="satir"><label>${a.ad}</label><label class="toggle"><input type="checkbox" data-k="${a.k}"${v ? ' checked' : ''}><span class="ray"></span></label></div>`;
+        }
+        if (a.t === 'kanal') {
+          const seceneklerFn = typeof secenekler === 'function' ? secenekler : (l, d, b2) => '';
+          return `<div class="satir"><label>${a.ad}</label><select data-k="${a.k}">${seceneklerFn(KANALLAR.filter((k) => k.tip === 'yazi'), v, 'Kapalı')}</select></div>`;
+        }
+        return `<div class="satir"><label>${a.ad}</label><input type="number" data-k="${a.k}" value="${v ?? 0}" min="0"></div>`;
+      }).join('') + `</div>`;
+    }
   } else {
     html += `<div class="bolum"><h2>${b.baslik}</h2>`;
     b.alanlar.forEach((a) => {
