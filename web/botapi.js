@@ -43,7 +43,7 @@ function mountBotAPI(app, client) {
       .filter((r) => r.id !== guild.id && !r.managed)
       .map((r) => ({ id: r.id, ad: r.name, renk: r.hexColor }))
       .slice(0, 100);
-    res.json({ id: guild.id, ad: guild.name, ayarlar, kanallar, roller, prem: (() => { try { return require('../src/premium').premiumMu(guild.id); } catch { return false; } })() });
+    res.json({ id: guild.id, ad: guild.name, uye: guild.memberCount || 0, ayarlar, kanallar, roller, prem: (() => { try { return require('../src/premium').premiumMu(guild.id); } catch { return false; } })() });
   });
 
   router.get('/vitrin', (req, res) => {
@@ -225,6 +225,13 @@ function mountBotAPI(app, client) {
       const { guildId, liste, islem } = req.body || {};
       const guild = client.guilds.cache.get(guildId);
       if (!guild) return res.status(404).json({ hata: 'yok' });
+      if (['otoCevap', 'tagSistemi', 'davetRolleri', 'otoRolCoklu'].includes(liste)) {
+        try {
+          if (!require('../src/premium').premiumMu(guild.id)) {
+            return res.status(403).json({ hata: 'premium-gerekli' });
+          }
+        } catch {}
+      }
       const g = getGuild(guild.id);
       if (liste === 'seviyeRoller') {
         if (!Array.isArray(g.seviyeRoller)) g.seviyeRoller = [];

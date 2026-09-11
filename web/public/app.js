@@ -1,550 +1,481 @@
-const BOLUM = [
-  { id: 'koruma', baslik: '🛡️ Koruma Kalkanları', alanlar: [
-    { k: 'antiLink', ad: 'Anti-Link', ac: 'Link atanların mesajını sil' },
-    { k: 'antiKufur', ad: 'Anti-Küfür', ac: 'Küfürleri otomatik temizle' },
-    { k: 'antiSpam', ad: 'Anti-Spam', ac: 'Flood ve tekrar mesajları engelle' },
-    { k: 'antiRaid', ad: 'Anti-Raid', ac: 'Baskında sunucuyu kilitle' },
-    { k: 'antiBot', ad: 'Anti-Bot', ac: 'İzinsiz botları at' },
-    { k: 'capsEngel', ad: 'Caps Engeli', ac: 'BÜYÜK HARF spamını kes' },
-    { k: 'altKoruma', ad: 'Alt Hesap Koruması', ac: '3 günden yeniyi at, 7 günden yeniyi izle' },
-  ]},
-  { id: 'kanallar', baslik: '📋 Kanallar', kanal: true, alanlar: [
-    { k: 'logKanal', ad: 'Log kanalı' }, { k: 'hosgeldinKanal', ad: 'Hoşgeldin kanalı' },
-    { k: 'cikisKanal', ad: 'Çıkış kanalı' }, { k: 'sayacKanal', ad: 'Sayaç kanalı' },
-    { k: 'repBildirimKanal', ad: 'İtibar bildirim kanalı' }, { k: 'partnerKanal', ad: 'Partner paylaşım' },
-    { k: 'partnerChat', ad: 'Partner başvuru chat' }, { k: 'partnerYetkiliKanal', ad: 'Partner yetkili kanal' },
-    { k: 'itirafKanal', ad: 'İtiraf kanalı' }, { k: 'gununSorusuKanal', ad: 'Günün sorusu kanalı' },
-  ]},
-  { id: 'roller', baslik: '🎭 Roller & Sayılar', alanlar: [
-    { k: 'otoRol', ad: 'Oto-rol', t: 'rol' }, { k: 'partnerYetkiliRol', ad: 'Partner yetkilisi', t: 'rol' },
-    { k: 'sayacHedef', ad: 'Sayaç hedefi (0 = kapalı)', t: 'sayi' },
-    { k: 'repSuresiDk', ad: 'İtibar bekleme (dakika)', t: 'sayi' },
-    { k: 'seviyeHiz', ad: 'Seviye XP hızı (1-5x)', t: 'sayi' },
-  ]},
-  { id: 'yazilar', baslik: '✏️ Otomatik Yazılar', yaziKarti: true, alanlar: [
-    { k: 'hosgeldinMesaj', ad: 'Hoşgeldin mesajı', degiskenler: ['kullanıcı', 'sunucu', 'üye'] },
-    { k: 'cikisMesaj', ad: 'Görüşürüz mesajı', degiskenler: ['kullanıcı', 'sunucu', 'üye'] },
-    { k: 'sayacMesaj', ad: 'Sayaç mesajı', degiskenler: ['kullanıcı', 'sunucu', 'üye', 'hedef', 'kalan'] },
-    { k: 'partnerText', ad: 'Partner tanıtım yazısı', degiskenler: ['sunucu', 'üye', 'davet'] },
-    { k: 'girisDM', ad: 'Giriş DM (premium)', degiskenler: ['kullanıcı', 'sunucu', 'üye'] },
-  ]},
-  { id: 'yasakli', baslik: '🚫 Yasaklı Kelimeler', yasakli: true, alanlar: [] },
-  { id: 'muaf', baslik: '🛡️ Muaf Roller', aciklama: 'Seçili rollere filtreler işlemez', muaf: true, alanlar: [
-    { k: 'linkMuaf', ad: 'Link engelinden muaf' }, { k: 'kufurMuaf', ad: 'Küfür engelinden muaf' },
-    { k: 'spamMuaf', ad: 'Spam engelinden muaf' }, { k: 'capsMuaf', ad: 'Caps engelinden muaf' },
-    { k: 'yasakMuaf', ad: 'Yasaklı kelimeden muaf' },
-  ]},
-  { id: 'listeler', baslik: '📊 Ödül & Liste Sistemleri', listeler: true, alanlar: [] },
-  { id: 'premium', baslik: '👑 Premium Ayarlar', premium: true, alanlar: [
-    { k: 'yapiskan', ad: 'Yapışkan rol (çıkanın rolü saklanır)', t: 'bool' },
-    { k: 'aiKanal', ad: 'EmocAI sohbet kanalı', t: 'kanal' },
-    { k: 'seviyeHiz', ad: 'Seviye XP hızı (1-5x)', t: 'sayi' },
-    { k: 'girisDM', ad: 'Giriş DM metni', t: 'yazi-karti', degiskenler: ['kullanıcı', 'sunucu', 'üye'] },
-  ]},
+/* Panel */
+let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
+let AKTIF='home',GREET='karsilama';
+
+const AM_LIST=[
+  {k:'amReklam',ad:'Reklamları engelle',ac:'Reklam içeren mesajları siler'},
+  {k:'amKufur',ad:'Küfürleri engelle',ac:'Küfür içeren mesajları siler'},
+  {k:'amLink',ad:'Linkleri engelle',ac:'Link içeren mesajları siler'},
+  {k:'amKelime',ad:'Engellenen kelime listesi',ac:'Belirlediğiniz kelimeleri içeren mesajları siler',kelime:true},
+  {k:'amTekrar',ad:'Tekrarlanan metin',ac:'Bir dakika içinde gönderilen aynı üçüncü mesajı siler'},
+  {k:'amFlood',ad:'Flood engel',ac:"Varsayılan olarak bir üye 10 saniyede 5'ten fazla mesaj gönderdiğinde mesajları siler",flood:true},
+  {k:'amCaps',ad:'Aşırı büyük harf',ac:'Varsayılan olarak en az %70 büyük harfli mesajları siler',yuzde:true},
+  {k:'amEmoji',ad:'Aşırı emoji',ac:"Varsayılan olarak 6'dan fazla emoji içeren mesajları siler",adet:true,varsayilan:6},
+  {k:'amEtiket',ad:'Aşırı etiketleme',ac:"Varsayılan olarak 3'ten fazla etiket içeren mesajları siler",adet:true,varsayilan:3},
+  {k:'amUzun',ad:'Uzun metin',ac:'Varsayılan olarak 6 satırdan uzun mesajları siler',adet:true,varsayilan:6},
+  {k:'amKarakter',ad:'Karakter sınırı',ac:'Varsayılan olarak 500 karakterden uzun mesajları siler',adet:true,varsayilan:500},
+  {k:'amFoto',ad:'Fotoğraf spamı',ac:'Varsayılan olarak bir dakika içinde 5 fotoğraf gönderildiğinde mesajı siler',adet:true,varsayilan:5},
 ];
 
-let AKTIF_SEKME = 'koruma';
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('goster');clearTimeout(t._z);t._z=setTimeout(()=>t.classList.remove('goster'),2400)}
+async function api(y,init){const r=await fetch(y,init);if(r.status===401){location.href='/login';throw new Error('giris')}return r.json()}
+function avatarURL(u){return u&&u.avatar?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`:'https://cdn.discordapp.com/embed/avatars/0.png'}
+function esc(s){return String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function kanalAd(id){const k=KANALLAR.find(x=>String(x.id)===String(id));return k?('#'+k.ad):'—'}
+function rolAd(id){const r=ROLLER.find(x=>String(x.id)===String(id));return r?('@'+r.ad):'—'}
 
-let SID = null, KANALLAR = [], ROLLER = [], FORM = {};
-let PREMIUM_AKTIF = false;
-
-function toast(mesaj) {
-  const t = document.getElementById('toast');
-  t.textContent = mesaj;
-  t.classList.add('goster');
-  clearTimeout(t._z);
-  t._z = setTimeout(() => t.classList.remove('goster'), 2600);
-}
-async function api(yol, init) {
-  const r = await fetch(yol, init);
-  if (r.status === 401) { location.href = '/login'; throw new Error('giris'); }
-  return r.json();
-}
-function avatarURL(u) {
-  return u.avatar ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64` : 'https://cdn.discordapp.com/embed/avatars/0.png';
-}
-function ikonURL(g) {
-  return g.ikon ? `https://cdn.discordapp.com/icons/${g.id}/${g.ikon}.png?size=64` : null;
-}
-
-async function baslat() {
-  try {
-    const me = await api('/api/me');
-    const user = me.user;
-    ADMIN = !!me.admin;
-    document.getElementById('kullanici').innerHTML =
-      `<img src="${avatarURL(user)}"><b>${user.username}</b>`;
-    if (ADMIN) {
-      const b = document.createElement('button');
-      b.className = 'btn btn-kucuk';
-      b.textContent = '👑 Admin';
-      b.onclick = adminAc;
-      const bar = document.querySelector('.panel-ust div:last-child');
-      if (bar) bar.prepend(b);
-    }
-    const { guilds } = await api('/api/guilds');
-    const kutu = document.getElementById('sunucular');
-    if (!guilds.length) {
-      kutu.innerHTML = `<div class="hata-kutu">Botun olduğu yönetilebilir sunucun yok!<br><br><a class="btn btn-kucuk" href="/davet">➕ Botu Ekle</a></div>`;
+async function baslat(){
+  try{
+    const me=await api('/api/me');ME=me.user;
+    const j=await api('/api/guilds');GUILDS=j.guilds||[];
+    if(!GUILDS.length){
+      renderMisafir();document.getElementById('content').innerHTML='<div class="hata-kutu">Yönetebileceğin bir sunucu bulunamadı. Botun o sunucuda olduğundan emin ol.<br><br><a class="btn sm" href="/davet">Botu Ekle</a></div>';
       return;
     }
-    kutu.innerHTML = '';
-    guilds.forEach((g, i) => {
-      const d = document.createElement('div');
-      d.className = 'sunucu' + (i === 0 ? ' aktif' : '');
-      const ikon = ikonURL(g);
-      d.innerHTML = `${ikon ? `<img src="${ikon}">` : `<div class="harf">${g.ad[0]}</div>`}<div><b>${g.ad} ${g.prem ? '👑' : ''}</b><span>${g.sahip ? '👑 Sahip' : '🛡️ Yetkili'}${g.prem ? ' • PREMIUM' : ''}</span></div>`;
-      d.onclick = () => {
-        document.querySelectorAll('.sunucu').forEach((x) => x.classList.remove('aktif'));
-        d.classList.add('aktif');
-        sunucuAc(g.id, g.ad);
-      };
-      kutu.appendChild(d);
+    renderMisafir();
+    serverList();
+  }catch(e){}
+}
+function renderMisafir(){
+  document.getElementById('sidebar').innerHTML='<div class="side-logo"><div class="mark">◈</div><span>Kontrol Paneli</span></div>'
+    +'<div class="side-sec">Sunucularım</div>'
+    +GUILDS.map(g=>'<button class="side-item" onclick="sunucuAc(\''+g.id+'\')"><span class="ic">◍</span><span>'+esc(g.ad).slice(0,24)+'</span>'+(g.prem?'<span class="tac">👑</span>':'')+'</button>').join('');
+  document.getElementById('topbar').innerHTML='<div class="crumb"><b>Ana Sayfa</b><span class="sep">›</span><b>Sunucularım</b></div>'
+    +'<div class="top-right"><div class="search">⌕ Özellik ara<kbd>Ctrl K</kbd></div><div class="userbox"><img src="'+avatarURL(ME)+'">'+esc(ME?ME.username:'')+'</div><a class="btn sm" href="/logout">Çıkış</a></div>';
+}
+function serverList(){
+  SID=null;
+  document.getElementById('content').innerHTML='<div class="page-h">Sunucularım</div><div class="page-s">Yönetmek için bir sunucu seç</div>'
+    +'<div class="server-grid">'+GUILDS.map(g=>'<button class="server-card" onclick="sunucuAc(\''+g.id+'\')">'
+      +(g.ikon?'<img src="https://cdn.discordapp.com/icons/'+g.id+'/'+g.ikon+'.png?size=96">':'<div class="harf">'+esc((g.ad||'?')[0].toUpperCase())+'</div>')
+      +'<div><b>'+esc(g.ad)+(g.prem?' 👑':'')+'</b><span>'+(g.sahip?'Sahip':'Yetkili')+'</span></div></button>').join('')+'</div>';
+}
+
+async function sunucuAc(id){
+  const g=GUILDS.find(x=>x.id===id);if(!g)return;
+  document.getElementById('content').innerHTML='<div class="yukleniyor">Ayarlar yükleniyor...</div>';
+  try{
+    const j=await api('/api/guild/'+id);
+    SID=id;SNAME=j.ad;KANALLAR=j.kanallar||[];ROLLER=j.roller||[];FORM=Object.assign({},j.ayarlar||{});
+    const ic=j.ad?j.ad[0].toUpperCase():'?';
+    SICON=null;
+    const gg=GUILDS.find(x=>x.id===id);
+    if(gg&&gg.ikon)SICON='https://cdn.discordapp.com/icons/'+id+'/'+gg.ikon+'.png?size=64';
+    AKTIF='home';GREET='karsilama';
+    renderAll();
+  }catch{ document.getElementById('content').innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'; }
+}
+
+const NAV=[
+  {sec:null,items:[['home','▦','Kontrol Paneli']]},
+  {sec:null,items:[['ayarlar','⚙','Ayarlar'],['premium','☆','Premium'],['gomulu','▤','Gömülü Mesajlar']]},
+  {sec:'Sunucu Yönetimi',items:[['seviye','▅','Seviye Sistemi'],['karsilama','◍','Karşılama & Veda'],['otomod','◈','Otomatik Moderasyon','YENİ'],['denetimMasasi','◉','Denetim Masası'],['denetim','▣','Denetim Kaydı'],['otocevap','⌁','Otomatik Cevap'],['emojirol','☺','Emoji Rol'],['etiket','◌','Sunucu Etiketi']]},
+  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡','Hesap Filtresi','👑'],['govRol','◎','Rol Limitlemeleri'],['govBot','⚙','Bot Filtresi'],['govYasak','⊘','Yasaklama Limiti'],['govAtma','↩','Atma Limiti'],['govKanal','#','Kanal Limitlemeleri'],['govWebhook','🔗','Anti-Webhook','YENİ'],['govEmoji','☺','Emoji Limitleri','YENİ']]},
+];
+const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
+
+function renderAll(){renderSide();renderTop();renderContent()}
+function renderSide(){
+  let h='<div class="side-logo"><div class="mark">◈</div><span>Kontrol Paneli</span></div>';
+  NAV.forEach(gr=>{
+    if(gr.sec)h+='<div class="side-sec">'+gr.sec+'</div>';
+    gr.items.forEach(it=>{
+      const id=it[0],ic=it[1],ad=it[2],roz=it[3];
+      let rozH='';
+      if(roz==='YENİ')rozH='<span class="yeni">YENİ</span>';
+      else if(roz==='👑')rozH='<span class="tac">👑</span>';
+      h+='<button class="side-item'+(AKTIF===id?' aktif':'')+'" onclick="git(\''+id+'\')"><span class="ic">'+ic+'</span><span>'+ad+'</span>'+rozH+'</button>';
     });
-  } catch (e) { /* login'e yönlendi */ }
+  });
+  document.getElementById('sidebar').innerHTML=h;
 }
-
-function sunucuGeri() {
-  document.getElementById('sunucular-wrap').classList.remove('gizli');
-  document.getElementById('editor').classList.add('gizli');
-  document.getElementById('duzen').classList.remove('tekli');
-  SID = null;
+function renderTop(){
+  document.getElementById('topbar').innerHTML='<div class="crumb"><span style="cursor:pointer" onclick="serverList();renderMisafir()">Ana Sayfa</span><span class="sep">›</span><span style="cursor:pointer" onclick="serverList();renderMisafir()">Sunucularım</span><span class="sep">›</span>'
+    +'<button class="srv-pick" onclick="serverList();renderMisafir()">'+(SICON?'<img src="'+SICON+'">':'<span class="harf">'+esc((SNAME||'?')[0])+'</span>')+'<b>'+esc(SNAME)+'</b><span style="color:var(--mut)">▾</span></button></div>'
+    +'<div class="top-right"><div class="search">⌕ <input id="ara" placeholder="Özellik ara" style="background:none;border:0;outline:0;color:var(--txt);width:120px" onkeydown="if(event.key===\'Enter\')araGit(this.value)"><kbd>Ctrl K</kbd></div><div class="userbox"><img src="'+avatarURL(ME)+'">'+esc(ME?ME.username:'')+'<span style="color:var(--mut)">▾</span></div><a class="btn sm" href="/logout">Çıkış</a></div>';
 }
-
-async function sunucuAc(id, ad) {
-  SID = id;
-  document.getElementById('sunucular-wrap').classList.add('gizli');
-  document.getElementById('editor').classList.remove('gizli');
-  document.getElementById('duzen').classList.add('tekli');
-  document.getElementById('editor').innerHTML = '<div class="yukleniyor">Ayarlar yükleniyor...</div>';
-  try {
-    const j = await api(`/api/guild/${id}`);
-    KANALLAR = j.kanallar;
-    ROLLER = j.roller;
-    FORM = { ...j.ayarlar };
-    PREMIUM_AKTIF = !!j.prem;
-    ciz(ad);
-  } catch {
-    document.getElementById('editor').innerHTML = `<div class="hata-kutu">Yüklenemedi! Bot bu sunucuda mı?</div>`;
-  }
+function araGit(v){
+  v=(v||'').toLocaleLowerCase('tr');
+  const bul=Object.keys(NAV_AD).find(k=>NAV_AD[k].toLocaleLowerCase('tr').includes(v));
+  if(bul)git(bul);else toast('Sonuç yok');
 }
-
-function secenekler(liste, deger, bosAd) {
-  return `<option value="">— ${bosAd} —</option>` +
-    liste.map((x) => `<option value="${x.id}"${String(deger) === String(x.id) ? ' selected' : ''}>${x.tip === 'ses' ? '🔊' : x.tip === 'yazi' ? '💬' : ''} ${x.ad}</option>`).join('');
-}
-
-function ciz(ad) {
-  const b = BOLUM.find((x) => x.id === AKTIF_SEKME) || BOLUM[0];
-  let html = `<div class="geri-bar"><button class="btn btn-ghost btn-kucuk" onclick="sunucuGeri()">← Sunucular</button><b>⚙️ ${ad}</b></div><div class="panel-duzen">`;
-  html += `<aside class="kenar">` + BOLUM.map((x) =>
-    `<button class="kenar-btn${x.id === b.id ? ' aktif' : ''}" onclick="sekmeAc('${x.id}')">${x.baslik}</button>`
-  ).join('') + `</aside><div class="icerik" id="icerik">`;
-  if (b.yasakli) {
-    html += `<div class="bolum"><h2>${b.baslik}</h2><div id="yasak-liste"><p class="bos">Yükleniyor...</p></div>
-      <div class="satir"><label>Yeni kelime</label><div style="display:flex;gap:8px">
-      <input type="text" id="yasak-yeni" placeholder="örn: reklam" maxlength="50">
-      <button class="btn btn-kucuk" onclick="yasakEkle()">Ekle</button></div></div></div>`;
-  } else if (b.yaziKarti) {
-    html += `<div class="bolum"><h2>${b.baslik}</h2>` + b.alanlar.map((a) => {
-      const v = FORM[a.k] || '';
-      const ham = v ? String(v) : '';
-      const ozet = ham ? ham.slice(0, 90).replace(/</g, '&lt;') + (ham.length > 90 ? '…' : '') : '<i class="ayar-yok">ayarlı değil</i>';
-      return `<div class="satir"><label>✏️ ${a.ad}<small>${ozet}</small></label>` +
-        `<button class="btn btn-ghost btn-kucuk" onclick="yaziAc('${a.k}')">Düzenle</button></div>`;
-    }).join('') + `</div>`;
-  } else if (b.muaf) {
-    html += `<div class="bolum"><h2>${b.baslik}</h2><p class="bolum-acik">${b.aciklama || ''}</p>` + b.alanlar.map((a) => {
-      const secili = FORM[a.k] || [];
-      return `<div class="satir"><label>🛡️ ${a.ad}</label><div class="muaf-kutu">` +
-        ROLLER.map((r) => `<button class="muaf-cip${secili.includes(r.id) ? ' acik' : ''}" onclick="muafDegistir('${a.k}','${r.id}',this)" title="${r.ad}">${String(r.ad).slice(0, 18)}</button>`).join('') +
-        `</div></div>`;
-    }).join('') + `</div>`;
-  } else if (b.listeler) {
-    html += `<div class="bolum"><h2>${b.baslik}</h2><div id="liste-alani"><p class="bos">Yükleniyor...</p></div></div>`;
-  } else if (b.premium) {
-    if (!PREMIUM_AKTIF) {
-      html += `<div class="bolum kilitli-bolum"><h2>${b.baslik}</h2>
-        <div class="kilit-overlay"><div style="font-size:44px">👑🔒</div>
-        <h3>Premium Gerekli!</h3>
-        <p>Bu sunucuda premium aktif değil.<br>Kodun varsa bota <code>/premium aktiflestir</code> yaz,<br>yoksa destek sunucusundan edin!</p>
-        <a class="btn btn-kucuk" href="https://discord.gg/urYcW4ubqT" target="_blank">💬 Destek Sunucusu</a></div>
-        <div class="bulanik">${b.alanlar.map((a) => `<div class="satir"><label>✏️ ${a.ad}</label></div>`).join('')}</div></div>`;
-    } else {
-      html += `<div class="bolum"><h2>${b.baslik} <span class="prem-roz">👑 AKTİF</span></h2>` + b.alanlar.map((a) => {
-        const v = FORM[a.k];
-        if (a.t === 'yazi-karti') {
-          const ham = v ? String(v) : '';
-          const ozet = ham ? ham.slice(0, 90).replace(/</g, '&lt;') + (ham.length > 90 ? '…' : '') : '<i class="ayar-yok">ayarlı değil</i>';
-          return `<div class="satir"><label>✏️ ${a.ad}<small>${ozet}</small></label><button class="btn btn-ghost btn-kucuk" onclick="yaziAc('${a.k}')">Düzenle</button></div>`;
-        }
-        if (a.t === 'bool' || !a.t) {
-          return `<div class="satir"><label>${a.ad}</label><label class="toggle"><input type="checkbox" data-k="${a.k}"${v ? ' checked' : ''}><span class="ray"></span></label></div>`;
-        }
-        if (a.t === 'kanal') {
-          const seceneklerFn = typeof secenekler === 'function' ? secenekler : (l, d, b2) => '';
-          return `<div class="satir"><label>${a.ad}</label><select data-k="${a.k}">${seceneklerFn(KANALLAR.filter((k) => k.tip === 'yazi'), v, 'Kapalı')}</select></div>`;
-        }
-        return `<div class="satir"><label>${a.ad}</label><input type="number" data-k="${a.k}" value="${v ?? 0}" min="0"></div>`;
-      }).join('') + `</div>`;
-    }
-  } else {
-    html += `<div class="bolum"><h2>${b.baslik}</h2>`;
-    b.alanlar.forEach((a) => {
-      const v = FORM[a.k];
-      const tip = a.t || (b.kanal ? 'kanal' : 'toggle');
-      html += `<div class="satir"><label>${a.ad}${a.ac ? `<small>${a.ac}</small>` : ''}</label>`;
-      if (tip === 'toggle') {
-        html += `<label class="toggle"><input type="checkbox" data-k="${a.k}"${v ? ' checked' : ''}><span class="ray"></span></label>`;
-      } else if (tip === 'rol') {
-        html += `<select data-k="${a.k}">${secenekler(ROLLER, v, 'Yok')}</select>`;
-      } else if (tip === 'kanal') {
-        html += `<select data-k="${a.k}">${secenekler(KANALLAR.filter((k) => k.tip === 'yazi'), v, 'Kapalı')}</select>`;
-      } else if (tip === 'sayi') {
-        html += `<input type="number" data-k="${a.k}" value="${v ?? 0}" min="0">`;
-      }
-      html += `</div>`;
-    });
-    html += `</div>`;
-  }
-  html += `</div></div><div class="kaydet-cubugu"><button class="btn" id="kaydet" onclick="kaydet()">💾 Kaydet</button></div>`;
-  document.getElementById('editor').innerHTML = html;
-  if (b.yasakli) yasakYukle();
-  if (b.listeler) listeYukle();
-}
-
-function muafDegistir(key, rolId, el) {
-  if (!Array.isArray(FORM[key])) FORM[key] = [];
-  const i = FORM[key].indexOf(rolId);
-  if (i >= 0) { FORM[key].splice(i, 1); el.classList.remove('acik'); }
-  else {
-    if (FORM[key].length >= 10) { toast('En fazla 10 rol!'); return; }
-    FORM[key].push(rolId); el.classList.add('acik');
-  }
-}
-
-// ---- 📊 Gelişmiş liste yöneticileri ----
-let LISTE_VERI = null;
-function rolSecenek(secili) {
-  return `<option value="">— Rol —</option>` + ROLLER.map((r) =>
-    `<option value="${r.id}"${String(secili) === String(r.id) ? ' selected' : ''}>${r.ad}</option>`).join('');
-}
-async function listeYukle() {
-  const kutu = document.getElementById('liste-alani');
-  if (!kutu) return;
-  try {
-    const j = await api(`/api/liste/${SID}`);
-    LISTE_VERI = j;
-    const esikBlok = (baslik, listeAdi, satirlar, ekForm) =>
-      `<div class="liste-blok"><h3>${baslik}</h3><div class="liste-satirlar">` +
-      ((satirlar && satirlar.length ? satirlar : '<p class="bos">Kayıt yok.</p>')) +
-      `</div><div class="liste-ekle">${ekForm}</div></div>`;
-    const rolSatir = (x, etiket, silFn) =>
-      `<div class="liste-satir"><span>${etiket}</span><span><b>&lt;@&${x.rolId}&gt;</b> <button class="btn btn-ghost btn-kucuk" onclick="${silFn}">🗑️</button></span></div>`;
-    kutu.innerHTML =
-      `<div class="liste-blok"><h3>🚀 Seviye Rolleri</h3><div class="liste-satirlar">` +
-      ((j.seviyeRoller || []).map((x) => rolSatir(x, `Sv.${x.seviye}`, `listeSil('seviyeRoller',{seviye:${x.seviye}})`)).join('') || '<p class="bos">Kayıt yok.</p>') +
-      `</div><div class="liste-ekle"><input type="number" id="lz-seviye" placeholder="Sv." min="1" max="100" style="width:90px"><select id="lz-seviye-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeEkle('seviyeRoller')">Ekle</button></div></div>` +
-      `<div class="liste-blok"><h3>🏅 İtibar Rolleri</h3><div class="liste-satirlar">` +
-      ((j.repRoller || []).map((x) => rolSatir(x, `⭐ ${x.puan}`, `listeSil('repRoller',{puan:${x.puan}})`)).join('') || '<p class="bos">Kayıt yok.</p>') +
-      `</div><div class="liste-ekle"><input type="number" id="lz-puan" placeholder="Puan" style="width:90px"><select id="lz-puan-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeEkle('repRoller')">Ekle</button></div></div>` +
-      `<div class="liste-blok"><h3>📨 Davet Rolleri</h3><div class="liste-satirlar">` +
-      ((j.davetRolleri || []).map((x) => rolSatir(x, `📨 ${x.sayi}`, `listeSil('davetRolleri',{sayi:${x.sayi}})`)).join('') || '<p class="bos">Kayıt yok.</p>') +
-      `</div><div class="liste-ekle"><input type="number" id="lz-davet" placeholder="Adet" min="1" style="width:90px"><select id="lz-davet-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeEkle('davetRolleri')">Ekle</button></div></div>` +
-      `<div class="liste-blok"><h3>🤖 Oto-Cevaplar</h3><div class="liste-satirlar">` +
-      ((j.otoCevap || []).map((x) => `<div class="liste-satir"><span><b>${String(x.tetik).replace(/</g, '&lt;')}</b> → ${String(x.cevap).slice(0, 60).replace(/</g, '&lt;')}</span><button class="btn btn-ghost btn-kucuk" onclick="listeSil('otoCevap',{tetik:'${String(x.tetik).replace(/'/g, "\\'")}'} )">🗑️</button></div>`).join('') || '<p class="bos">Kayıt yok.</p>') +
-      `</div><div class="liste-ekle"><input type="text" id="lz-tetik" placeholder="tetik kelime" maxlength="50" style="width:130px"><input type="text" id="lz-cevap" placeholder="bot cevabı" maxlength="200"><button class="btn btn-kucuk" onclick="listeEkle('otoCevap')">Ekle</button></div></div>` +
-      `<div class="liste-blok"><h3>🏷️ Tag Sistemi</h3>` +
-      (j.tagSistemi
-        ? `<div class="liste-satir"><span><b>${String(j.tagSistemi.tag).replace(/</g, '&lt;')}</b> → <b>&lt;@${j.tagSistemi.rolId}&gt;</b></span><button class="btn btn-ghost btn-kucuk" onclick="listeTag('kapat')">Kapat</button></div>`
-        : `<div class="liste-ekle"><input type="text" id="lz-tag" placeholder="örn: ★" maxlength="20" style="width:110px"><select id="lz-tag-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeTag('ayarla')">Aç</button></div>`) +
-      `</div>` +
-      `<div class="liste-blok"><h3>🎭 Ekstra Oto-Roller</h3><div class="liste-satirlar">` +
-      ((j.otoRolCoklu || []).map((id) => `<div class="liste-satir"><span><b>&lt;@${id}&gt;</b></span><button class="btn btn-ghost btn-kucuk" onclick="listeSil('otoRolCoklu',{rolId:'${id}'})">🗑️</button></div>`).join('') || '<p class="bos">Yok.</p>') +
-      `</div><div class="liste-ekle"><select id="lz-coklu-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeEkle('otoRolCoklu')">Ekle</button> <button class="btn btn-ghost btn-kucuk" onclick="listeTemizleCoklu()">Temizle</button></div></div>`;
-  } catch { kutu.innerHTML = '<p class="bos">Yüklenemedi.</p>'; }
-}
-async function listeEkle(ad) {
-  const govde = { guildId: SID, liste: ad };
-  if (ad === 'seviyeRoller') { govde.seviye = parseInt(document.getElementById('lz-seviye').value, 10); govde.rolId = document.getElementById('lz-seviye-rol').value; }
-  if (ad === 'repRoller') { govde.puan = parseInt(document.getElementById('lz-puan').value, 10); govde.rolId = document.getElementById('lz-puan-rol').value; }
-  if (ad === 'davetRolleri') { govde.sayi = parseInt(document.getElementById('lz-davet').value, 10); govde.rolId = document.getElementById('lz-davet-rol').value; }
-  if (ad === 'otoCevap') { govde.tetik = document.getElementById('lz-tetik').value; govde.cevap = document.getElementById('lz-cevap').value; }
-  if (ad === 'otoRolCoklu') { govde.rolId = document.getElementById('lz-coklu-rol').value; }
-  try {
-    await api('/api/liste', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(govde) });
-    toast('✅ Eklendi!');
-    listeYukle();
-  } catch { toast('❌ Olmadı! (rol yetkisi/değerleri kontrol et)'); }
-}
-async function listeSil(ad, ekstra) {
-  try {
-    await api('/api/liste', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: SID, liste: ad, islem: 'sil', ...(ekstra || {}) }) });
-    toast('🗑️ Silindi!');
-    listeYukle();
-  } catch { toast('❌ Olmadı!'); }
-}
-async function listeTag(islem) {
-  try {
-    const govde = { guildId: SID, liste: 'tagSistemi', islem };
-    if (islem === 'ayarla') {
-      govde.tag = document.getElementById('lz-tag').value;
-      govde.rolId = document.getElementById('lz-tag-rol').value;
-    }
-    await api('/api/liste', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(govde) });
-    toast(islem === 'kapat' ? 'Kapatıldı!' : '🏷️ Açıldı!');
-    listeYukle();
-  } catch { toast('❌ Olmadı!'); }
-}
-async function listeTemizleCoklu() {
-  try {
-    await api('/api/liste', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: SID, liste: 'otoRolCoklu', islem: 'temizle' }) });
-    toast('🗑️ Temizlendi!');
-    listeYukle();
-  } catch { toast('❌ Olmadı!'); }
-}
-
-function sekmeAc(id) {
-  domKaydet();
-  AKTIF_SEKME = id;
-  const baslik = document.querySelector('#editor h2');
-  ciz(baslik ? baslik.textContent.replace(/^⚙️ /, '') : '');
-}
-
-function domKaydet() {
-  document.querySelectorAll('#editor [data-k]').forEach((el) => {
-    const k = el.dataset.k;
-    if (el.type === 'checkbox') FORM[k] = el.checked;
-    else if (el.type === 'number') FORM[k] = parseInt(el.value, 10) || 0;
-    else FORM[k] = el.value || null;
+function git(id){domKaydet();AKTIF=id;renderAll()}
+function domKaydet(){
+  document.querySelectorAll('#content [data-k]').forEach(el=>{
+    const k=el.dataset.k;
+    if(k==='yoneticiRolTek')return;
+    if(el.type==='checkbox')FORM[k]=el.checked;
+    else if(el.type==='number')FORM[k]=parseInt(el.value,10)||0;
+    else FORM[k]=el.value||null;
+  });
+  document.querySelectorAll('#content [data-log]').forEach(el=>{
+    if(!FORM.logOlaylar||typeof FORM.logOlaylar!=='object')FORM.logOlaylar={};
+    FORM.logOlaylar[el.dataset.log]=el.checked;
   });
 }
-
-async function kaydet() {
-  const btn = document.getElementById('kaydet');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Kaydediliyor...'; }
+async function kaydet(mesaj){
   domKaydet();
-  await formKaydet();
-  if (btn) { btn.disabled = false; btn.textContent = '💾 Kaydet'; }
+  const b=document.getElementById('kaydetBtn');if(b){b.disabled=true;b.textContent='Kaydediliyor...'}
+  try{
+    const j=await api('/api/guild/'+SID,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(FORM)});
+    toast(mesaj||('Kaydedildi'+(j.sayi?' ('+j.sayi+' ayar)':'')));
+  }catch{toast('Kaydedilemedi')}
+  if(b){b.disabled=false;b.textContent='💾 Kaydet'}
+}
+function saveBar(){return '<div class="savebar"><button class="btn pri" id="kaydetBtn" onclick="kaydet()">💾 Kaydet</button></div>'}
+function secenek(kanalTip,deger,bos){
+  const liste=kanalTip==='rol'?ROLLER:KANALLAR.filter(k=>!kanalTip||k.tip===kanalTip);
+  return '<option value="">— '+bos+' —</option>'+liste.map(x=>'<option value="'+x.id+'"'+(String(deger)===String(x.id)?' selected':'')+'>'+(x.tip==='ses'?'🔊 ':'')+esc(x.ad)+'</option>').join('');
+}
+function rolChips(key){
+  const sec=FORM[key]||[];
+  return '<div class="chip-row" style="margin-top:0">'+ROLLER.map(r=>'<button class="chip" style="'+(sec.includes(r.id)?'border-color:var(--acc);color:#fff;background:var(--acc-bg)':'')+'" onclick="chipRol(\''+key+'\',\''+r.id+'\',this)">'+esc(r.ad.slice(0,20))+'</button>').join('')+'</div>';
+}
+function chipRol(key,id,el){
+  if(!Array.isArray(FORM[key]))FORM[key]=[];
+  const i=FORM[key].indexOf(id);
+  if(i>=0){FORM[key].splice(i,1);el.style.borderColor='';el.style.color='';el.style.background=''}
+  else{if(FORM[key].length>=10){toast('En fazla 10 rol');return}FORM[key].push(id);el.style.borderColor='var(--acc)';el.style.color='#fff';el.style.background='var(--acc-bg)'}
 }
 
-async function formKaydet(mesaj) {
-  try {
-    const j = await api(`/api/guild/${SID}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(FORM),
-    });
-    if (j.ok) toast(mesaj || `✅ Kaydedildi! (${j.sayi} ayar)`);
-    else toast('❌ Kaydedilemedi!');
-  } catch { toast('❌ Bağlantı hatası!'); }
+/* ---------- içerik ---------- */
+function renderContent(){
+  const c=document.getElementById('content');
+  if(AKTIF==='home')return cizHome(c);
+  if(AKTIF==='ayarlar')return cizAyarlar(c);
+  if(AKTIF==='seviye')return cizSeviye(c);
+  if(AKTIF==='karsilama')return cizKarsilama(c);
+  if(AKTIF==='otomod')return cizOtomod(c);
+  if(AKTIF==='denetim')return cizDenetim(c);
+  if(AKTIF==='gomulu')return cizGomulu(c);
+  if(AKTIF==='otocevap')return cizOtoCevap(c);
+  if(AKTIF==='emojirol')return cizEmojiRol(c);
+  if(AKTIF==='etiket')return cizEtiket(c);
+  if(AKTIF==='premium')return cizPremium(c);
+  if(AKTIF==='denetimMasasi')return cizDenetimMasasi(c);
+  if(AKTIF.startsWith('gov'))return cizGov(c,AKTIF);
+  c.innerHTML='<div class="bos">Hazırlanıyor.</div>';
 }
 
-// ---- ✏️ Yazı editör modalı ----
-let MODAL_KEY = null;
-const ORNEK_DEGER = { 'kullanıcı': '@EmoçFan', sunucu: 'Sunucum', 'üye': '1.337', hedef: '1000', kalan: '42', davet: 'discord.gg/ornek' };
-
-function yaziAc(key) {
-  const alan = BOLUM.flatMap((b) => b.alanlar || []).find((a) => a.k === key);
-  if (!alan) return;
-  MODAL_KEY = key;
-  const degiskenler = (alan.degiskenler || []).map((d) =>
-    `<button class="cip" onclick="cipEkle('{${d}}')">{${d}}</button>`).join('');
-  document.body.insertAdjacentHTML('beforeend',
-    `<div class="modal-arka acik" id="yazi-modal"><div class="modal-kutu2">
-      <h3>✏️ ${alan.ad}</h3>
-      <div class="cip-row">${degiskenler}</div>
-      <textarea id="yazi-alan" rows="5">${(FORM[key] || '').replace(/</g, '&lt;')}</textarea>
-      <div class="gif-ipucu">💡 Resim/gif linki eklersen (https://...gif) mesajda otomatik gösterilir!</div>
-      <div class="onizleme-kutu"><div class="onizleme-baslik">ÖNİZLEME</div><div class="onizleme-mesaj" id="yazi-oniz"></div></div>
-      <div class="modal-alt"><button class="btn btn-ghost" onclick="yaziKapat()">İptal</button>
-      <button class="btn" onclick="yaziKaydet()">💾 Kaydet</button></div>
-    </div></div>`);
-  const ta = document.getElementById('yazi-alan');
-  ta.addEventListener('input', onizlemeGuncelle);
-  onizlemeGuncelle();
-  ta.focus();
-}
-function cipEkle(kod) {
-  const ta = document.getElementById('yazi-alan');
-  const bas = ta.selectionStart || ta.value.length;
-  ta.value = ta.value.slice(0, bas) + kod + ta.value.slice(ta.selectionEnd || bas);
-  ta.focus();
-  onizlemeGuncelle();
-}
-function onizlemeGuncelle() {
-  const ta = document.getElementById('yazi-alan');
-  const kutu = document.getElementById('yazi-oniz');
-  if (!ta || !kutu) return;
-  let metin = ta.value;
-  let resim = null;
-  const m = metin.match(/(https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(\?\S*)?)/i);
-  if (m) { resim = m[0]; metin = metin.replace(m[0], '').trim(); }
-  for (const [k, v] of Object.entries(ORNEK_DEGER)) metin = metin.split(`{${k}}`).join(v);
-  kutu.innerHTML = `<b>Emoç <span>BOT • bugün</span></b><p>${metin.replace(/</g, '&lt;').replace(/\n/g, '<br>') || '<i>...</i>'}</p>${resim ? `<img src="${resim}" onerror="this.remove()">` : ''}`;
-}
-function yaziKapat() {
-  document.getElementById('yazi-modal')?.remove();
-  MODAL_KEY = null;
-}
-async function yaziKaydet() {
-  const ta = document.getElementById('yazi-alan');
-  FORM[MODAL_KEY] = ta.value.slice(0, 1500) || null;
-  yaziKapat();
-  await formKaydet('✅ Yazı kaydedildi!');
-  const baslik = document.querySelector('#editor h2');
-  ciz(baslik ? baslik.textContent.replace(/^⚙️ /, '') : '');
+function cizHome(c){
+  const kart=(id,icon,ad,ac,yeni)=>{
+    return '<button class="mod-card" onclick="git(\''+id+'\')"><span class="mi">'+icon+'</span><span><b>'+ad+(yeni?' <span class="yeni-tag">YENİ</span>':'')+'</b><p>'+ac+'</p></span></button>';
+  };
+  c.innerHTML='<div class="page-h">Kontrol Paneli</div><div class="page-s">Kontrol paneline hoş geldiniz</div>'
+    +'<div class="sec-h">Sunucu Yönetimi</div><div class="kart-grid">'
+    +kart('seviye','▅','Seviye Sistemi','Mesaj ve ses etkinliğini seviyeler, sıralamalar ve rollerle ödüllendirin.')
+    +kart('karsilama','◍','Karşılama & Veda','Bir üye katıldığında veya ayrıldığında olacakları yönetin')
+    +kart('otomod','◈','Otomatik Moderasyon','Sunucu moderasyonunu otomatikleştirir',true)
+    +kart('denetimMasasi','◉','Denetim Masası','Topluluk moderasyonunu güvenilir üyelerle yönetin')
+    +kart('denetim','▣','Denetim Kaydı','Sunucunuzda olanların kaydını tutar')
+    +kart('otocevap','⌁','Otomatik Cevap','Mesaj tetiklemelerini yönetin')
+    +kart('emojirol','☺','Emoji Rol','Üyelerin mesajlara tepki vererek rol almasını sağlar')
+    +kart('etiket','◌','Sunucu Etiketi','Üyeler sunucu etiketinizi aldığında roller ekleyin ve bildirimler gönderin')
+    +'</div><div class="sec-h">Güvenlik</div><div class="kart-grid">'
+    +kart('govDavet','🔗','Davet Koruması','Sunucuya izinsiz davet paylaşımlarını engelleyin.')
+    +kart('govHesap','🛡','Hesap Filtresi','Yeni ve şüpheli hesapları otomatik filtreleyin.')
+    +kart('govRol','◎','Rol Limitlemeleri','Rol verme ve alma işlemlerini sınırlayın.')
+    +kart('govBot','⚙','Bot Filtresi','İzinsiz bot girişlerini engelleyin.')
+    +kart('govYasak','⊘','Yasaklama Limiti','Toplu yasaklamaları sınırlayın.')
+    +kart('govAtma','↩','Atma Limiti','Toplu atmaları sınırlayın.')
+    +kart('govKanal','#','Kanal Limitlemeleri','Kanal açma ve silme işlemlerini sınırlayın.')
+    +kart('govWebhook','🔗','Anti-Webhook','İzinsiz webhookları otomatik silin',true)
+    +kart('govEmoji','☺','Emoji Limitleri','Emoji spamını ve izinsiz emoji eklemeyi sınırlayın',true)
+    +'</div>';
 }
 
-// ---- 🚫 Yasaklı kelimeler ----
-async function yasakYukle() {
-  const kutu = document.getElementById('yasak-liste');
-  if (!kutu) return;
-  try {
-    const j = await api(`/api/yasakli/${SID}`);
-    const liste = j.kelimeler || [];
-    kutu.innerHTML = liste.length
-      ? `<div class="yasak-liste">` + liste.map((k) =>
-        `<span class="yasak-cip">${String(k).replace(/</g, '&lt;')}<b onclick="yasakSil('${String(k).replace(/'/g, "\\'")}')">✕</b></span>`).join('') + `</div>`
-      : '<p class="bos">Liste boş — ilk kelimeyi ekle! 👇</p>';
-  } catch { kutu.innerHTML = '<p class="bos">Yüklenemedi.</p>'; }
+function cizAyarlar(c){
+  c.innerHTML='<div class="page-h">Ayarlar</div><div class="page-s">Sunucunuzun temel yönetim ayarları</div>'
+    +'<div class="panel"><div class="warn red">⚠ Bu role sahip üyeler güvenlik sistemleri dahil tüm sistemlere erişim kazanır. Sunucu yönetiminiz başka biri tarafından yürütülmüyorsa bunu değiştirmeyin!</div>'
+    +'<div class="field"><label>Yönetici rolleri</label><select data-k="yoneticiRolTek" onchange="tektenCokluya(this,\'yoneticiRol\')">'+secenek('rol',(FORM.yoneticiRol||[])[0],'Bir seçim yapın')+'</select>'
+    +'<div style="margin-top:10px">'+rolChips('yoneticiRol')+'</div></div></div>'
+    +'<div class="panel"><div class="page-h" style="font-size:16px">Moderatör rolleri</div><div class="warn yel">⚠ Moderatörler yasaklama, atma ve susturma gibi moderasyon komutlarını kullanabilir.</div>'
+    +'<div class="field"><label>Moderatör rolleri</label><select onchange="tektenCokluya(this,\'moderatorRol\')">'+secenek('rol',(FORM.moderatorRol||[])[0],'Rol seçin')+'</select>'
+    +'<div style="margin-top:10px">'+rolChips('moderatorRol')+'</div></div></div>'
+    +'<div class="panel"><div class="page-h" style="font-size:16px">Güvenlik kanalı</div><div class="warn yel">⚠ Güvenlik sistemlerinin kaydı bu kanala gönderilir.</div>'
+    +'<div class="field"><label>Güvenlik kanalı</label><select data-k="guvenlikKanal">'+secenek('yazi',FORM.guvenlikKanal,'Bir kanal seçin')+'</select></div></div>'
+    +saveBar();
 }
-async function yasakEkle() {
-  const inp = document.getElementById('yasak-yeni');
-  const kelime = (inp.value || '').trim();
-  if (!kelime) return;
-  try {
-    const j = await api('/api/yasakli', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: SID, islem: 'ekle', kelime }) });
-    if (j.ok) {
-      inp.value = '';
-      yasakYukle();
-      toast('🚫 Eklendi!');
-    } else toast('❌ Olmadı!');
-  } catch { toast('❌ Olmadı!'); }
-}
-async function yasakSil(kelime) {
-  try {
-    await api('/api/yasakli', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: SID, islem: 'sil', kelime }) });
-    yasakYukle();
-    toast('🗑️ Silindi!');
-  } catch { toast('❌ Olmadı!'); }
+function tektenCokluya(sel,key){
+  if(!sel.value)return;
+  if(!Array.isArray(FORM[key]))FORM[key]=[];
+  if(!FORM[key].includes(sel.value)&&FORM[key].length<10)FORM[key].push(sel.value);
+  renderContent();
 }
 
-let ADMIN = false;
-let ADMIN_VERI = null;
-
-function tarihYaz(ms) {
-  if (!ms) return '—';
-  const d = new Date(ms);
-  return d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+function cizSeviye(c){
+  const f=FORM;
+  c.innerHTML='<div class="page-h">Seviye Sistemi</div><div class="page-s">Mesaj ve ses aktivitesine göre seviye dağıtın</div>'
+  +'<div class="grid2"><div class="panel"><div class="panel-top"><div><h3>💬 Mesaj XP</h3><p>Üyeler mesajları için rastgele XP kazanır.<br>Spam içerikler elenir.</p></div>'
+  +'<label class="tgl"><input type="checkbox" data-k="mesajXP"'+(f.mesajXP!==false?' checked':'')+'><span class="ray"></span></label></div>'
+  +'<div class="field" style="margin-top:16px"><div class="row3"><div><label>Minimum XP</label><input type="number" data-k="xpMin" value="'+(f.xpMin??15)+'"></div><div><label>Maksimum XP</label><input type="number" data-k="xpMax" value="'+(f.xpMax??25)+'"></div><div><label>Bekleme süresi</label><div style="display:flex;gap:8px;align-items:center"><input type="number" data-k="xpSoguma" value="'+(f.xpSoguma??60)+'"><span style="color:var(--mut)">s</span></div></div></div></div></div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>🎙 Ses XP 👑</h3><p>Premium sunucularda üyeler ses kanallarında geçirdikleri süreye göre XP kazanır.</p></div>'
+  +'<label class="tgl"><input type="checkbox" data-k="sesXP"'+(f.sesXP?' checked':'')+'><span class="ray"></span></label></div>'
+  +'<div class="field" style="margin-top:16px"><div class="row3"><div><label>Dakika başına XP</label><input type="number" data-k="sesXPDakika" value="'+(f.sesXPDakika??5)+'"></div><div><label>Minimum katılımcı</label><input type="number" data-k="sesXPMin" value="'+(f.sesXPMin??2)+'"></div><div><label>AFK koruması</label><select data-k="sesXPAfk"><option value="1"'+(f.sesXPAfk!==false?' selected':'')+'>Açık</option><option value=""'+(f.sesXPAfk===false?' selected':'')+'>Kapalı</option></select></div></div>'
+  +'<div class="hint">✔ AFK koruması etkinleştirildiğinde AFK, sessiz veya odada tek duran üyeler XP kazanamaz.</div></div></div></div>'
+  +'<div class="panel" style="margin-top:16px"><div class="panel-top"><div><h3>🔔 Seviye atlama duyurusu</h3><p>Üyeleriniz seviye atladığında kişiselleştirilmiş bir mesaj gönderin.</p></div></div>'
+  +'<div class="field"><label>Hedef</label><select data-k="seviyeKanal"><option value="">Kapalı</option>'+KANALLAR.filter(k=>k.tip==='yazi').map(k=>'<option value="'+k.id+'"'+(String(f.seviyeKanal)===String(k.id)?' selected':'')+'># '+esc(k.ad)+'</option>').join('')+'</select></div>'
+  +'<div class="field" style="display:flex;align-items:center;gap:12px"><label class="tgl"><input type="checkbox" data-k="seviyeOzel"'+(f.seviyeOzel?' checked':'')+'><span class="ray"></span></label><span style="font-size:13px">Özel mesaj olarak gönder</span></div>'
+  +'<div class="field"><label>Mesaj şablonu</label><textarea data-k="seviyeMesaj" rows="2">🎉 '+(esc(f.seviyeMesaj)||'Tebrikler {user}, **{level}**. seviyeye ulaştın! /rank ile seviyeni kontrol et.')+'</textarea>'
+  +'<div style="margin-top:8px"><button class="link-btn" onclick="toast(\'Değişkenler: {user} {level} {xp}\')">⚙ Gelişmiş Mesaj Ayarla</button></div></div></div>'
+  +saveBar();
 }
 
-async function adminAc() {
-  const ed = document.getElementById('editor');
-  ed.innerHTML = '<div class="yukleniyor">Admin verileri yükleniyor... 👑</div>';
-  try {
-    const j = await api('/api/admin/ozet');
-    ADMIN_VERI = j;
-    const satir = (s) => {
-      const prem = s.bitis && s.bitis > Date.now();
-      return `<div class="satir"><label>🌍 <b>${s.ad}</b><small>👥 ${s.uye} üye ${prem ? `• 👑 <b>${tarihYaz(s.bitis)}</b>'e kadar` : '• free'}</small></label>` +
-        `<div style="display:flex;gap:6px;align-items:center">` +
-        `<input type="number" id="gun-${s.id}" placeholder="gün" min="1" max="36500" style="width:80px">` +
-        `<button class="btn btn-kucuk" onclick="adminPremium('${s.id}',true)">Aç</button>` +
-        `<button class="btn btn-ghost btn-kucuk" onclick="adminPremium('${s.id}',false)">Kapat</button></div></div>`;
-    };
-    ed.innerHTML = `<h2 style="margin-bottom:14px">👑 Admin Panel <small style="color:var(--soluk)">(gizli — sadece kurucular)</small></h2>
-      <div class="bolum"><h2>📊 Genel</h2>
-        <div class="satir"><label>🌍 Sunucu</label><b>${j.sunucu}</b></div>
-        <div class="satir"><label>👥 Toplam üye</label><b>${j.uye}</b></div>
-        <div class="satir"><label>👑 Premium sunucu</label><b>${j.premiumSayi}</b></div>
-        <div class="satir"><label>🆓 Free sunucu</label><b>${j.freeSayi}</b></div>
-        <div class="satir"><label>⏱️ Çalışma süresi</label><b>${Math.floor((j.uptime || 0) / 3600)} saat</b></div>
-        <div class="satir"><label>🧑‍💻 Sitede çevrimiçi</label><b>${j.oturum ?? '?'}</b></div>
-      </div>
-      <div class="bolum"><h2>👑 Premium Sunucular</h2>${j.premium.length ? j.premium.map(satir).join('') : '<p class="bos">Yok</p>'}</div>
-      <div class="bolum"><h2>🆓 Free Sunucular</h2>${j.free.length ? j.free.map(satir).join('') : '<p class="bos">Yok</p>'}</div>
-      <div class="bolum"><h2>🎟️ Premium Kodları</h2>
-        <div class="satir"><label>Yeni kod üret</label><div style="display:flex;gap:6px;align-items:center">
-        <input type="text" id="kod-sure" placeholder="30d / 1y / sinirsiz" style="width:150px">
-        <button class="btn btn-kucuk" onclick="kodUret()">Üret</button></div></div>
-        <div id="kod-liste"><p class="bos">Yükleniyor...</p></div>
-      </div>
-      <div class="bolum"><h2>📢 Duyuru Gönder</h2>
-        <div class="satir"><label>Sunucu</label><select id="d-sunucu"></select></div>
-        <div class="satir"><label>Kanal</label><select id="d-kanal"><option>Önce sunucu seç</option></select></div>
-        <div class="satir"><label>Mesaj</label><textarea id="d-mesaj" rows="3" placeholder="Duyuru... Örn: Haksız Premium Tespit Edildi! En kısa sürede iletişime geçin."></textarea></div>
-        <div class="satir"><label><input type="checkbox" id="d-hepsi" style="width:auto"> @everyone ile gönder</label><button class="btn btn-kucuk" onclick="duyuruGonder()">📨 Gönder</button></div>
-      </div>`;
-    const ss = document.getElementById('d-sunucu');
-    const tumu = [...(j.premium || []), ...(j.free || [])];
-    ss.innerHTML = tumu.map((s) => `<option value="${s.id}">${s.ad}</option>`).join('');
-    ss.onchange = adminKanalDoldur;
-    adminKanalDoldur();
-    kodListesi();
-  } catch { ed.innerHTML = '<div class="hata-kutu">Yüklenemedi!</div>'; }
+/* karşılama */
+function cizKarsilama(c){
+  const tabs=[
+    {id:'karsilama',icon:'💬',ad:'Karşılama ve veda',alt:'0/5 etkin'},
+    {id:'davet',icon:'🔗',ad:'Davet takibi',alt:'0/3 etkin'},
+    {id:'takma',icon:'▤',ad:'Takma ad araçları',alt:'0/3 etkin'},
+  ];
+  let sag='';
+  if(GREET==='karsilama')sag=karsilamaSag();
+  else if(GREET==='davet')sag=davetSag();
+  else sag=takmaSag();
+  c.innerHTML='<div class="page-h">Karşılama & Veda</div><div class="page-s">Yeni üyeleri karşılayın, ayrılanları takip edin</div>'
+    +'<div class="greet-wrap"><div class="greet-side"><h3>◈ Karşılama özellikleri</h3><p>Ayarlarını açmak için aşağıdan bir özellik grubu seçin.</p>'
+    +'<div class="g-count"><span>3 özellik grubu</span><b>0/11 etkin</b></div>'
+    +tabs.map(t=>'<button class="g-opt'+(GREET===t.id?' secil':'')+'" onclick="GREET=\''+t.id+'\';renderContent()"><div class="t"><span class="mi">'+t.icon+'</span>'+t.ad+'</div><div class="b"><span>'+t.alt+'</span><span>'+(GREET===t.id?'👁 Seçili':'⚙ Ayarları aç ›')+'</span></div></button>').join('')
+    +'</div><div>'+sag+'</div></div>'+saveBar();
+}
+function karsilamaSag(){
+  const f=FORM;
+  return '<div class="panel"><div class="panel-top"><div><h3>Otomatik rol</h3><p>Sunucuya üye katıldığında belirlediğiniz roller verilir</p></div><label class="tgl"><input type="checkbox" data-k="otoRolAktif"'+(f.otoRolAktif?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Verilecek roller</label><select data-k="otoRol">'+secenek('rol',f.otoRol,'Rol seçin')+'</select></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Üye katılınca kanala mesaj at</h3><p>Sunucuya üye katıldığında belirlediğiniz kanala mesaj atar</p></div><label class="tgl"><input type="checkbox" data-k="hosgeldinAt"'+(f.hosgeldinAt?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Kanal</label><select data-k="hosgeldinKanal">'+secenek('yazi',f.hosgeldinKanal,'Bir kanal seçin')+'</select></div>'
+    +'<div class="field"><label>Mesaj</label><textarea data-k="hosgeldinMesaj" placeholder="Mesaj">'+esc(f.hosgeldinMesaj||'')+'</textarea><div class="chip-row"><button class="chip" onclick="chipEkle(\'hosgeldinMesaj\',\'{kullanıcı}\')">Kullanıcıyı etiketle</button><button class="chip" onclick="chipEkle(\'hosgeldinMesaj\',\'{ad}\')">Kullanıcı adı</button><button class="chip" onclick="chipEkle(\'hosgeldinMesaj\',\'{üye}\')">Üye sayısı</button><button class="chip" onclick="chipEkle(\'hosgeldinMesaj\',\'{sunucu}\')">Sunucu adı</button></div></div>'
+    +'<div class="field" style="display:flex;gap:10px;align-items:center"><label class="tgl sm"><input type="checkbox" data-k="hosgeldinResim"'+(f.hosgeldinResim?' checked':'')+'><span class="ray"></span></label><span style="font-size:13px;color:var(--mut)">Üye katılınca resim at</span></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Üye katılınca özel mesaj at</h3><p>Sunucuya üye katıldığında kullanıcıya özel mesaj atar</p></div><label class="tgl"><input type="checkbox" data-k="girisDMAt"'+(f.girisDMAt?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Mesaj</label><textarea data-k="girisDM" placeholder="Mesaj">'+esc(f.girisDM||'')+'</textarea></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Giriş Etiketi</h3><p>Yeni üyeyi seçilen kanallarda etiketler ve mesajı hemen siler</p></div><label class="tgl"><input type="checkbox" data-k="girisEtiket"'+(f.girisEtiket?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Giriş etiketi kanalları</label><select onchange="kanalCokluEkle(\'girisEtiketKanal\',this)">'+secenek('yazi','','Kanal seçin')+'</select><div style="margin-top:8px;font-size:12.5px;color:var(--mut)">'+((f.girisEtiketKanal||[]).map(kanalAd).join(', ')||'Seçim yok')+'</div></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Üye ayrılınca kanala mesaj at</h3><p>Sunucudan üye ayrıldığında belirlediğiniz kanala mesaj atar</p></div><label class="tgl"><input type="checkbox" data-k="cikisAt"'+(f.cikisAt?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Kanal</label><select data-k="cikisKanal">'+secenek('yazi',f.cikisKanal,'Bir kanal seçin')+'</select></div>'
+    +'<div class="field"><label>Mesaj</label><textarea data-k="cikisMesaj" placeholder="Mesaj">'+esc(f.cikisMesaj||'')+'</textarea></div></div>';
+}
+function davetSag(){
+  const f=FORM;
+  return '<div class="panel"><div class="panel-top"><div><h3>🔗 Davet takibi</h3><p>Davet hareketlerini, mesajları ve ödül rollerini takip edin.</p></div></div>'
+    +'<div class="chip-row"><span class="chip">/davetler</span><span class="chip">/davettop</span><span class="chip">/davetyönet</span></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Davet katılma mesajı</h3><p>Yeni üye yalnızca bir davetle eşleştirildiğinde gönderilir.</p></div><label class="tgl"><input type="checkbox" data-k="davetGirisAt"'+(f.davetGirisAt?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Kanal</label><select data-k="davetKanal">'+secenek('yazi',f.davetKanal,'Bir kanal seçin')+'</select></div>'
+    +'<div class="field"><label>Mesaj</label><textarea data-k="davetGirisMesaj">'+esc(f.davetGirisMesaj||'{davet eden} adlı üye {yeni üye} adlı üyeyi sunucuya davet etti.')+'</textarea><div class="chip-row"><span class="chip">Net davet</span><span class="chip">Toplam davet</span><span class="chip">Davet eden etiketi</span><span class="chip">Davet eden kullanıcı adı</span><span class="chip">Yeni üye etiketi</span><span class="chip">Yeni üye kullanıcı adı</span><span class="chip">Davet kodu</span></div></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Davet ayrılma mesajı</h3><p>Takip edilen davetli bir üye ayrıldığında gönderilir.</p></div><label class="tgl"><input type="checkbox" data-k="davetCikisAt"'+(f.davetCikisAt?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Kanal</label><select data-k="davetCikisKanal">'+secenek('yazi',f.davetCikisKanal,'Bir kanal seçin')+'</select></div>'
+    +'<div class="field"><label>Mesaj</label><textarea data-k="davetCikisMesaj">'+esc(f.davetCikisMesaj||'{davet eden} tarafından davet edilen {ayrılan} sunucudan ayrıldı.')+'</textarea></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Davet Rolleri 👑</h3><p>Üyenin net davet sayısına göre rol verir.</p></div><label class="tgl"><input type="checkbox" data-k="davetRolu"'+(f.davetRolu?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="warn yel">👑 Premium ile belirli davete ulaşan üyelerinize roller ekletebilirsiniz.</div>'
+    +'<div class="field"><label>Ödül davranışı</label><select><option>Kazanılan rolleri biriktir</option><option>En yüksek rolü ver</option></select></div></div>';
+}
+function takmaSag(){
+  const f=FORM;
+  return '<div class="panel"><div class="panel-top"><div><h3>Takma ad araçları</h3><p>Yeni üye adlarını standartlaştırın ve güvenli olmayan adları filtreleyin.</p></div></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Takma adları temizle</h3><p>Takma adlardan alfabe dışı karakterleri siler</p></div><label class="tgl"><input type="checkbox" data-k="takmaTemizle"'+(f.takmaTemizle?' checked':'')+'><span class="ray"></span></label></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Yeni üye ismi</h3><p>Kullanıcıların ismini belirttiğiniz şekilde değiştirir</p></div><label class="tgl"><input type="checkbox" data-k="yeniIsimAktif"'+(f.yeniIsimAktif?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>İsim</label><input type="text" data-k="yeniIsimSablon" placeholder="İsim" value="'+esc(f.yeniIsimSablon||'')+'"><div class="chip-row"><span class="chip">Kullanıcı adı</span></div></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>İsim filtresi</h3><p>Takma adı belirttiğiniz kelimeleri içeren üyeleri yasaklar</p></div><label class="tgl"><input type="checkbox" data-k="isimFiltre"'+(f.isimFiltre?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field" style="display:flex;gap:10px;align-items:center"><label class="tgl sm"><input type="checkbox" data-k="isimFiltreBaglanti"'+(f.isimFiltreBaglanti?' checked':'')+'><span class="ray"></span></label><span style="font-size:13px;color:var(--mut)">Bağlantıları filtrele</span></div>'
+    +'<div class="field"><label>Kelime listesi</label><input type="text" id="isimKelime" placeholder="Bir kelime yazıp Enter tuşuna basın" onkeydown="if(event.key===\'Enter\'){isimKelimeEkle(this.value);this.value=\'\'}"><div class="chip-row">'+((f.isimKelimeler||[]).map(w=>'<span class="chip">'+esc(w)+'</span>').join(''))+'</div></div></div>';
+}
+function chipEkle(key,kod){
+  const ta=document.querySelector('[data-k="'+key+'"]');
+  if(!ta)return;ta.value=(ta.value?ta.value+' ':'')+kod;ta.focus();
+}
+function kanalCokluEkle(key,sel){
+  if(!sel.value)return;
+  if(!Array.isArray(FORM[key]))FORM[key]=[];
+  if(!FORM[key].includes(sel.value))FORM[key].push(sel.value);
+  renderContent();
+}
+function isimKelimeEkle(w){
+  w=(w||'').trim();if(!w)return;
+  if(!Array.isArray(FORM.isimKelimeler))FORM.isimKelimeler=[];
+  FORM.isimKelimeler.push(w);renderContent();
 }
 
-async function adminKanalDoldur() {
-  const gid = document.getElementById('d-sunucu').value;
-  const ks = document.getElementById('d-kanal');
-  ks.innerHTML = '<option>Yükleniyor...</option>';
-  try {
-    const j = await api(`/api/admin/kanallar/${gid}`);
-    ks.innerHTML = (j.kanallar || []).map((k) => `<option value="${k.id}">${k.tip === 'ses' ? '🔊' : '💬'} #${k.ad}</option>`).join('');
-  } catch { ks.innerHTML = '<option>Yüklenemedi</option>'; }
+/* otomod */
+function amGet(k){return FORM[k]||{}}
+function cizOtomod(c){
+  c.innerHTML='<div class="page-h">Otomatik Moderasyon</div><div class="page-s">Sunucu moderasyonunu otomatikleştirin</div>'
+    +'<div class="grid3">'+AM_LIST.map(a=>{
+      const v=amGet(a.k);const ac=v.enabled;
+      return '<div class="am-card"><div style="display:flex;justify-content:space-between;align-items:center"><h3>'+a.ad+'</h3><label class="tgl sm"><input type="checkbox" '+(ac?'checked':'')+' onchange="amToggle(\''+a.k+'\',this.checked)"><span class="ray"></span></label></div><p>'+a.ac+'</p>'
+      +'<div class="am-foot"><span class="am-stat">'+(ac?'Etkin':'Devre dışı')+'</span><button class="btn sm" onclick="amModal(\''+a.k+'\')">⚙ Ayarlar</button></div></div>';
+    }).join('')+'</div>'+saveBar();
+}
+function amToggle(k,on){
+  const v=amGet(k);v.enabled=on;FORM[k]=v;renderContent();
+}
+function amModal(k){
+  const a=AM_LIST.find(x=>x.k===k);const v=Object.assign({mesajSil:true,zamanAsimi:false,sunucudanAt:false,yasakla:false,muafKanal:[],muafRol:[],uyari:3,limit:a.varsayilan||'',kelimeler:[]},amGet(k));
+  let ekstra='';
+  if(a.kelime)ekstra+='<div class="field"><label>Engellenen kelimeler (virgülle ayırın)</label><input type="text" id="m-kelimeler" value="'+esc((v.kelimeler||[]).join(', '))+'"></div>';
+  if(a.adet)ekstra+='<div class="field"><label>Sınır (adet / satır / karakter)</label><input type="number" id="m-limit" value="'+esc(v.limit||a.varsayilan||'')+'"></div>';
+  if(a.flood)ekstra+='<div class="field"><div class="row3"><div><label>Süre (sn)</label><input type="number" id="m-sure" value="'+esc(v.sure||10)+'"></div><div><label>Mesaj sayısı</label><input type="number" id="m-limit" value="'+esc(v.limit||5)+'"></div><div><label>Uyarı sınırı</label><input type="number" id="m-uyari" value="'+esc(v.uyari||3)+'"></div></div></div>';
+  else ekstra+='<div class="field"><label>Uyarı sınırı (kaç ihlalde ceza uygulansın)</label><input type="number" id="m-uyari" value="'+esc(v.uyari||3)+'"></div>';
+  if(a.yuzde)ekstra+='<div class="field"><label>Büyük harf oranı (%)</label><input type="number" id="m-limit" value="'+esc(v.limit||70)+'"></div>';
+  document.getElementById('modal-root').innerHTML='<div class="modal-bg" onclick="if(event.target===this)modalKapat()"><div class="modal"><div class="modal-h"><span>'+a.ad+'</span><button onclick="modalKapat()">✕</button></div><div class="modal-b">'
+    +'<div class="set-row"><span><b>Mesajı sil</b><p>Her AutoMod ihlalinde her zaman etkindir.</p></span><label class="tgl"><input type="checkbox" id="m-sil"'+(v.mesajSil!==false?' checked':'')+'><span class="ray green"></span></label></div>'
+    +'<div class="set-row"><span><b>Zaman aşımı</b><p>Belirlenen uyarı sayısından sonra üyenin etkileşimini geçici olarak engeller.</p></span><label class="tgl"><input type="checkbox" id="m-timeout"'+(v.zamanAsimi?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="set-row"><span><b>Sunucudan at</b><p>Belirlenen uyarı sayısından sonra üyeyi sunucudan çıkarır.</p></span><label class="tgl"><input type="checkbox" id="m-kick"'+(v.sunucudanAt?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="set-row"><span><b>Yasakla</b><p>Belirlenen uyarı sayısından sonra üyeyi yasaklar.</p></span><label class="tgl"><input type="checkbox" id="m-ban"'+(v.yasakla?' checked':'')+'><span class="ray"></span></label></div>'
+    +ekstra
+    +'<div class="field"><label>Etkilenmeyen kanallar</label><select id="m-kanal" onchange="mEkle(\''+k+'\',\'muafKanal\',this.value);this.value=\'\'">'+secenek('yazi','','Kanal seçin')+'</select><div class="chip-row">'+(v.muafKanal||[]).map(id=>'<span class="chip">'+esc(kanalAd(id))+'</span>').join('')+'</div></div>'
+    +'<div class="field"><label>Etkilenmeyen roller</label><select id="m-rol" onchange="mEkle(\''+k+'\',\'muafRol\',this.value);this.value=\'\'">'+secenek('rol','','Rol seçin')+'</select><div class="chip-row">'+(v.muafRol||[]).map(id=>'<span class="chip">'+esc(rolAd(id))+'</span>').join('')+'</div></div>'
+    +'<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px"><button class="btn" onclick="modalKapat()">Kapat</button><button class="btn pri" onclick="amKaydet(\''+k+'\')">Kaydet</button></div>'
+    +'</div></div></div>';
+}
+function mEkle(k,alan,id){
+  if(!id)return;const v=Object.assign({},amGet(k));if(!Array.isArray(v[alan]))v[alan]=[];
+  if(!v[alan].includes(id))v[alan].push(id);FORM[k]=v;amModal(k);
+}
+function amKaydet(k){
+  const v=Object.assign({},amGet(k));
+  v.mesajSil=document.getElementById('m-sil').checked;
+  v.zamanAsimi=document.getElementById('m-timeout').checked;
+  v.sunucudanAt=document.getElementById('m-kick').checked;
+  v.yasakla=document.getElementById('m-ban').checked;
+  const uy=document.getElementById('m-uyari');if(uy)v.uyari=parseInt(uy.value,10)||3;
+  const lim=document.getElementById('m-limit');if(lim)v.limit=parseInt(lim.value,10)||'';
+  const sur=document.getElementById('m-sure');if(sur)v.sure=parseInt(sur.value,10)||10;
+  const kel=document.getElementById('m-kelimeler');if(kel)v.kelimeler=kel.value.split(',').map(s=>s.trim()).filter(Boolean).slice(0,50);
+  v.enabled=true;FORM[k]=v;modalKapat();renderContent();toast('Ayarlandı — Kaydetmeyi unutma');
+}
+function modalKapat(){document.getElementById('modal-root').innerHTML=''}
+
+/* denetim */
+const LOG_GRUP=[
+  {ad:'Üye',items:[['uyeKatildi','Üye katıldı'],['uyeAyrildi','Üye ayrıldı'],['uyeSes','Üye ses aktivitesi'],['uyeAd','Kullanıcı adı güncellendi'],['uyeRol','Üye rolleri güncellendi'],['uyeSus','Üye susturuldu'],['uyeYasak','Üye yasaklandı'],['uyeYasakKaldir','Üye yasağı kaldırıldı']]},
+  {ad:'Moderatör',items:[['modSus','Üye susturuldu'],['modSusKaldir','Üye susturması kaldırıldı'],['modYasak','Üye yasaklandı'],['modYasakKaldir','Üye yasağı kaldırıldı'],['modAt','Üye atıldı'],['modAuto','Otomatik moderasyon']]},
+  {ad:'Mesaj',items:[['mesajGuncelle','Mesaj güncellendi'],['mesajSil','Mesaj silindi']]},
+];
+const LOG_GRUP2=[
+  {ad:'Sunucu',items:[['sunucuGuncelle','Sunucu güncellendi'],['emojiOlustur','Emoji oluşturuldu'],['emojiGuncelle','Emoji güncellendi'],['emojiSil','Emoji silindi']]},
+  {ad:'Kanal',items:[['kanalOlustur','Kanal oluşturuldu'],['kanalGuncelle','Kanal güncellendi'],['kanalSil','Kanal silindi']]},
+  {ad:'Rol',items:[['rolOlustur','Rol oluşturuldu'],['rolGuncelle','Rol güncellendi'],['rolSil','Rol silindi']]},
+];
+function cizDenetim(c){
+  if(!FORM.logOlaylar||typeof FORM.logOlaylar!=='object')FORM.logOlaylar={};
+  const t=(k,ad)=>'<div class="log-item"><label class="tgl sm"><input type="checkbox" data-log="'+k+'"'+(FORM.logOlaylar[k]?' checked':'')+'><span class="ray"></span></label>'+ad+'</div>';
+  c.innerHTML='<div class="page-h">Denetim Kaydı</div><div class="page-s">Sunucunuzda olup bitenlerin kaydını tutar</div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Denetim Kaydı</h3><p>Sunucunuzda olup bitenlerin kaydını tutar</p></div><label class="tgl"><input type="checkbox" data-k="logAktif"'+(FORM.logAktif?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Ana log kanalı</label><select data-k="logKanal">'+secenek('yazi',FORM.logKanal||FORM.guvenlikKanal,'Bir kanal seçin')+'</select></div></div>'
+    +'<div class="log-grid">'+LOG_GRUP.map(g=>'<div><div class="log-sec">'+g.ad+'</div>'+g.items.map(x=>t(x[0],x[1])).join('')+'</div>').join('')+'</div>'
+    +'<div class="hr"></div><div class="log-grid">'+LOG_GRUP2.map(g=>'<div><div class="log-sec">'+g.ad+'</div>'+g.items.map(x=>t(x[0],x[1])).join('')+'</div>').join('')+'</div>'
+    +saveBar();
+  document.querySelectorAll('[data-log]').forEach(el=>{el.addEventListener('change',()=>{FORM.logOlaylar[el.dataset.log]=el.checked})});
 }
 
-async function adminPremium(gid, ac) {
-  const gun = parseInt((document.getElementById(`gun-${gid}`) || {}).value, 10) || 30;
-  try {
-    await api('/api/admin/premium', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: gid, islem: ac ? 'ac' : 'kapat', gun }) });
-    toast(ac ? `👑 Premium açıldı (${gun} gün)!` : '👑 Premium kapatıldı!');
-    adminAc();
-  } catch { toast('❌ Olmadı!'); }
+/* gömülü */
+function cizGomulu(c){
+  const liste=Array.isArray(FORM.gomuluMesajlar)?FORM.gomuluMesajlar:[];
+  c.innerHTML='<div class="page-h">Gömülü Mesajlar</div><div class="page-s">Sunucunuzdaki gömülü mesajları yönetin</div>'
+    +'<div class="panel"><div class="field"><button class="btn" style="width:100%;justify-content:space-between" onclick="gomuluYeni()">Yeni gömülü mesaj <span style="font-size:18px">+</span></button></div>'
+    +(liste.length?'<div class="kv-list" style="margin-top:14px">'+liste.map((g,i)=>'<div class="liste-satir"><span><b>'+esc(g.baslik||('Mesaj '+(i+1)))+'</b> <span style="color:var(--mut)">'+esc(kanalAd(g.kanal))+'</span></span><button class="btn sm" onclick="gomuluSil('+i+')">Sil</button></div>').join('')+'</div>':'<div class="bos">Henüz gömülü mesaj yok.</div>')
+    +'</div>'+saveBar();
+}
+function gomuluYeni(){
+  if(!Array.isArray(FORM.gomuluMesajlar))FORM.gomuluMesajlar=[];
+  document.getElementById('modal-root').innerHTML='<div class="modal-bg" onclick="if(event.target===this)modalKapat()"><div class="modal"><div class="modal-h"><span>Yeni gömülü mesaj</span><button onclick="modalKapat()">✕</button></div><div class="modal-b">'
+    +'<div class="field"><label>Başlık</label><input type="text" id="g-baslik" placeholder="Duyuru"></div>'
+    +'<div class="field"><label>Açıklama</label><textarea id="g-acik" placeholder="Mesaj içeriği"></textarea></div>'
+    +'<div class="field"><label>Kanal</label><select id="g-kanal">'+secenek('yazi','','Bir kanal seçin')+'</select></div>'
+    +'<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="modalKapat()">İptal</button><button class="btn pri" onclick="gomuluEkle()">Ekle</button></div></div></div></div>';
+}
+function gomuluEkle(){
+  const b=document.getElementById('g-baslik').value.trim(),a=document.getElementById('g-acik').value.trim(),k=document.getElementById('g-kanal').value;
+  if(!a){toast('Açıklama yaz');return}
+  FORM.gomuluMesajlar.push({baslik:b.slice(0,100),aciklama:a.slice(0,1500),kanal:k||null});
+  modalKapat();renderContent();
+}
+function gomuluSil(i){FORM.gomuluMesajlar.splice(i,1);renderContent()}
+
+/* oto cevap */
+async function cizOtoCevap(c){
+  c.innerHTML='<div class="page-h">Otomatik Cevap</div><div class="page-s">Mesaj tetiklemelerini yönetin</div><div class="panel"><div id="oc-liste"><div class="bos">Yükleniyor...</div></div>'
+    +'<div class="hr"></div><div class="row3"><div><label>Tetik kelime</label><input type="text" id="oc-tetik" maxlength="50"></div><div><label>Bot cevabı</label><input type="text" id="oc-cevap" maxlength="200"></div><div><label>&nbsp;</label><button class="btn pri" onclick="ocEkle()">Ekle</button></div></div></div>'+saveBar();
+  try{
+    const j=await api('/api/liste/'+SID);
+    const l=j.otoCevap||[];
+    document.getElementById('oc-liste').innerHTML=l.length?l.map(x=>'<div class="liste-satir"><span><b>'+esc(x.tetik)+'</b> → '+esc(x.cevap.slice(0,80))+'</span><button class="btn sm" onclick="ocSil(\''+esc(x.tetik).replace(/'/g,"\\'")+'\')">Sil</button></div>').join(''):'<div class="bos">Kayıt yok.</div>';
+  }catch{document.getElementById('oc-liste').innerHTML='<div class="bos">Yüklenemedi.</div>'}
+}
+async function ocEkle(){
+  const t=document.getElementById('oc-tetik').value,cv=document.getElementById('oc-cevap').value;
+  if(!t.trim()||!cv.trim()){toast('Eksik alan');return}
+  await api('/api/liste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,liste:'otoCevap',tetik:t,cevap:cv})});
+  toast('Eklendi');renderContent();
+}
+async function ocSil(t){
+  await api('/api/liste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,liste:'otoCevap',islem:'sil',tetik:t})});
+  toast('Silindi');renderContent();
 }
 
-async function duyuruGonder() {
-  const gid = document.getElementById('d-sunucu').value;
-  const kid = document.getElementById('d-kanal').value;
-  const mesaj = document.getElementById('d-mesaj').value;
-  const everyone = document.getElementById('d-hepsi').checked;
-  if (!mesaj.trim()) { toast('❌ Mesaj yaz!'); return; }
-  try {
-    await api('/api/admin/duyuru', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: gid, channelId: kid, mesaj, everyone }) });
-    toast('📨 Duyuru gönderildi!');
-    document.getElementById('d-mesaj').value = '';
-  } catch { toast('❌ Gönderilemedi!'); }
+/* emoji rol */
+function cizEmojiRol(c){
+  const liste=Array.isArray(FORM.emojiRoller)?FORM.emojiRoller:[];
+  c.innerHTML='<div class="page-h">Emoji Rol</div><div class="page-s">Üyelerin mesajlara tepki vererek rol almasını sağlar</div>'
+    +'<div class="panel"><div class="row3"><div><label>Kanal</label><select id="er-kanal">'+secenek('yazi','','Seçin')+'</select></div><div><label>Emoji</label><input type="text" id="er-emoji" placeholder="😀"></div><div><label>Rol</label><select id="er-rol">'+secenek('rol','','Seçin')+'</select></div></div>'
+    +'<div style="margin-top:12px"><button class="btn pri sm" onclick="erEkle()">+ Ekle</button></div>'
+    +'<div style="margin-top:14px">'+(liste.length?liste.map((x,i)=>'<div class="liste-satir"><span>'+esc(x.emoji)+' → '+esc(rolAd(x.rol))+' <span style="color:var(--mut)">'+esc(kanalAd(x.kanal))+'</span></span><button class="btn sm" onclick="erSil('+i+')">Sil</button></div>').join(''):'<div class="bos">Kayıt yok.</div>')+'</div></div>'+saveBar();
+}
+function erEkle(){
+  const k=document.getElementById('er-kanal').value,e=document.getElementById('er-emoji').value.trim(),r=document.getElementById('er-rol').value;
+  if(!e||!r){toast('Emoji ve rol gerekli');return}
+  if(!Array.isArray(FORM.emojiRoller))FORM.emojiRoller=[];
+  FORM.emojiRoller.push({kanal:k||null,emoji:e.slice(0,10),rol:r});renderContent();
+}
+function erSil(i){FORM.emojiRoller.splice(i,1);renderContent()}
+
+/* etiket */
+async function cizEtiket(c){
+  c.innerHTML='<div class="page-h">Sunucu Etiketi</div><div class="page-s">Üyeler sunucu etiketinizi aldığında roller ekleyin ve bildirimler gönderin</div>'
+    +'<div class="panel"><div class="row3"><div><label>Etiket</label><input type="text" id="et-tag" maxlength="20" placeholder="örn: ★"></div><div><label>Rol</label><select id="et-rol">'+secenek('rol','','Seçin')+'</select></div><div><label>&nbsp;</label><button class="btn pri" onclick="etKaydet()">Kaydet</button></div></div><div id="et-durum" style="margin-top:12px;color:var(--mut);font-size:13px">Yükleniyor...</div></div>'+saveBar();
+  try{
+    const j=await api('/api/liste/'+SID);
+    document.getElementById('et-durum').innerHTML=j.tagSistemi?('Aktif: <b>'+esc(j.tagSistemi.tag)+'</b> → '+esc(rolAd(j.tagSistemi.rolId))+' <button class="btn sm" onclick="etKapat()">Kapat</button>'):'Kapalı.';
+    if(j.tagSistemi){document.getElementById('et-tag').value=j.tagSistemi.tag||''}
+  }catch{}
+}
+async function etKaydet(){
+  const t=document.getElementById('et-tag').value,r=document.getElementById('et-rol').value;
+  if(!t.trim()||!r){toast('Etiket ve rol gerekli');return}
+  await api('/api/liste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,liste:'tagSistemi',tag:t,rolId:r})});
+  toast('Kaydedildi');renderContent();
+}
+async function etKapat(){
+  await api('/api/liste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,liste:'tagSistemi',islem:'kapat'})});
+  toast('Kapatıldı');renderContent();
 }
 
-async function kodListesi() {
-  const kutu = document.getElementById('kod-liste');
-  if (!kutu) return;
-  try {
-    const j = await api('/api/admin/kodlar');
-    const liste = j.kodlar || [];
-    if (!liste.length) { kutu.innerHTML = '<p class="bos">Henüz kod yok.</p>'; return; }
-    kutu.innerHTML = liste.slice(0, 20).map((k) =>
-      `<div class="satir"><label><code>${k.kod}</code><small>📅 ${k.gun >= 36500 ? 'SINIRSIZ' : k.gun + ' gün'} ${k.kullanan ? '• ✅ kullanıldı' : '• ⏳ boşta'}</small></label><button class="btn btn-ghost btn-kucuk" onclick="kodSil('${k.kod}')">🗑️</button></div>`
-    ).join('');
-  } catch { kutu.innerHTML = '<p class="bos">Yüklenemedi.</p>'; }
+function cizPremium(c){
+  c.innerHTML='<div class="page-h">Premium</div><div class="page-s">Premium özellikler ve durum</div><div class="panel"><h3 style="font-size:14px">👑 Premium</h3><p style="color:var(--mut);font-size:13px;margin-top:6px">Premium kodun varsa bota <code>/premium aktifleştir</code> yazarak açabilirsin. Ses XP, davet rolleri ve gelişmiş karşılama gibi özellikler premium sunucularda çalışır.</p></div>';
+}
+function cizDenetimMasasi(c){
+  c.innerHTML='<div class="page-h">Denetim Masası</div><div class="page-s">Topluluk moderasyonunu güvenilir üyelerle yönetin</div>'
+    +'<div class="panel"><div class="warn yel">⚠ Buraya eklediğiniz roller denetim kaydı ve hızlı işlem menüsüne erişir.</div><div class="field"><label>Güvenilir roller</label>'+rolChips('moderatorRol')+'</div>'
+    +'<div class="field"><label>Bildirim kanalı</label><select data-k="logKanal">'+secenek('yazi',FORM.logKanal,'Bir kanal seçin')+'</select></div>'
+    +'<div class="field"><label>Not</label><input type="text" data-k="denetimNot" value="'+esc(FORM.denetimNot||'')+'" placeholder="örn: 3 uyarıda sustur"></div></div>'+saveBar();
+}
+function cizGov(c,id){
+  const ad=NAV_AD[id]||'Güvenlik';
+  const acik={
+    govDavet:'İzinsiz davet paylaşımlarını engeller.',
+    govHesap:'Yeni açılmış ve şüpheli hesapları filtreler.',
+    govRol:'Kısa sürede çok fazla rol işlemini engeller.',
+    govBot:'İzinsiz botları sunucudan uzak tutar.',
+    govYasak:'Kısa sürede çok fazla yasaklamayı engeller.',
+    govAtma:'Kısa sürede çok fazla atmayı engeller.',
+    govKanal:'Kısa sürede çok fazla kanal açma/silmeyi engeller.',
+    govWebhook:'İzinsiz webhookları otomatik siler.',
+    govEmoji:'Emoji spamını ve izinsiz emoji işlemlerini sınırlar.'
+  }[id]||'';
+  c.innerHTML='<div class="page-h">'+ad+'</div><div class="page-s">'+acik+'</div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>'+ad+'</h3><p>'+acik+'</p></div><label class="tgl"><input type="checkbox" data-k="'+id+'"'+(FORM[id]?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="warn yel">⚠ Bu koruma tetiklendiğinde olay güvenlik kanalına kaydedilir.</div>'
+    +'<div class="field"><label>Güvenlik kanalı</label><select data-k="guvenlikKanal">'+secenek('yazi',FORM.guvenlikKanal,'Bir kanal seçin')+'</select></div></div>'+saveBar();
 }
 
-async function kodUret() {
-  const sure = (document.getElementById('kod-sure') || {}).value || '30d';
-  try {
-    const j = await api('/api/admin/kod-uret', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sure }) });
-    toast(`🎟️ Kod üretildi: ${j.kod}`);
-    kodListesi();
-  } catch { toast('❌ Üretilemedi!'); }
-}
-
-async function kodSil(kod) {
-  if (!confirm(`Silinsin mi?\n${kod}`)) return;
-  try {
-    await api('/api/admin/kod-sil', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kod }) });
-    toast('🗑️ Kod silindi!');
-    kodListesi();
-  } catch { toast('❌ Silinemedi!'); }
-}
-
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLocaleLowerCase('tr')==='k'){e.preventDefault();document.getElementById('ara')?.focus()}});
 baslat();

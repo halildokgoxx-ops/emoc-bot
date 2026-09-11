@@ -17,6 +17,10 @@ async function logKanalBul(guild) {
 }
 
 async function gonder(guild, embed) {
+  try {
+    const { getGuild } = require('./db');
+    if (getGuild(guild.id).logAktif === false) return;
+  } catch {}
   const k = await logKanalBul(guild);
   if (k) await k.send({ embeds: [embed] }).catch(() => {});
 }

@@ -5,27 +5,73 @@ const path = require('path');
 const crypto = require('crypto');
 const { getGuild, setGuild, save } = require('../src/db');
 
+const fs = require('fs');
+const OTURUM_DOSYA = path.join(__dirname, '..', 'data', 'oturumlar.json');
 const sessions = new Map(); // sid -> { token, exp, user }
+try {
+  const ham = fs.readFileSync(OTURUM_DOSYA, 'utf8');
+  const obje = JSON.parse(ham || '{}');
+  const simdi = Date.now();
+  for (const [k, v] of Object.entries(obje)) {
+    if (v && v.exp > simdi && v.token && v.user) sessions.set(k, v);
+  }
+} catch {}
+let oturumKayitZaman = null;
+function oturumKaydet() {
+  clearTimeout(oturumKayitZaman);
+  oturumKayitZaman = setTimeout(() => {
+    try {
+      const obje = {};
+      for (const [k, v] of sessions) obje[k] = v;
+      fs.mkdirSync(path.dirname(OTURUM_DOSYA), { recursive: true });
+      fs.writeFileSync(OTURUM_DOSYA, JSON.stringify(obje));
+    } catch {}
+  }, 500);
+}
 setInterval(() => {
   const simdi = Date.now();
-  for (const [k, v] of sessions) if (v.exp < simdi) sessions.delete(k);
+  let degisti = false;
+  for (const [k, v] of sessions) if (v.exp < simdi) { sessions.delete(k); degisti = true; }
+  if (degisti) oturumKaydet();
 }, 3600_000).unref?.();
 
 // Webden değiştirilebilir ayar şeması: key -> tip
 const SEMA = {
   antiLink: 'bool', antiKufur: 'bool', antiSpam: 'bool', antiRaid: 'bool',
   antiBot: 'bool', capsEngel: 'bool', altKoruma: 'bool',
-  yapiskan: 'bool',
+  yapiskan: 'bool', logAktif: 'bool',
   linkMuaf: 'muaf', kufurMuaf: 'muaf', spamMuaf: 'muaf', capsMuaf: 'muaf', yasakMuaf: 'muaf',
+  linkMuafKanal: 'muafKanal', kufurMuafKanal: 'muafKanal', spamMuafKanal: 'muafKanal',
+  capsMuafKanal: 'muafKanal', yasakMuafKanal: 'muafKanal',
   logKanal: 'kanal', hosgeldinKanal: 'kanal', cikisKanal: 'kanal',
   sayacKanal: 'kanal', repBildirimKanal: 'kanal', partnerKanal: 'kanal',
   partnerChat: 'kanal', partnerYetkiliKanal: 'kanal', itirafKanal: 'kanal',
-  gununSorusuKanal: 'kanal',
-  aiKanal: 'kanal',
+  gununSorusuKanal: 'kanal', aiKanal: 'kanal',
+  guvenlikKanal: 'kanal', seviyeKanal: 'kanal', davetKanal: 'kanal', davetCikisKanal: 'kanal',
   otoRol: 'rol', partnerYetkiliRol: 'rol',
-  hosgeldinMesaj: 'yazi:500', partnerText: 'yazi:1500',
-  cikisMesaj: 'yazi:500', sayacMesaj: 'yazi:500', girisDM: 'yazi:1000',
+  hosgeldinMesaj: 'yazi:1000', partnerText: 'yazi:1500',
+  cikisMesaj: 'yazi:1000', sayacMesaj: 'yazi:500', girisDM: 'yazi:1000',
+  seviyeMesaj: 'yazi:500', yeniIsimSablon: 'yazi:100',
+  davetGirisMesaj: 'yazi:1000', davetCikisMesaj: 'yazi:1000',
   sayacHedef: 'sayi:0:100000', repSuresiDk: 'sayi:0:4320', seviyeHiz: 'sayi:1:5',
+  xpMin: 'sayi:1:100', xpMax: 'sayi:1:200', xpSoguma: 'sayi:0:600',
+  sesXPDakika: 'sayi:1:100', sesXPMin: 'sayi:1:10',
+  yoneticiRol: 'rolCoklu', moderatorRol: 'rolCoklu',
+  girisEtiketKanal: 'muafKanal',
+  // açma/kapama bayrakları
+  mesajXP: 'bool', sesXP: 'bool', sesXPAfk: 'bool', seviyeOzel: 'bool',
+  otoRolAktif: 'bool', hosgeldinResim: 'bool', hosgeldinAt: 'bool',
+  girisDMAt: 'bool', girisEtiket: 'bool', cikisAt: 'bool',
+  davetGirisAt: 'bool', davetCikisAt: 'bool', davetRolu: 'bool',
+  takmaTemizle: 'bool', yeniIsimAktif: 'bool', isimFiltre: 'bool', isimFiltreBaglanti: 'bool',
+  // otomatik moderasyon konfigleri (json obje)
+  amReklam: 'json', amKufur: 'json', amLink: 'json', amKelime: 'json',
+  amTekrar: 'json', amFlood: 'json', amCaps: 'json', amEmoji: 'json',
+  amEtiket: 'json', amUzun: 'json', amKarakter: 'json', amFoto: 'json',
+  logOlaylar: 'json', isimKelimeler: 'json', gomuluMesajlar: 'json',
+  emojiRoller: 'json', denetimNot: 'yazi:500',
+  govDavet: 'bool', govHesap: 'bool', govRol: 'bool', govBot: 'bool',
+  govYasak: 'bool', govAtma: 'bool', govKanal: 'bool', govWebhook: 'bool', govEmoji: 'bool',
 };
 
 async function discordAPI(token, yol, init = {}) {
@@ -46,7 +92,7 @@ function oturum(req) {
 }
 
 function temizle(tip, v, guild) {
-  if (tip === 'bool') return v === true;
+  if (tip === 'bool') return v === true || v === 1 || v === '1' || v === 'true' || v === 'on';
   if (tip === 'rol' || tip === 'kanal') {
     if (!v) return null;
     const id = String(v).replace(/\D/g, '');
@@ -71,6 +117,24 @@ function temizle(tip, v, guild) {
     if (!Array.isArray(v)) return [];
     return [...new Set(v.map((x) => String(x).replace(/\D/g, '')))]
       .filter((id) => /^\d{15,25}$/.test(id) && guild.roles.cache.has(id)).slice(0, 10);
+  }
+  if (tip === 'rolCoklu') {
+    if (!Array.isArray(v)) return [];
+    return [...new Set(v.map((x) => String(x).replace(/\D/g, '')))]
+      .filter((id) => /^\d{15,25}$/.test(id) && guild.roles.cache.has(id)).slice(0, 10);
+  }
+  if (tip === 'muafKanal') {
+    if (!Array.isArray(v)) return [];
+    return [...new Set(v.map((x) => String(x).replace(/\D/g, '')))]
+      .filter((id) => /^\d{15,25}$/.test(id) && guild.channels.cache.has(id)).slice(0, 20);
+  }
+  if (tip === 'json') {
+    try {
+      if (v === null || v === undefined) return null;
+      const s = JSON.stringify(v);
+      if (!s || s.length > 20000) return null;
+      return JSON.parse(s);
+    } catch { return null; }
   }
   return null;
 }
@@ -101,7 +165,7 @@ function startWeb(client) {
 
   app.get('/logout', (req, res) => {
     const s = oturum(req);
-    if (s) sessions.delete(s.sid);
+    if (s) { sessions.delete(s.sid); oturumKaydet(); }
     res.setHeader('Set-Cookie', 'emoc_sid=; HttpOnly; Path=/; Max-Age=0');
     res.redirect('/');
   });
@@ -130,6 +194,7 @@ function startWeb(client) {
         exp: Date.now() + ((j.expires_in || 604800) * 1000),
         user: { id: me.id, username: me.username, avatar: me.avatar },
       });
+      oturumKaydet();
       const secure = bazURL().startsWith('https') ? '; Secure' : '';
       res.setHeader('Set-Cookie', `emoc_sid=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800${secure}`);
       res.redirect('/app');
@@ -338,6 +403,14 @@ function startWeb(client) {
     if (!guild) return;
     try {
       const { liste, islem } = req.body || {};
+      // Premium listeler webden de kilitli!
+      if (['otoCevap', 'tagSistemi', 'davetRolleri', 'otoRolCoklu'].includes(liste)) {
+        try {
+          if (!require('../src/premium').premiumMu(guild.id)) {
+            return res.status(403).json({ hata: 'premium-gerekli' });
+          }
+        } catch {}
+      }
       const g = getGuild(guild.id);
       if (liste === 'seviyeRoller') {
         if (!Array.isArray(g.seviyeRoller)) g.seviyeRoller = [];
@@ -447,7 +520,7 @@ function startWeb(client) {
         .filter((r) => r.id !== guild.id && !r.managed)
         .map((r) => ({ id: r.id, ad: r.name, renk: r.hexColor }))
         .slice(0, 100);
-      res.json({ id: guild.id, ad: guild.name, ayarlar, kanallar, roller, prem: (() => { try { return require('../src/premium').premiumMu(guild.id); } catch { return false; } })() });
+      res.json({ id: guild.id, ad: guild.name, uye: guild.memberCount || 0, ayarlar, kanallar, roller, prem: (() => { try { return require('../src/premium').premiumMu(guild.id); } catch { return false; } })() });
     } catch { res.status(500).json({ hata: 'sunucu-hatasi' }); }
   });
 

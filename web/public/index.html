@@ -28,7 +28,7 @@
       <a class="btn btn-ghost btn-kucuk" href="#sunucular">🌍 Sunucular</a>
       <a class="btn btn-ghost btn-kucuk" href="#kaynaklar">📚 Kaynaklar</a>
       <a class="btn btn-ghost btn-kucuk" href="#premium">👑 Premium</a>
-      <a class="btn btn-kucuk" href="/login">Giriş →</a>
+      <span id="giris-alani"><a class="btn btn-kucuk" href="/login">Giriş →</a></span>
     </div>
   </nav>
 
@@ -179,6 +179,12 @@ const gozcu = new IntersectionObserver((es) => {
 document.querySelectorAll('.buyume').forEach((el) => gozcu.observe(el));
 const p = new URLSearchParams(location.search);
 if (p.get('hata')) alert('Giriş başarısız! Site adresi (BASE_URL) ve Client Secret ayarlarını kontrol et.');
+// Giriş yaptıysa üst menüde göster (ana ekrana dönünce "çıkmış" gibi görünmesin)
+fetch('/api/me').then(r => r.ok ? r.json() : null).then(j => {
+  if (!j || !j.user) return;
+  const a = document.getElementById('giris-alani');
+  if (a) a.innerHTML = `<a class="btn btn-ghost btn-kucuk" href="/app">👤 ${String(j.user.username).slice(0, 20)}</a><a class="btn btn-kucuk" href="/app" style="margin-left:8px">Panele Git →</a>`;
+}).catch(() => {});
 </script>
 </body>
 </html>
