@@ -29,6 +29,12 @@ const BOLUM = [
     { k: 'girisDM', ad: 'Giriş DM (premium)', degiskenler: ['kullanıcı', 'sunucu', 'üye'] },
   ]},
   { id: 'yasakli', baslik: '🚫 Yasaklı Kelimeler', yasakli: true, alanlar: [] },
+  { id: 'muaf', baslik: '🛡️ Muaf Roller', aciklama: 'Seçili rollere filtreler işlemez', muaf: true, alanlar: [
+    { k: 'linkMuaf', ad: 'Link engelinden muaf' }, { k: 'kufurMuaf', ad: 'Küfür engelinden muaf' },
+    { k: 'spamMuaf', ad: 'Spam engelinden muaf' }, { k: 'capsMuaf', ad: 'Caps engelinden muaf' },
+    { k: 'yasakMuaf', ad: 'Yasaklı kelimeden muaf' },
+  ]},
+  { id: 'listeler', baslik: '📊 Ödül & Liste Sistemleri', listeler: true, alanlar: [] },
 ];
 
 let AKTIF_SEKME = 'koruma';
@@ -125,10 +131,20 @@ function ciz(ad) {
   } else if (b.yaziKarti) {
     html += `<div class="bolum"><h2>${b.baslik}</h2>` + b.alanlar.map((a) => {
       const v = FORM[a.k] || '';
-      const ozet = v ? String(v).slice(0, 90) + (String(v).length > 90 ? '…' : '') : '<i style="color:var(--soluk)">ayarlı değil</i>';
-      return `<div class="satir"><label>✏️ ${a.ad}<small>${ozet.replace(/</g, '&lt;')}</small></label>` +
+      const ham = v ? String(v) : '';
+      const ozet = ham ? ham.slice(0, 90).replace(/</g, '&lt;') + (ham.length > 90 ? '…' : '') : '<i class="ayar-yok">ayarlı değil</i>';
+      return `<div class="satir"><label>✏️ ${a.ad}<small>${ozet}</small></label>` +
         `<button class="btn btn-ghost btn-kucuk" onclick="yaziAc('${a.k}')">Düzenle</button></div>`;
     }).join('') + `</div>`;
+  } else if (b.muaf) {
+    html += `<div class="bolum"><h2>${b.baslik}</h2><p class="bolum-acik">${b.aciklama || ''}</p>` + b.alanlar.map((a) => {
+      const secili = FORM[a.k] || [];
+      return `<div class="satir"><label>🛡️ ${a.ad}</label><div class="muaf-kutu">` +
+        ROLLER.map((r) => `<button class="muaf-cip${secili.includes(r.id) ? ' acik' : ''}" onclick="muafDegistir('${a.k}','${r.id}',this)" title="${r.ad}">${String(r.ad).slice(0, 18)}</button>`).join('') +
+        `</div></div>`;
+    }).join('') + `</div>`;
+  } else if (b.listeler) {
+    html += `<div class="bolum"><h2>${b.baslik}</h2><div id="liste-alani"><p class="bos">Yükleniyor...</p></div></div>`;
   } else {
     html += `<div class="bolum"><h2>${b.baslik}</h2>`;
     b.alanlar.forEach((a) => {
@@ -151,6 +167,98 @@ function ciz(ad) {
   html += `</div></div><div class="kaydet-cubugu"><button class="btn" id="kaydet" onclick="kaydet()">💾 Kaydet</button></div>`;
   document.getElementById('editor').innerHTML = html;
   if (b.yasakli) yasakYukle();
+  if (b.listeler) listeYukle();
+}
+
+function muafDegistir(key, rolId, el) {
+  if (!Array.isArray(FORM[key])) FORM[key] = [];
+  const i = FORM[key].indexOf(rolId);
+  if (i >= 0) { FORM[key].splice(i, 1); el.classList.remove('acik'); }
+  else {
+    if (FORM[key].length >= 10) { toast('En fazla 10 rol!'); return; }
+    FORM[key].push(rolId); el.classList.add('acik');
+  }
+}
+
+// ---- 📊 Gelişmiş liste yöneticileri ----
+let LISTE_VERI = null;
+function rolSecenek(secili) {
+  return `<option value="">— Rol —</option>` + ROLLER.map((r) =>
+    `<option value="${r.id}"${String(secili) === String(r.id) ? ' selected' : ''}>${r.ad}</option>`).join('');
+}
+async function listeYukle() {
+  const kutu = document.getElementById('liste-alani');
+  if (!kutu) return;
+  try {
+    const j = await api(`/api/liste/${SID}`);
+    LISTE_VERI = j;
+    const esikBlok = (baslik, listeAdi, satirlar, ekForm) =>
+      `<div class="liste-blok"><h3>${baslik}</h3><div class="liste-satirlar">` +
+      ((satirlar && satirlar.length ? satirlar : '<p class="bos">Kayıt yok.</p>')) +
+      `</div><div class="liste-ekle">${ekForm}</div></div>`;
+    const rolSatir = (x, etiket, silFn) =>
+      `<div class="liste-satir"><span>${etiket}</span><span><b>&lt;@&${x.rolId}&gt;</b> <button class="btn btn-ghost btn-kucuk" onclick="${silFn}">🗑️</button></span></div>`;
+    kutu.innerHTML =
+      `<div class="liste-blok"><h3>🚀 Seviye Rolleri</h3><div class="liste-satirlar">` +
+      ((j.seviyeRoller || []).map((x) => rolSatir(x, `Sv.${x.seviye}`, `listeSil('seviyeRoller',{seviye:${x.seviye}})`)).join('') || '<p class="bos">Kayıt yok.</p>') +
+      `</div><div class="liste-ekle"><input type="number" id="lz-seviye" placeholder="Sv." min="1" max="100" style="width:90px"><select id="lz-seviye-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeEkle('seviyeRoller')">Ekle</button></div></div>` +
+      `<div class="liste-blok"><h3>🏅 İtibar Rolleri</h3><div class="liste-satirlar">` +
+      ((j.repRoller || []).map((x) => rolSatir(x, `⭐ ${x.puan}`, `listeSil('repRoller',{puan:${x.puan}})`)).join('') || '<p class="bos">Kayıt yok.</p>') +
+      `</div><div class="liste-ekle"><input type="number" id="lz-puan" placeholder="Puan" style="width:90px"><select id="lz-puan-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeEkle('repRoller')">Ekle</button></div></div>` +
+      `<div class="liste-blok"><h3>📨 Davet Rolleri</h3><div class="liste-satirlar">` +
+      ((j.davetRolleri || []).map((x) => rolSatir(x, `📨 ${x.sayi}`, `listeSil('davetRolleri',{sayi:${x.sayi}})`)).join('') || '<p class="bos">Kayıt yok.</p>') +
+      `</div><div class="liste-ekle"><input type="number" id="lz-davet" placeholder="Adet" min="1" style="width:90px"><select id="lz-davet-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeEkle('davetRolleri')">Ekle</button></div></div>` +
+      `<div class="liste-blok"><h3>🤖 Oto-Cevaplar</h3><div class="liste-satirlar">` +
+      ((j.otoCevap || []).map((x) => `<div class="liste-satir"><span><b>${String(x.tetik).replace(/</g, '&lt;')}</b> → ${String(x.cevap).slice(0, 60).replace(/</g, '&lt;')}</span><button class="btn btn-ghost btn-kucuk" onclick="listeSil('otoCevap',{tetik:'${String(x.tetik).replace(/'/g, "\\'")}'} )">🗑️</button></div>`).join('') || '<p class="bos">Kayıt yok.</p>') +
+      `</div><div class="liste-ekle"><input type="text" id="lz-tetik" placeholder="tetik kelime" maxlength="50" style="width:130px"><input type="text" id="lz-cevap" placeholder="bot cevabı" maxlength="200"><button class="btn btn-kucuk" onclick="listeEkle('otoCevap')">Ekle</button></div></div>` +
+      `<div class="liste-blok"><h3>🏷️ Tag Sistemi</h3>` +
+      (j.tagSistemi
+        ? `<div class="liste-satir"><span><b>${String(j.tagSistemi.tag).replace(/</g, '&lt;')}</b> → <b>&lt;@${j.tagSistemi.rolId}&gt;</b></span><button class="btn btn-ghost btn-kucuk" onclick="listeTag('kapat')">Kapat</button></div>`
+        : `<div class="liste-ekle"><input type="text" id="lz-tag" placeholder="örn: ★" maxlength="20" style="width:110px"><select id="lz-tag-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeTag('ayarla')">Aç</button></div>`) +
+      `</div>` +
+      `<div class="liste-blok"><h3>🎭 Ekstra Oto-Roller</h3><div class="liste-satirlar">` +
+      ((j.otoRolCoklu || []).map((id) => `<div class="liste-satir"><span><b>&lt;@${id}&gt;</b></span><button class="btn btn-ghost btn-kucuk" onclick="listeSil('otoRolCoklu',{rolId:'${id}'})">🗑️</button></div>`).join('') || '<p class="bos">Yok.</p>') +
+      `</div><div class="liste-ekle"><select id="lz-coklu-rol">${rolSecenek()}</select><button class="btn btn-kucuk" onclick="listeEkle('otoRolCoklu')">Ekle</button> <button class="btn btn-ghost btn-kucuk" onclick="listeTemizleCoklu()">Temizle</button></div></div>`;
+  } catch { kutu.innerHTML = '<p class="bos">Yüklenemedi.</p>'; }
+}
+async function listeEkle(ad) {
+  const govde = { guildId: SID, liste: ad };
+  if (ad === 'seviyeRoller') { govde.seviye = parseInt(document.getElementById('lz-seviye').value, 10); govde.rolId = document.getElementById('lz-seviye-rol').value; }
+  if (ad === 'repRoller') { govde.puan = parseInt(document.getElementById('lz-puan').value, 10); govde.rolId = document.getElementById('lz-puan-rol').value; }
+  if (ad === 'davetRolleri') { govde.sayi = parseInt(document.getElementById('lz-davet').value, 10); govde.rolId = document.getElementById('lz-davet-rol').value; }
+  if (ad === 'otoCevap') { govde.tetik = document.getElementById('lz-tetik').value; govde.cevap = document.getElementById('lz-cevap').value; }
+  if (ad === 'otoRolCoklu') { govde.rolId = document.getElementById('lz-coklu-rol').value; }
+  try {
+    await api('/api/liste', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(govde) });
+    toast('✅ Eklendi!');
+    listeYukle();
+  } catch { toast('❌ Olmadı! (rol yetkisi/değerleri kontrol et)'); }
+}
+async function listeSil(ad, ekstra) {
+  try {
+    await api('/api/liste', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: SID, liste: ad, islem: 'sil', ...(ekstra || {}) }) });
+    toast('🗑️ Silindi!');
+    listeYukle();
+  } catch { toast('❌ Olmadı!'); }
+}
+async function listeTag(islem) {
+  try {
+    const govde = { guildId: SID, liste: 'tagSistemi', islem };
+    if (islem === 'ayarla') {
+      govde.tag = document.getElementById('lz-tag').value;
+      govde.rolId = document.getElementById('lz-tag-rol').value;
+    }
+    await api('/api/liste', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(govde) });
+    toast(islem === 'kapat' ? 'Kapatıldı!' : '🏷️ Açıldı!');
+    listeYukle();
+  } catch { toast('❌ Olmadı!'); }
+}
+async function listeTemizleCoklu() {
+  try {
+    await api('/api/liste', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: SID, liste: 'otoRolCoklu', islem: 'temizle' }) });
+    toast('🗑️ Temizlendi!');
+    listeYukle();
+  } catch { toast('❌ Olmadı!'); }
 }
 
 function sekmeAc(id) {

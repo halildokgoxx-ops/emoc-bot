@@ -155,6 +155,7 @@ T('/ai komutu var', (() => { try { return !!require('./commands/ai'); } catch { 
 T('medya gif ayikla', (() => { const r = u.medyaAyikla('selam https://cdn.discord.com/a.gif oley'); return r.resim === 'https://cdn.discord.com/a.gif' && r.metin.includes('selam'); })());
 T('medya yok', (() => { const r = u.medyaAyikla('sadece yazi'); return r.resim === null; })());
 T('SEMA yeni alanlar', ['cikisMesaj', 'sayacMesaj', 'seviyeHiz', 'girisDM'].every((k) => k in require('./web/server').SEMA));
+T('SEMA muaf alanlar', ['linkMuaf', 'kufurMuaf', 'spamMuaf', 'capsMuaf', 'yasakMuaf'].every((k) => require('./web/server').SEMA[k] === 'muaf'));
 
   console.log(`\n📊 SONUÇ: ${pass} geçti, ${fail} kaldı`);
   await new Promise((r) => setTimeout(r, 300)); // kapanan soketler bitsin (win libuv)

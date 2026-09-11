@@ -261,16 +261,17 @@ client.on('messageCreate', async (message) => {
 
     // ================= OTO-MOD (prefix yoksa da çalışır) =================
     const uyeYetkili = message.member?.permissions.has(PermissionFlagsBits.ManageMessages);
+    const muafRol = (liste) => (liste || []).some((id) => message.member?.roles.cache.has(id));
     if (!uyeYetkili) {
       // Yasaklı kelime
-      if ((g.yasakli || []).some(k => message.content.toLocaleLowerCase('tr').includes(k))) {
+      if ((g.yasakli || []).some(k => message.content.toLocaleLowerCase('tr').includes(k)) && !muafRol(g.yasakMuaf)) {
         await message.delete().catch(() => {});
         const w = await message.channel.send(`${message.author} 🚫 Yasaklı kelime kullandın!`).catch(() => null);
         if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
         return;
       }
       // Anti-küfür (+ 3. ihlalde oto-timeout)
-      if (g.antiKufur && kufurMu(message.content)) {
+      if (g.antiKufur && kufurMu(message.content) && !muafRol(g.kufurMuaf)) {
         await message.delete().catch(() => {});
         const n = ihlalKaydet(message.guild.id, message.author.id);
         if (n >= 3) {
@@ -283,7 +284,7 @@ client.on('messageCreate', async (message) => {
         return;
       }
       // Anti-dolandırıcılık (sahte nitro/steam/airdrop tuzakları)
-      if (g.antiLink && dolandiriciMi(message.content)) {
+      if (g.antiLink && dolandiriciMi(message.content) && !muafRol(g.linkMuaf)) {
         await message.delete().catch(() => {});
         const n = ihlalKaydet(message.guild.id, message.author.id);
         if (n >= 3) {
@@ -296,7 +297,7 @@ client.on('messageCreate', async (message) => {
         return;
       }
       // Anti-link (+ 3. ihlalde oto-timeout)
-      if (g.antiLink && linkMu(message.content)) {
+      if (g.antiLink && linkMu(message.content) && !muafRol(g.linkMuaf)) {
         await message.delete().catch(() => {});
         const n = ihlalKaydet(message.guild.id, message.author.id);
         if (n >= 3) {
@@ -309,7 +310,7 @@ client.on('messageCreate', async (message) => {
         return;
       }
       // Caps engel
-      if (g.capsEngel && message.content.length >= 8) {
+      if (g.capsEngel && message.content.length >= 8 && !muafRol(g.capsMuaf)) {
         const harf = message.content.replace(/[^a-zA-ZçÇğĞıİöÖşŞüÜ]/g, '');
         if (harf.length >= 6 && harf === harf.toUpperCase()) {
           await message.delete().catch(() => {});
@@ -319,7 +320,7 @@ client.on('messageCreate', async (message) => {
         }
       }
       // Tekrar spam (aynı mesajı 15sn içinde 3x atma)
-      if (g.antiSpam && message.content.length > 5) {
+      if (g.antiSpam && message.content.length > 5 && !muafRol(g.spamMuaf)) {
         const simdi = Date.now();
         const s = sonMesajMap.get(message.author.id);
         if (s && s.icerik === message.content && simdi - s.zaman < 15000) {
@@ -337,7 +338,7 @@ client.on('messageCreate', async (message) => {
         }
       }
       // Anti-spam (5sn içinde 5 mesaj)
-      if (g.antiSpam) {
+      if (g.antiSpam && !muafRol(g.spamMuaf)) {
         const simdi = Date.now();
         const arr = spamMap.get(message.author.id) || [];
         const taze = arr.filter(t => simdi - t < 5000);

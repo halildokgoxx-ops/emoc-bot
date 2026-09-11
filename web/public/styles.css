@@ -217,3 +217,40 @@ select option { background: #1a1a2e; }
 .bolum h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .bolum h2::after { content: ''; flex: 1; height: 1px;
   background: linear-gradient(90deg, rgba(139,92,246,.4), transparent); }
+
+/* ---- Tam ekran düzen ---- */
+.sarmal.genis { max-width: 1380px; }
+.bolum-acik { color: var(--soluk); font-size: 13px; margin: -4px 0 10px; }
+.ayar-yok { color: var(--soluk); }
+
+/* ---- Muaf rol çipleri ---- */
+.muaf-kutu { display: flex; flex-wrap: wrap; gap: 7px; max-width: 520px;
+  max-height: 132px; overflow-y: auto; padding: 6px;
+  background: rgba(0,0,0,.22); border: 1px solid var(--cizgi); border-radius: 12px; }
+.muaf-cip { background: transparent; border: 1px solid var(--cizgi); color: var(--soluk);
+  border-radius: 999px; padding: 6px 13px; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: all .15s; font-family: inherit; }
+.muaf-cip:hover { border-color: var(--mor); color: #fff; }
+.muaf-cip.acik { background: rgba(0,230,118,.13); border-color: rgba(0,230,118,.55); color: #b9f5d6; }
+
+/* ---- Liste yöneticileri ---- */
+.liste-blok { border: 1px solid var(--cizgi); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px;
+  background: rgba(0,0,0,.18); }
+.liste-blok h3 { font-size: 14.5px; margin-bottom: 10px; }
+.liste-satir { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 14px; }
+.liste-satir:last-child { border-bottom: none; }
+.liste-ekle { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.liste-ekle input, .liste-ekle select { max-width: 170px; }
+.liste-ekle input[type="number"] { max-width: 100px; }
+
+/* ---- Sadeleştirme: daha az parlama, daha temiz hatlar ---- */
+.btn { box-shadow: 0 6px 22px rgba(139, 92, 246, 0.28); }
+.btn:hover { box-shadow: 0 8px 28px rgba(236, 72, 153, 0.32); }
+.kenar-btn.aktif { background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.35); box-shadow: inset 3px 0 0 var(--mor); }
+.kart:hover { transform: translateY(-2px); }
+.bolum { padding: 20px 22px; }
+@media (max-width: 760px) {
+  .liste-ekle input, .liste-ekle select { max-width: 100%; flex: 1; }
+}

@@ -187,6 +187,101 @@ function mountBotAPI(app, client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
+  function rolGecerli(guild, id) {
+    id = String(id || '').replace(/\D/g, '');
+    if (!/^\d{15,25}$/.test(id)) return null;
+    const r = guild.roles.cache.get(id);
+    if (!r || r.managed) return null;
+    if (r.position >= guild.members.me.roles.highest.position) return 'ustte';
+    return id;
+  }
+
+  router.get('/liste/:id', (req, res) => {
+    const guild = client.guilds.cache.get(req.params.id);
+    if (!guild) return res.status(404).json({ hata: 'yok' });
+    const g = getGuild(guild.id);
+    res.json({
+      seviyeRoller: g.seviyeRoller || [], repRoller: g.repRoller || [],
+      davetRolleri: g.davetRolleri || [], otoCevap: g.otoCevap || [],
+      tagSistemi: g.tagSistemi || null, otoRolCoklu: g.otoRolCoklu || [],
+    });
+  });
+
+  router.post('/liste', (req, res) => {
+    try {
+      const { guildId, liste, islem } = req.body || {};
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ hata: 'yok' });
+      const g = getGuild(guild.id);
+      if (liste === 'seviyeRoller') {
+        if (!Array.isArray(g.seviyeRoller)) g.seviyeRoller = [];
+        if (islem === 'sil') g.seviyeRoller = g.seviyeRoller.filter((x) => x.seviye !== parseInt(req.body.seviye, 10));
+        else {
+          const s = parseInt(req.body.seviye, 10);
+          const rid = rolGecerli(guild, req.body.rolId);
+          if (!s || s < 1 || s > 100 || !rid || rid === 'ustte') return res.status(400).json({ hata: rid === 'ustte' ? 'rol-ustte' : 'gecersiz' });
+          const var1 = g.seviyeRoller.find((x) => x.seviye === s);
+          if (var1) var1.rolId = rid; else g.seviyeRoller.push({ seviye: s, rolId: rid });
+        }
+      } else if (liste === 'repRoller') {
+        if (!Array.isArray(g.repRoller)) g.repRoller = [];
+        if (islem === 'sil') g.repRoller = g.repRoller.filter((x) => x.puan !== parseInt(req.body.puan, 10));
+        else {
+          const p = parseInt(req.body.puan, 10);
+          const rid = rolGecerli(guild, req.body.rolId);
+          if (isNaN(p) || p < -100 || p > 1000 || !rid || rid === 'ustte') return res.status(400).json({ hata: 'gecersiz' });
+          const var1 = g.repRoller.find((x) => x.puan === p);
+          if (var1) var1.rolId = rid; else g.repRoller.push({ puan: p, rolId: rid });
+        }
+      } else if (liste === 'davetRolleri') {
+        if (!Array.isArray(g.davetRolleri)) g.davetRolleri = [];
+        if (islem === 'sil') g.davetRolleri = g.davetRolleri.filter((x) => x.sayi !== parseInt(req.body.sayi, 10));
+        else {
+          const s = parseInt(req.body.sayi, 10);
+          const rid = rolGecerli(guild, req.body.rolId);
+          if (!s || s < 1 || s > 10000 || !rid || rid === 'ustte') return res.status(400).json({ hata: 'gecersiz' });
+          const var1 = g.davetRolleri.find((x) => x.sayi === s);
+          if (var1) var1.rolId = rid; else g.davetRolleri.push({ sayi: s, rolId: rid });
+        }
+      } else if (liste === 'otoCevap') {
+        if (!Array.isArray(g.otoCevap)) g.otoCevap = [];
+        if (islem === 'sil') {
+          const t = String(req.body.tetik || '').toLocaleLowerCase('tr');
+          g.otoCevap = g.otoCevap.filter((x) => x.tetik !== t);
+        } else {
+          const t = String(req.body.tetik || '').toLocaleLowerCase('tr').slice(0, 50);
+          const c = String(req.body.cevap || '').slice(0, 500);
+          if (!t || !c) return res.status(400).json({ hata: 'gecersiz' });
+          if (g.otoCevap.length >= 20) return res.status(400).json({ hata: 'dolu' });
+          const var1 = g.otoCevap.find((x) => x.tetik === t);
+          if (var1) var1.cevap = c; else g.otoCevap.push({ tetik: t, cevap: c });
+        }
+      } else if (liste === 'tagSistemi') {
+        if (islem === 'kapat') g.tagSistemi = null;
+        else {
+          const t = String(req.body.tag || '').slice(0, 20);
+          const rid = rolGecerli(guild, req.body.rolId);
+          if (!t || !rid || rid === 'ustte') return res.status(400).json({ hata: 'gecersiz' });
+          g.tagSistemi = { tag: t.toLocaleLowerCase('tr'), rolId: rid };
+        }
+      } else if (liste === 'otoRolCoklu') {
+        if (!Array.isArray(g.otoRolCoklu)) g.otoRolCoklu = [];
+        const rid = rolGecerli(guild, req.body.rolId);
+        if (islem === 'temizle') g.otoRolCoklu = [];
+        else if (islem === 'sil') g.otoRolCoklu = g.otoRolCoklu.filter((x) => x !== rid);
+        else {
+          if (!rid || rid === 'ustte') return res.status(400).json({ hata: 'gecersiz' });
+          if (!g.otoRolCoklu.includes(rid)) {
+            if (g.otoRolCoklu.length >= 3) return res.status(400).json({ hata: 'dolu' });
+            g.otoRolCoklu.push(rid);
+          }
+        }
+      } else return res.status(400).json({ hata: 'liste' });
+      save();
+      res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.use('/api/bot', express.json({ limit: '200kb' }), router);
 }
 

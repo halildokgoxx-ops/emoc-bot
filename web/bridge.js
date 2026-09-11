@@ -210,6 +210,18 @@ function startKopru() {
     catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   });
 
+  app.get('/api/liste/:id', async (req, res) => {
+    if (!(await yasakliKontrol(req, res))) return;
+    try { res.json(await botAPI(`/api/bot/liste/${req.params.id}`)); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
+  app.post('/api/liste', async (req, res) => {
+    if (!(await yasakliKontrol(req, res))) return;
+    try { res.json(await botAPI('/api/bot/liste', { method: 'POST', body: JSON.stringify(req.body || {}) })); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
   app.post('/api/yasakli', async (req, res) => {
     if (!(await yasakliKontrol(req, res))) return;
     try { res.json(await botAPI('/api/bot/yasakli', { method: 'POST', body: JSON.stringify(req.body || {}) })); }
