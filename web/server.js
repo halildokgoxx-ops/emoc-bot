@@ -143,7 +143,89 @@ function startWeb(client) {
   app.get('/api/me', (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
-    res.json({ user: s.user });
+    const sahipler = [process.env.OWNER_ID, process.env.OWNER_ID2].filter(Boolean).map(String);
+    res.json({ user: s.user, admin: sahipler.includes(String(s.user.id)) });
+  });
+
+  app.get('/api/istatistik', (req, res) => {
+    try {
+      const guilds = [...client.guilds.cache.values()];
+      const uye = guilds.reduce((a, g) => a + (g.memberCount || 0), 0);
+      const oneCikan = guilds.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0)).slice(0, 8)
+        .map((g) => ({ ad: g.name, uye: g.memberCount || 0, ikon: g.iconURL({ size: 128 }) }));
+      res.json({ sunucu: guilds.length, uye, uptime: Math.floor(process.uptime()), oneCikan });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  app.get('/api/komutlar', (req, res) => {
+    try {
+      const liste = [...client.commands.values()].map((c) => ({ ad: c.name, aciklama: c.description || '', kategori: c.category || 'Genel' }));
+      res.json({ komutlar: liste, sayi: liste.length });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  function adminKontrol(req, res) {
+    const s = oturum(req);
+    if (!s) { res.status(401).json({ hata: 'giris-yok' }); return null; }
+    const sahipler = [process.env.OWNER_ID, process.env.OWNER_ID2].filter(Boolean).map(String);
+    if (!sahipler.includes(String(s.user.id))) { res.status(403).json({ hata: 'admin-degil' }); return null; }
+    return s;
+  }
+
+  app.get('/api/admin/ozet', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const { premiumBilgi } = require('../src/premium');
+      const guilds = [...client.guilds.cache.values()];
+      const uye = guilds.reduce((a, g) => a + (g.memberCount || 0), 0);
+      const prem = [], free = [];
+      for (const g of guilds) {
+        const b = premiumBilgi(g.id);
+        (b ? prem : free).push({ id: g.id, ad: g.name, uye: g.memberCount || 0, bittis: b ? b.bitis : null });
+      }
+      res.json({
+        sunucu: guilds.length, uye, uptime: Math.floor(process.uptime()),
+        premiumSayi: prem.length, freeSayi: free.length,
+        premium: prem, free: free.slice(0, 60), oturum: sessions.size,
+      });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  app.get('/api/admin/kanallar/:id', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    const guild = client.guilds.cache.get(req.params.id);
+    if (!guild) return res.status(404).json({ hata: 'yok' });
+    const kanallar = [...guild.channels.cache.values()]
+      .filter((k) => k.type === 0 || k.type === 2)
+      .map((k) => ({ id: k.id, ad: k.name, tip: k.type === 0 ? 'yazi' : 'ses' }))
+      .slice(0, 150);
+    res.json({ id: guild.id, ad: guild.name, kanallar });
+  });
+
+  app.post('/api/admin/premium', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const { premiumVer, premiumAl } = require('../src/premium');
+      const { guildId, islem, gun } = req.body || {};
+      if (!client.guilds.cache.get(guildId)) return res.status(404).json({ hata: 'yok' });
+      if (islem === 'kapat') premiumAl(guildId);
+      else premiumVer(guildId, Math.max(1, Math.min(36500, parseInt(gun, 10) || 30)));
+      res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  app.post('/api/admin/duyuru', async (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const { guildId, channelId, mesaj, everyone } = req.body || {};
+      const guild = client.guilds.cache.get(guildId);
+      const kanal = guild?.channels.cache.get(channelId);
+      if (!kanal || !kanal.isTextBased()) return res.status(404).json({ hata: 'kanal-yok' });
+      const metin = String(mesaj || '').slice(0, 1800);
+      if (!metin) return res.status(400).json({ hata: 'bos-mesaj' });
+      await kanal.send({ content: (everyone ? '@everyone ' : '') + metin, allowedMentions: everyone ? { parse: ['everyone'] } : undefined });
+      res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'gonderilemedi' }); }
   });
 
   app.get('/api/guilds', async (req, res) => {

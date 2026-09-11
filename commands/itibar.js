@@ -211,7 +211,7 @@ module.exports = [
       return message.reply({
         embeds: [kart(client || message.client, {
           baslik: `🪪 ${hedef.user.username}`,
-          aciklama: `**✦ PROFİL KARTI ✦** ${repRozet(d.rep)}\n⚡ **Güç Puanı:** \`${guc}\``,
+          aciklama: `**✦ PROFİL KARTI ✦** ${repRozet(d.rep)}${require('../src/premium').premiumMu(message.guild.id) ? '\n👑 **PREMIUM SUNUCU ÜYESİ**' : ''}\n⚡ **Güç Puanı:** \`${guc}\``,
           kucukResim: hedef.user.displayAvatarURL({ size: 256 }),
           alanlar: [
             { name: '⭐ İtibar', value: `**${d.rep > 0 ? '+' : ''}${d.rep}**`, inline: true },

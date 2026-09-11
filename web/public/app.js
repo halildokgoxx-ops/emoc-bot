@@ -49,9 +49,19 @@ function ikonURL(g) {
 
 async function baslat() {
   try {
-    const { user } = await api('/api/me');
+    const me = await api('/api/me');
+    const user = me.user;
+    ADMIN = !!me.admin;
     document.getElementById('kullanici').innerHTML =
       `<img src="${avatarURL(user)}"><b>${user.username}</b>`;
+    if (ADMIN) {
+      const b = document.createElement('button');
+      b.className = 'btn btn-kucuk';
+      b.textContent = '👑 Admin';
+      b.onclick = adminAc;
+      const bar = document.querySelector('.panel-ust div:last-child');
+      if (bar) bar.prepend(b);
+    }
     const { guilds } = await api('/api/guilds');
     const kutu = document.getElementById('sunucular');
     if (!guilds.length) {
@@ -142,6 +152,86 @@ async function kaydet() {
   } catch { toast('❌ Bağlantı hatası!'); }
   btn.disabled = false;
   btn.textContent = '💾 Kaydet';
+}
+
+let ADMIN = false;
+let ADMIN_VERI = null;
+
+function tarihYaz(ms) {
+  if (!ms) return '—';
+  const d = new Date(ms);
+  return d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function adminAc() {
+  const ed = document.getElementById('editor');
+  ed.innerHTML = '<div class="yukleniyor">Admin verileri yükleniyor... 👑</div>';
+  try {
+    const j = await api('/api/admin/ozet');
+    ADMIN_VERI = j;
+    const satir = (s) => {
+      const prem = s.bitis && s.bitis > Date.now();
+      return `<div class="satir"><label>🌍 <b>${s.ad}</b><small>👥 ${s.uye} üye ${prem ? `• 👑 <b>${tarihYaz(s.bitis)}</b>'e kadar` : '• free'}</small></label>` +
+        `<div style="display:flex;gap:6px;align-items:center">` +
+        `<input type="number" id="gun-${s.id}" placeholder="gün" min="1" max="36500" style="width:80px">` +
+        `<button class="btn btn-kucuk" onclick="adminPremium('${s.id}',true)">Aç</button>` +
+        `<button class="btn btn-ghost btn-kucuk" onclick="adminPremium('${s.id}',false)">Kapat</button></div></div>`;
+    };
+    ed.innerHTML = `<h2 style="margin-bottom:14px">👑 Admin Panel <small style="color:var(--soluk)">(gizli — sadece kurucular)</small></h2>
+      <div class="bolum"><h2>📊 Genel</h2>
+        <div class="satir"><label>🌍 Sunucu</label><b>${j.sunucu}</b></div>
+        <div class="satir"><label>👥 Toplam üye</label><b>${j.uye}</b></div>
+        <div class="satir"><label>👑 Premium sunucu</label><b>${j.premiumSayi}</b></div>
+        <div class="satir"><label>🆓 Free sunucu</label><b>${j.freeSayi}</b></div>
+        <div class="satir"><label>⏱️ Çalışma süresi</label><b>${Math.floor((j.uptime || 0) / 3600)} saat</b></div>
+        <div class="satir"><label>🧑‍💻 Sitede çevrimiçi</label><b>${j.oturum ?? '?'}</b></div>
+      </div>
+      <div class="bolum"><h2>👑 Premium Sunucular</h2>${j.premium.length ? j.premium.map(satir).join('') : '<p class="bos">Yok</p>'}</div>
+      <div class="bolum"><h2>🆓 Free Sunucular</h2>${j.free.length ? j.free.map(satir).join('') : '<p class="bos">Yok</p>'}</div>
+      <div class="bolum"><h2>📢 Duyuru Gönder</h2>
+        <div class="satir"><label>Sunucu</label><select id="d-sunucu"></select></div>
+        <div class="satir"><label>Kanal</label><select id="d-kanal"><option>Önce sunucu seç</option></select></div>
+        <div class="satir"><label>Mesaj</label><textarea id="d-mesaj" rows="3" placeholder="Duyuru... Örn: Haksız Premium Tespit Edildi! En kısa sürede iletişime geçin."></textarea></div>
+        <div class="satir"><label><input type="checkbox" id="d-hepsi" style="width:auto"> @everyone ile gönder</label><button class="btn btn-kucuk" onclick="duyuruGonder()">📨 Gönder</button></div>
+      </div>`;
+    const ss = document.getElementById('d-sunucu');
+    const tumu = [...(j.premium || []), ...(j.free || [])];
+    ss.innerHTML = tumu.map((s) => `<option value="${s.id}">${s.ad}</option>`).join('');
+    ss.onchange = adminKanalDoldur;
+    adminKanalDoldur();
+  } catch { ed.innerHTML = '<div class="hata-kutu">Yüklenemedi!</div>'; }
+}
+
+async function adminKanalDoldur() {
+  const gid = document.getElementById('d-sunucu').value;
+  const ks = document.getElementById('d-kanal');
+  ks.innerHTML = '<option>Yükleniyor...</option>';
+  try {
+    const j = await api(`/api/admin/kanallar/${gid}`);
+    ks.innerHTML = (j.kanallar || []).map((k) => `<option value="${k.id}">${k.tip === 'ses' ? '🔊' : '💬'} #${k.ad}</option>`).join('');
+  } catch { ks.innerHTML = '<option>Yüklenemedi</option>'; }
+}
+
+async function adminPremium(gid, ac) {
+  const gun = parseInt((document.getElementById(`gun-${gid}`) || {}).value, 10) || 30;
+  try {
+    await api('/api/admin/premium', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: gid, islem: ac ? 'ac' : 'kapat', gun }) });
+    toast(ac ? `👑 Premium açıldı (${gun} gün)!` : '👑 Premium kapatıldı!');
+    adminAc();
+  } catch { toast('❌ Olmadı!'); }
+}
+
+async function duyuruGonder() {
+  const gid = document.getElementById('d-sunucu').value;
+  const kid = document.getElementById('d-kanal').value;
+  const mesaj = document.getElementById('d-mesaj').value;
+  const everyone = document.getElementById('d-hepsi').checked;
+  if (!mesaj.trim()) { toast('❌ Mesaj yaz!'); return; }
+  try {
+    await api('/api/admin/duyuru', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ guildId: gid, channelId: kid, mesaj, everyone }) });
+    toast('📨 Duyuru gönderildi!');
+    document.getElementById('d-mesaj').value = '';
+  } catch { toast('❌ Gönderilemedi!'); }
 }
 
 baslat();

@@ -202,8 +202,14 @@ const cekilisSlash = {
       const kazanan = interaction.options.getInteger('kazanan') || 1;
       const maks = interaction.options.getInteger('maks') || 0;
       const min = interaction.options.getInteger('min') || 0;
-      if (!sure || sure < 30_000 || sure > 30 * 86400_000) {
-        return interaction.reply({ content: '❌ Süre 30sn-30gün arası olmalı! Örn: `10m`, `2h`, `1d`', ephemeral: true });
+      const premCek = require('../src/premium').premiumMu(interaction.guild.id);
+      const maksSure = premCek ? 30 * 86400_000 : 7 * 86400_000;
+      const maksKatilim = premCek ? 1000 : 200;
+      if (!sure || sure < 30_000 || sure > maksSure) {
+        return interaction.reply({ content: premCek ? '❌ Süre 30sn-30gün arası olmalı! Örn: `10m`, `2h`, `1d`' : '❌ Süre 30sn-7gün arası olmalı! (👑 Premium ile 30 güne kadar!)', ephemeral: true });
+      }
+      if (maks && maks > maksKatilim) {
+        return interaction.reply({ content: premCek ? '❌ Maks 1000 olabilir!' : '❌ Free limit 200 kişi! (👑 Premium ile 1000!)', ephemeral: true });
       }
       if (maks && min && maks < min) {
         return interaction.reply({ content: '❌ Maks katılımcı min değerden küçük olamaz!', ephemeral: true });

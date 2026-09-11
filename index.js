@@ -17,6 +17,7 @@ const config = require('./config');
 const { load, save, getGuild, getUser } = require('./src/db');
 const { kufurMu, linkMu, dolandiriciMi } = require('./src/utils');
 const { E } = require('./src/emo');
+const { premiumMu } = require('./src/premium');
 const slash = require('./src/slash');
 
 load();
@@ -128,6 +129,22 @@ client.once('clientReady', async () => {
       else setTimeout(() => cekilisBitir(client, id), Math.min(kalan, 2147483647));
     }
   } catch {}
+  // Premium süre kontrolü (saatte bir, bitenleri loga yaz)
+  setInterval(async () => {
+    try {
+      const P = require('./src/premium');
+      const bitenler = P.suresiDolmusTemizle();
+      for (const gid of bitenler) {
+        try {
+          const gg = client.guilds.cache.get(gid);
+          if (!gg) continue;
+          const lc = getGuild(gid).logKanal ? gg.channels.cache.get(getGuild(gid).logKanal) : null;
+          if (lc) lc.send('👑 Bu sunucunun **PREMIUM süresi doldu!** Yenilemek için kurucuyla iletişime geç.').catch(() => {});
+        } catch {}
+      }
+      if (bitenler.length) console.log(`👑 ${bitenler.length} premium süresi doldu`);
+    } catch {}
+  }, 3600_000);
 });
 
 // ---- Mesaj sistemi ----
@@ -154,8 +171,10 @@ client.on('messageCreate', async (message) => {
       }
     }
 
-    // --- XP / Seviye ---
-    u.xp = (u.xp || 0) + Math.floor(Math.random() * 11) + 5;
+    // --- XP / Seviye (premium x2 + özel hız) ---
+    const hizCarpan = Math.max(1, Math.min(5, getGuild(message.guild.id).seviyeHiz || 1));
+    const xpCarpan = (premiumMu(message.guild.id) ? 2 : 1) * hizCarpan;
+    u.xp = (u.xp || 0) + (Math.floor(Math.random() * 11) + 5) * xpCarpan;
     u.mesaj = (u.mesaj || 0) + 1;
     const ihtiyac = (u.level || 0) * 100 + 100;
     if (u.xp >= ihtiyac) {
@@ -297,6 +316,18 @@ client.on('messageCreate', async (message) => {
       }
     }
 
+    // --- Oto-cevap (premium) ---
+    try {
+      const goc = getGuild(message.guild.id);
+      if (goc.otoCevap && goc.otoCevap.length && !message.content.startsWith(prefix)) {
+        const txt = message.content.toLocaleLowerCase('tr');
+        const eslesme = goc.otoCevap.find((o) => o.tetik && txt.includes(o.tetik));
+        if (eslesme) {
+          await message.reply(String(eslesme.cevap).slice(0, 1500)).catch(() => {});
+          return;
+        }
+      }
+    } catch {}
     // --- Komut değilse çık ---
     if (!message.content.startsWith(prefix)) return;
     const args = message.content.slice(prefix.length).trim().split(/ +/);
@@ -375,6 +406,31 @@ client.on('guildMemberAdd', async (member) => {
       }
     }
 
+    // 🧲 Yapışkan rol iadesi (premium)
+    try {
+      const d = require('./src/db');
+      if (getGuild(member.guild.id).yapiskan) {
+        const kayit = (d.db().yapiskan || {})[`${member.guild.id}_${member.id}`];
+        if (kayit && kayit.length && !member.user.bot) {
+          let n = 0;
+          for (const rid of kayit.slice(0, 15)) {
+            const r = member.guild.roles.cache.get(rid);
+            if (r && !r.managed && r.position < member.guild.members.me.roles.highest.position) {
+              try { await member.roles.add(r); n++; } catch {}
+            }
+          }
+          if (n) member.send(`🎭 **${member.guild.name}** — eski rollerinden **${n}** tanesi geri verildi! Tekrar hoş geldin!`).catch(() => {});
+        }
+      }
+    } catch {}
+    // 💌 Giriş DM (premium)
+    try {
+      const dm = getGuild(member.guild.id).girisDM;
+      if (dm && !member.user.bot) {
+        const txt = String(dm).replace(/{kullanıcı}/g, `${member}`).replace(/{sunucu}/g, member.guild.name).replace(/{üye}/g, `${member.guild.memberCount}`).slice(0, 1500);
+        await member.send(txt).catch(() => {});
+      }
+    } catch {}
     // Oto-rol
     if (g.otoRol) {
       const rol = member.guild.roles.cache.get(g.otoRol);
@@ -420,6 +476,18 @@ client.on('guildMemberAdd', async (member) => {
 
 client.on('guildMemberRemove', async (member) => {
   try {
+    // 🧲 Yapışkan rol kaydı (premium)
+    try {
+      const gg = getGuild(member.guild.id);
+      if (gg.yapiskan && !member.user.bot) {
+        const d = require('./src/db');
+        if (!d.db().yapiskan) d.db().yapiskan = {};
+        d.db().yapiskan[`${member.guild.id}_${member.id}`] = member.roles.cache
+          .filter((r) => r.id !== member.guild.id && !r.managed)
+          .map((r) => r.id);
+        d.save();
+      }
+    } catch {}
     const g = getGuild(member.guild.id);
     if (g.cikisKanal) {
       const k = member.guild.channels.cache.get(g.cikisKanal);

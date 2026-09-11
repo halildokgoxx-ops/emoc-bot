@@ -24,13 +24,14 @@ module.exports = [
       else if (d.gunlukSonGun && d.gunlukSonGun !== bugun) seri = 1;
       else seri = d.gunlukSeri || 1;
       const bonus = Math.min((seri - 1) * 100, 1000);
-      const odul = 500 + rastgele(0, 200) + bonus;
+      const premGun = require('../src/premium').premiumMu(message.guild.id);
+      const odul = (500 + rastgele(0, 200) + bonus) * (premGun ? 2 : 1);
       d.para = (d.para || 0) + odul; d.gunluk = simdi;
       d.gunlukSeri = seri; d.gunlukSonGun = bugun;
       d.enIyiSeri = Math.max(d.enIyiSeri || 0, seri);
       save();
       const ates = seri >= 7 ? '🔥🔥🔥' : seri >= 3 ? '🔥🔥' : '🔥';
-      return message.reply({ embeds: [ok(`${ates} Günlük ödül: **${paraYaz(odul)}**!\n📅 Giriş serisi: **${seri} gün** (+${bonus} bonus) • En iyi: **${d.enIyiSeri}**\n💰 Bakiyen: **${paraYaz(d.para)}**${seri < 3 ? '\n💡 3 gün üst üste gel, alevler büyüsün!' : ''}`)] });
+      return message.reply({ embeds: [ok(`${ates} Günlük ödül${premGun ? ' 👑x2' : ''}: **${paraYaz(odul)}**!\n📅 Giriş serisi: **${seri} gün** (+${bonus} bonus) • En iyi: **${d.enIyiSeri}**\n💰 Bakiyen: **${paraYaz(d.para)}**${seri < 3 ? '\n💡 3 gün üst üste gel, alevler büyüsün!' : ''}`)] });
     },
   },
   {

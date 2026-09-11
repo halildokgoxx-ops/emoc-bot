@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>✦ EMOÇ — Discord Bot Paneli</title>
+<title>✦ EMOÇ — Sunucunun Süper Gücü</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
 <meta name="theme-color" content="#0b0b16">
-<meta name="description" content="EMOÇ Discord botu web paneli — sunucunu tarayıcıdan yönet!">
+<meta name="description" content="EMOÇ — Discord sunucunun süper gücü. Güvenlik, itibar, çekiliş, partner ve dahası!">
 <link rel="stylesheet" href="/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
@@ -14,37 +14,115 @@
 <body>
 <div class="sarmal">
   <nav class="nav">
-    <div><div class="logo">✦ EMOÇ</div><div class="logo-kucuk">DISCORD BOT PANELİ</div></div>
-    <a class="btn btn-ghost" href="/login">Giriş Yap →</a>
+    <div><div class="logo">✦ EMOÇ</div><div class="logo-kucuk">SUPER BOT</div></div>
+    <div style="display:flex;gap:10px">
+      <a class="btn btn-ghost btn-kucuk" href="#ozellikler">Özellikler</a>
+      <a class="btn btn-ghost btn-kucuk" href="#sunucular">Sunucular</a>
+      <a class="btn btn-ghost btn-kucuk" href="#kaynaklar">Kaynaklar</a>
+      <a class="btn btn-kucuk" href="/login">Giriş →</a>
+    </div>
   </nav>
+
   <section class="hero">
-    <h1>Sunucunu<br>Webden Yönet</h1>
-    <p>Discord ile giriş yap, sunucunu seç, tüm bot ayarlarını şık panelden değiştir.<br>Kod yok, komut ezberi yok. ✨</p>
+    <h1>Sunucunun<br>Süper Gücü ⚡</h1>
+    <p>127 komut. 7 kalkan. Sıfır tolerans sıkıcılığa.<br>Kur, tıkla, yönet — gerisini EMOÇ halletsin. ✨</p>
     <div class="hero-butonlar">
-      <a class="btn" href="/login">🔗 Discord ile Giriş</a>
-      <a class="btn btn-ghost" href="/davet">➕ Botu Sunucuna Ekle</a>
+      <a class="btn" href="/davet">➕ Sunucuna Ekle</a>
+      <a class="btn btn-ghost" href="/login">🔗 Web Panel</a>
     </div>
     <div class="istatistik" id="istatistik">
       <div class="istat"><b>💬</b><span>Yükleniyor...</span></div>
     </div>
   </section>
-  <section class="ozellikler">
-    <div class="kart"><div class="ikon">🛡️</div><h3>7 Kalkan Tek Tıkla</h3><p>Anti-link, anti-küfür, anti-spam, anti-raid, anti-bot, caps engeli, alt hesap koruması.</p></div>
-    <div class="kart"><div class="ikon">⭐</div><h3>İtibar Sistemi</h3><p>Bekleme süresi, bildirim kanalı, rozet rol ödülleri — hepsi buradan.</p></div>
-    <div class="kart"><div class="ikon">🤝</div><h3>Oto-Partner</h3><p>Partner kanalları, yetkili rolü ve tanıtım yazını düzenle.</p></div>
-    <div class="kart"><div class="ikon">📋</div><h3>Log & Karşılama</h3><p>Log, hoşgeldin, sayaç ve itiraf kanallarını seç, mesajları yaz.</p></div>
-    <div class="kart"><div class="ikon">🎉</div><h3>Çekiliş & Rol Menüleri</h3><p>Şartlı çekilişler, butonlu rol alma — sunucun hiç uyumasın.</p></div>
-    <div class="kart"><div class="ikon">⚡</div><h3>7/24 Aktif</h3><p>Defer-first mimari, oto-restart, anlık loglar. Asla "yanıt vermedi" yok.</p></div>
+
+  <section id="ozellikler">
+    <h2 class="bolum-baslik buyume">Neler Yapıyor? <small>(karta dokun 👇)</small></h2>
+    <div class="ozellikler" id="ozellik-grid"></div>
   </section>
-  <div class="altbilgi">✦ EMOÇ • Premium Discord Deneyimi • <a href="https://github.com/halildokgoxx-ops/emoc-bot" style="color:var(--mor)">GitHub</a></div>
+
+  <section id="sunucular">
+    <h2 class="bolum-baslik buyume">Bize Güvenen Sunucular 🌍</h2>
+    <div class="ozellikler" id="sunucu-grid"><div class="kart"><p>Yükleniyor...</p></div></div>
+  </section>
+
+  <section id="kaynaklar">
+    <h2 class="bolum-baslik buyume">Kaynaklar 📚</h2>
+    <div class="ozellikler">
+      <div class="kart tiklanabilir" id="komut-karti"><div class="ikon">📖</div><h3>Tüm Komutlar</h3><p>127 komutun tam listesi — kategorili, örnekli. Dokun, keşfet!</p></div>
+      <a class="kart tiklanabilir" href="https://discord.gg/urYcW4ubqT" target="_blank" style="text-decoration:none;color:inherit"><div class="ikon">💬</div><h3>Destek Sunucusu</h3><p>Yardım mı lazım? Ekibe katıl, sor, öğren. Dokun, aramıza gel!</p></a>
+      <a class="kart tiklanabilir" href="/login" style="text-decoration:none;color:inherit"><div class="ikon">⚙️</div><h3>Web Panel</h3><p>Tarayıcıdan sunucunu yönet. Dokun, giriş yap!</p></a>
+    </div>
+  </section>
+
+  <div class="altbilgi">✦ EMOÇ • Premium Discord Deneyimi</div>
 </div>
+
+<div class="modal" id="modal"><div class="modal-kutu">
+  <div class="modal-kapat" id="modal-kapat">✕</div>
+  <h3 id="modal-baslik"></h3>
+  <p id="modal-metin"></p>
+  <code id="modal-komut"></code>
+</div></div>
+
 <script>
+const OZELLIKLER = [
+  { i: '🛡️', a: 'Ultra Güvenlik', k: '7 kalkan tek tıkla: link, küfür, spam, raid, bot, caps, alt-hesap. 3 ihlal = oto-timeout, baskında oto-kilit!', c: '/güvenlik-ultra' },
+  { i: '⭐', a: 'İtibar & Rozetler', k: '!1 ile oy ver, rozetleri topla, itibar rollerini otomatik kap. Lig tablosu herkese açık!', c: '!1 @kullanıcı' },
+  { i: '🤝', a: 'Oto-Partner', k: 'Chat\'e "partner" yaz, formu doldur, onaylanınca iki sunucuda da otomatik paylaşıl!', c: '/partner ayarla' },
+  { i: '🎉', a: 'Çekilişler', k: 'Şartlı katılım (itibar/seviye/üyelik), kontenjan, otomatik çekiliş. Adil ve şeffaf!', c: '/cekilis baslat' },
+  { i: '🎭', a: 'Rol Menüleri', k: 'Butona bas, rol anında takılsın. Yaş, renk, oyun rolleri tek menüde!', c: '/rol-al gonder' },
+  { i: '🎫', a: 'Destek Ticket', k: 'Konulu menü, otomatik oda, konuşma kaydı. Destek ekibin rahat etsin!', c: '/ticket-kur' },
+  { i: '📈', a: 'Seviye & Ekonomi', k: 'Mesaj at XP kazan, rol ödüllerini kap. Günlük ödül, kumar, düello bahisleri!', c: '/seviye' },
+  { i: '👑', a: 'Premium', k: 'XP x2, günlük x2, 30 günlük çekiliş, tek tıkla sunucu kurulumu. Krallara layık!', c: '/premium bilgi' },
+];
+const grid = document.getElementById('ozellik-grid');
+OZELLIKLER.forEach((o) => {
+  const d = document.createElement('div');
+  d.className = 'kart tiklanabilir buyume';
+  d.innerHTML = `<div class="ikon">${o.i}</div><h3>${o.a}</h3><p>${o.k.slice(0, 70)}...</p>`;
+  d.onclick = () => modalAc(`${o.i} ${o.a}`, o.k, o.c);
+  grid.appendChild(d);
+});
+function modalAc(baslik, metin, komut) {
+  document.getElementById('modal-baslik').textContent = baslik;
+  document.getElementById('modal-metin').textContent = metin;
+  document.getElementById('modal-komut').textContent = komut;
+  document.getElementById('modal').classList.add('acik');
+}
+document.getElementById('modal-kapat').onclick = () => document.getElementById('modal').classList.remove('acik');
+document.getElementById('modal').onclick = (e) => { if (e.target.id === 'modal') e.target.classList.remove('acik'); };
+
 fetch('/health').then(r => r.json()).then(j => {
   document.getElementById('istatistik').innerHTML =
-    `<div class="istat"><b>🌍 ${j.sunucu}</b><span>Sunucu</span></div>` +
+    `<div class="istat"><b>🌍 ${j.sunucu ?? '?'}</b><span>Sunucu</span></div>` +
     `<div class="istat"><b>⚡ Çevrimiçi</b><span>Bot Durumu</span></div>` +
-    `<div class="istat"><b>🤖 ${j.bot.split('#')[0]}</b><span>Bot</span></div>`;
+    `<div class="istat"><b>🤖 ${(j.bot || '?').split('#')[0]}</b><span>Bot</span></div>`;
 }).catch(() => {});
+fetch('/api/istatistik').then(r => r.json()).then(j => {
+  const g = document.getElementById('sunucu-grid');
+  if (!j.oneCikan || !j.oneCikan.length) { g.innerHTML = '<div class="kart"><p>Yakında burada! 🚀</p></div>'; return; }
+  g.innerHTML = '';
+  j.oneCikan.forEach((s) => {
+    const d = document.createElement('div');
+    d.className = 'kart buyume';
+    d.innerHTML = `${s.ikon ? `<img src="${s.ikon}" style="width:56px;height:56px;border-radius:50%">` : `<div class="ikon">🌍</div>`}<h3>${s.ad}</h3><p>👥 ${s.uye} üye</p>`;
+    g.appendChild(d);
+  });
+}).catch(() => {});
+document.getElementById('komut-karti').onclick = () => {
+  fetch('/api/komutlar').then(r => r.json()).then(j => {
+    const gruplu = {};
+    (j.komutlar || []).forEach((k) => { (gruplu[k.kategori] = gruplu[k.kategori] || []).push(k); });
+    let metin = Object.entries(gruplu).map(([kat, arr]) => `\n【${kat}】\n` + arr.map((k) => `/${k.ad} — ${k.aciklama}`).join('\n')).join('\n');
+    modalAc('📖 Tüm Komutlar', metin.slice(0, 1500) + (metin.length > 1500 ? '\n\n...devamı /yardım menüsünde!' : ''), '/yardım');
+  }).catch(() => modalAc('📖 Tüm Komutlar', 'Yüklenemedi, botta /yardım yaz!', '/yardım'));
+};
+
+// Scroll'da yavaşça büyüme ✨
+const gozcu = new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting) e.target.classList.add('gorunur'); });
+}, { threshold: 0.15 });
+document.querySelectorAll('.buyume').forEach((el) => gozcu.observe(el));
 const p = new URLSearchParams(location.search);
 if (p.get('hata')) alert('Giriş başarısız! Site adresi (BASE_URL) ve Client Secret ayarlarını kontrol et.');
 </script>

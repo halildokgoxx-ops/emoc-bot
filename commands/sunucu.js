@@ -484,9 +484,12 @@ const sunucuSlash = {
       });
     }
 
-    // KUR — sadece sahip
+    // KUR — sadece sahip + PREMIUM
     if (interaction.guild.ownerId !== interaction.user.id) {
       return interaction.reply({ content: '❌ Bu komutu sadece **sunucu sahibi** kullanabilir! (Her şey silineceği için)', ephemeral: true });
+    }
+    if (!require('../src/premium').premiumMu(interaction.guild.id)) {
+      return interaction.reply({ content: '👑 `/sunucu kur` **PREMIUM** özelliğidir!\nKodun varsa `/premium aktiflestir` yaz, avantajlar için `/premium bilgi` bak! 💎', ephemeral: true });
     }
     const ben = interaction.guild.members.me;
     if (!ben.permissions.has(PermissionFlagsBits.Administrator)) {

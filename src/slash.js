@@ -16,6 +16,7 @@ const PREFIX_ONLY = new Set([
   'hosgeldin-mesaj', 'emoji-cal', 'itiraf-ayarla', 'vitrin-ekle', 'kanal-bilgi',
   'rol-olustur', 'rol-sil', 'rol-renk', 'kanal-ac', 'kanal-sil',
   'toplu-rol', 'forceban', 'tempban', 'davet-olustur', 'rol-bilgi',
+  'rol-liste', 'sunucu-banner', 'itiraf',
 ]);
 
 function asciiAd(s) {
@@ -143,6 +144,13 @@ function buildSlashPayload(commands) {
       payload.push(rl.rolAlSlash.data);
     }
   } catch {}
+  // Özel: /premium grubu
+  try {
+    const pr = require('../commands/premium');
+    if (pr.premiumSlash) {
+      payload.push(pr.premiumSlash.data);
+    }
+  } catch {}
   // Özel: /sunucu grubu
   try {
     const s = require('../commands/sunucu');
@@ -236,6 +244,11 @@ async function handleSlash(interaction, client, harita) {
   if (interaction.commandName === 'rol-al') {
     const rl = require('../commands/roller');
     return rl.rolAlSlash.execute(interaction, client);
+  }
+  // /premium grubu
+  if (interaction.commandName === 'premium') {
+    const pr = require('../commands/premium');
+    return pr.premiumSlash.execute(interaction, client);
   }
   // /sunucu grubu
   if (interaction.commandName === 'sunucu') {

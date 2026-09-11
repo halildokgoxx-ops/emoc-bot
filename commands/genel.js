@@ -7,7 +7,7 @@ const { animeGif } = require('../src/gif');
 const KATEGORI_EMOJI = {
   'Genel': '📦', 'Moderasyon': '🛡️', 'Güvenlik': '🔒', 'İtibar': '⭐',
   'Ekonomi': '💰', 'Seviye': '📈', 'Eğlence': '🎉', 'Partner': '🤝', 'Özel': '✨',
-  'İşlevsel': '🧰',
+  'İşlevsel': '🧰', 'Premium': '👑',
 };
 
 const KATEGORI_ORNEK = {
@@ -15,6 +15,7 @@ const KATEGORI_ORNEK = {
   'Moderasyon': '`/purge 20 botlar` • `/sicil @kullanıcı` • `/sunucu-kilit`',
   'Güvenlik': '`/güvenlik-ultra` • `/güvenlik-skor` • `/oto-rol @Üye`',
   'İtibar': '`/itibar bak @kullanıcı` • `/itibar top` • `/itibar ver @kullanıcı`',
+  'Premium': '`/premium bilgi` • `/premium yapiskan` • `/premium yedek`',
   'Ekonomi': '`/günlük` • `/kumar 100` • `/zenginler`',
   'Seviye': '`/seviye` • `/liderlik`',
   'Eğlence': '`/duello @rakip 100` • `/anime hug @kullanıcı` • `/ruh-esi`',
@@ -58,6 +59,7 @@ async function yardimEmbed(client, kategori = null) {
   const ad = (c) => {
     if (c.name.startsWith('partner')) return '`/partner` (alt komut)';
     if (c.name === 'itibar' || c.name === 'itibar-top') return '`/itibar` (alt komut)';
+    if (c.category === 'Premium') return '`/premium` (alt komut)';
     if (c.name === '1') return '`!1`';
     if (c.name === '-1') return '`!-1`';
     if (slashMod && slashMod.isSlash(c.name)) return `\`/${c.name}\``;

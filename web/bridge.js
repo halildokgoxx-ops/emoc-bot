@@ -125,7 +125,53 @@ function startKopru() {
   app.get('/api/me', (req, res) => {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
-    res.json({ user: s.user });
+    const sahipler = [process.env.OWNER_ID, process.env.OWNER_ID2].filter(Boolean).map(String);
+    res.json({ user: s.user, admin: sahipler.includes(String(s.user.id)) });
+  });
+
+  function adminMi(req, res) {
+    const s = oturum(req);
+    if (!s) { res.status(401).json({ hata: 'giris-yok' }); return null; }
+    const sahipler = [process.env.OWNER_ID, process.env.OWNER_ID2].filter(Boolean).map(String);
+    if (!sahipler.includes(String(s.user.id))) { res.status(403).json({ hata: 'admin-degil' }); return null; }
+    return s;
+  }
+
+  app.get('/api/istatistik', async (req, res) => {
+    try { res.json(await botAPI('/api/bot/istatistik')); }
+    catch { res.json({ sunucu: 0, uye: 0, oneCikan: [] }); }
+  });
+
+  app.get('/api/komutlar', async (req, res) => {
+    try { res.json(await botAPI('/api/bot/komutlar')); }
+    catch { res.json({ komutlar: [], sayi: 0 }); }
+  });
+
+  app.get('/api/admin/ozet', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try {
+      const j = await botAPI('/api/bot/admin/ozet');
+      j.oturum = sessions.size;
+      res.json(j);
+    } catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
+  app.get('/api/admin/kanallar/:id', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI(`/api/bot/admin/kanallar/${req.params.id}`)); }
+    catch (e) { res.status(e.kod === 404 ? 404 : 502).json({ hata: 'bot-hatasi' }); }
+  });
+
+  app.post('/api/admin/premium', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI('/api/bot/admin/premium', { method: 'POST', body: JSON.stringify(req.body || {}) })); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
+  app.post('/api/admin/duyuru', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI('/api/bot/admin/duyuru', { method: 'POST', body: JSON.stringify(req.body || {}) })); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   });
 
   app.get('/api/guilds', async (req, res) => {

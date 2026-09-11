@@ -104,6 +104,15 @@ T('gif', !!require('./src/gif').animeGif);
 T('logger', !!require('./src/logger').logSilinen);
 T('embeds rozet', require('./src/embeds').repRozet(100) === '💎 ELMAS');
 
+// ---------- 6b. premium (saf fonksiyonlar, db'ye yazmaz) ----------
+const PR = require('./src/premium');
+T('sureParse 30d', PR.sureParse('30d') === 30);
+T('sureParse 1y', PR.sureParse('1y') === 365);
+T('sureParse sinirsiz', PR.sureParse('sinirsiz') === 36500);
+T('sureParse bos', PR.sureParse('xyz') === 0);
+T('sahipMi yabanci', PR.sahipMi('123') === false);
+T('premiumMu yok', PR.premiumMu('0') === false);
+
 // ---------- 6. web köprü entegrasyonu (gerçek HTTP, sahte istemci) ----------
 (async () => {
   T('bridge modülü yükleniyor', (() => { try { require('./web/bridge'); return true; } catch { return false; } })());
