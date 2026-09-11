@@ -6,10 +6,34 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 
+const fs = require('fs');
+const OTURUM_DOSYA = path.join(__dirname, '..', 'data', 'oturumlar-kopru.json');
 const sessions = new Map(); // sid -> { token, exp, user }
+try {
+  const ham = fs.readFileSync(OTURUM_DOSYA, 'utf8');
+  const obje = JSON.parse(ham || '{}');
+  const simdi0 = Date.now();
+  for (const [k, v] of Object.entries(obje)) {
+    if (v && v.exp > simdi0 && v.token && v.user) sessions.set(k, v);
+  }
+} catch {}
+let oturumKayitZaman = null;
+function oturumKaydet() {
+  clearTimeout(oturumKayitZaman);
+  oturumKayitZaman = setTimeout(() => {
+    try {
+      const obje = {};
+      for (const [k, v] of sessions) obje[k] = v;
+      fs.mkdirSync(path.dirname(OTURUM_DOSYA), { recursive: true });
+      fs.writeFileSync(OTURUM_DOSYA, JSON.stringify(obje));
+    } catch {}
+  }, 500);
+}
 setInterval(() => {
   const simdi = Date.now();
-  for (const [k, v] of sessions) if (v.exp < simdi) sessions.delete(k);
+  let degisti = false;
+  for (const [k, v] of sessions) if (v.exp < simdi) { sessions.delete(k); degisti = true; }
+  if (degisti) oturumKaydet();
 }, 3600_000).unref?.();
 
 async function discordAPI(token, yol, init = {}) {
@@ -84,7 +108,7 @@ function startKopru() {
 
   app.get('/logout', (req, res) => {
     const s = oturum(req);
-    if (s) sessions.delete(s.sid);
+    if (s) { sessions.delete(s.sid); oturumKaydet(); }
     res.setHeader('Set-Cookie', 'emoc_sid=; HttpOnly; Path=/; Max-Age=0');
     res.redirect('/');
   });
@@ -113,6 +137,7 @@ function startKopru() {
         exp: Date.now() + ((j.expires_in || 604800) * 1000),
         user: { id: me.id, username: me.username, avatar: me.avatar },
       });
+      oturumKaydet();
       const secure = bazURL().startsWith('https') ? '; Secure' : '';
       res.setHeader('Set-Cookie', `emoc_sid=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800${secure}`);
       res.redirect('/app');
