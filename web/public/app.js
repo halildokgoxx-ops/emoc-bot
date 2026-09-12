@@ -1,5 +1,5 @@
 /* Panel v6 */
-const PANEL_SURUM='v11';
+const PANEL_SURUM='v12';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
 let AKTIF='home',GREET='karsilama',ADMIN=false,PREMIUM_AKTIF=false;
 
@@ -200,7 +200,7 @@ function cizHome(c){
     +kart('govBot','🤖','Bot Filtresi','Onaylanmamış bot girişlerini engelleyin.')
     +kart('govYasak','⛔','Yasaklama Limiti','Toplu yasaklamaları sınırlayın.')
     +kart('govAtma','🚪','Atma Limiti','Toplu atmaları sınırlayın.')
-    +kart('govKanal','#??','Kanal Limitlemeleri','Kanal açma ve silme işlemlerini sınırlayın.')
+    +kart('govKanal','📁','Kanal Limitlemeleri','Kanal açma ve silme işlemlerini sınırlayın.')
     +kart('govWebhook','🪝','Anti-Webhook','İzinsiz webhookları onaya düşürür veya siler',false,true)
     +kart('govEmoji','😎','Emoji Limitleri','Emoji spamını ve izinsiz emoji eklemeyi sınırlar',false)
     +'</div>';

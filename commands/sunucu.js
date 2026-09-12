@@ -243,18 +243,19 @@ Sunucuya boost basan efsanelere özel lounge! **Sadece boosterlar görür.** �
 
 **Desteklerin için teşekkürler, iyi ki varsın!** 💜`;
 
+const SEHIR_SESLER = ['İstanbul','Ankara','İzmir','Bursa','Antalya','Adana','Konya','Gaziantep','Mersin','Diyarbakır','Kayseri','Eskişehir','Samsun','Trabzon','Şanlıurfa','Denizli','Kocaeli','Sakarya','Tekirdağ','Balıkesir','Manisa','Hatay','Van','Erzurum','Muğla','Kahramanmaraş'];
 async function ilerle(interaction, yazi) {
   try { await interaction.editReply({ content: yazi, embeds: [], components: [] }); } catch {}
 }
 
-async function buildEt(guild, client, interaction) {
+async function buildEt(guild, client, interaction, ekstra = {}) {
   const ben = guild.members.me;
   if (!ben.permissions.has(PermissionFlagsBits.Administrator)) {
     throw new Error('Önce bana **Yönetici** yetkisi ver! (Sunucu Ayarları → Roller → Emoç → Yönetici ✅)');
   }
 
   // ---- 1) ROLLERİ SİL ----
-  await ilerle(interaction, '🧹 **1/5** Eski roller siliniyor...');
+  await ilerle(interaction, '🧹 **1/6** Eski roller siliniyor...');
   const enUst = ben.roles.highest.position;
   const silinecekRoller = [...guild.roles.cache.values()].filter((r) => r.id !== guild.id && !r.managed && !r.tags?.botId && r.position < enUst);
   for (const r of silinecekRoller) {
@@ -263,7 +264,7 @@ async function buildEt(guild, client, interaction) {
   }
 
   // ---- 2) KANALLARI SİL (komut kanalı en son!) ----
-  await ilerle(interaction, '🧹 **2/5** Eski kanallar siliniyor...');
+  await ilerle(interaction, '🧹 **2/6** Eski kanallar siliniyor...');
   const tumKanallar = [...guild.channels.cache.values()];
   const suanki = interaction.channelId;
   for (const k of tumKanallar.filter((k) => k.id !== suanki)) {
@@ -272,7 +273,7 @@ async function buildEt(guild, client, interaction) {
   }
 
   // ---- 3) ROLLERİ KUR ----
-  await ilerle(interaction, '🎭 **3/5** Roller kuruluyor...');
+  await ilerle(interaction, '🎭 **3/6** Roller kuruluyor...');
   const rolMap = {};
   for (const r of ROLLER) {
     const perms = r.admin ? [PermissionFlagsBits.Administrator]
@@ -297,7 +298,7 @@ async function buildEt(guild, client, interaction) {
   const yonetimRolleri = ['👑 Owner', '🛡️ Admin', '👮 Moderatör', '🎫 Destek'].map((a) => rolMap[a]).filter(Boolean);
 
   // ---- 4) KATEGORİ + KANALLAR ----
-  await ilerle(interaction, '📁 **4/5** Kanallar kuruluyor...');
+  await ilerle(interaction, '📁 **4/6** Kanallar kuruluyor...');
   const isaret = {};
   for (const kat of KATEGORILER) {
     const kategori = await guild.channels.create({ name: kat.ad, type: ChannelType.GuildCategory, reason: 'Sunucu kurulumu' }).catch(() => null);
@@ -327,8 +328,27 @@ async function buildEt(guild, client, interaction) {
     }
   }
 
-  // ---- 5) BOT AYARLARI (HER ŞEY OTOMATİK) ----
-  await ilerle(interaction, '⚙️ **5/5** Bot ayarları bağlanıyor...');
+  // ---- 5) ŞEHİR SES KANALLARI (26 şehir, limitli) ----
+  await ilerle(interaction, '🌍 **5/6** Şehir ses kanalları kuruluyor...');
+  try {
+    const sesLimit = Math.max(0, Math.min(99, ekstra.sesLimit ?? 10));
+    const sehirKat = await guild.channels.create({ name: '🌍・ŞEHİRLER', type: ChannelType.GuildCategory, reason: 'Sunucu kurulumu' }).catch(() => null);
+    if (sehirKat) {
+      for (const sehir of SEHIR_SESLER) {
+        await guild.channels.create({
+          name: sehir,
+          type: ChannelType.GuildVoice,
+          parent: sehirKat.id,
+          userLimit: sesLimit > 0 ? sesLimit : undefined,
+          reason: 'Sunucu kurulumu',
+        }).catch(() => null);
+        await sleep(400);
+      }
+    }
+  } catch {}
+
+  // ---- 6) BOT AYARLARI (HER ŞEY OTOMATİK) ----
+  await ilerle(interaction, '⚙️ **5/6** Bot ayarları bağlanıyor...');
   const g = getGuild(guild.id);
   const oncekiSure = g.repSuresiDk;
   setGuild(guild.id, {
@@ -463,7 +483,7 @@ const sunucuSlash = {
     description: '🛠️ Sunucu kurulum sihirbazı (template + oto-ayar)',
     contexts: [0],
     options: [
-      { type: 1, name: 'kur', description: '⚠️ HER ŞEYİ silip hazır topluluk sunucusu kurar (SADECE sahip)' },
+      { type: 1, name: 'kur', description: '⚠️ HER ŞEYİ silip hazır topluluk sunucusu kurar (SADECE sahip)', options: [{ type: 4, name: 'ses-limit', description: 'Şehir ses kanallarında kişi limiti (0=sınırsız)', required: false, min_value: 0, max_value: 99 }] },
       { type: 1, name: 'bilgi', description: 'Kurulumda neler olacağını önizle (silmez)' },
     ],
   },
@@ -471,11 +491,11 @@ const sunucuSlash = {
     const alt = interaction.options.getSubcommand();
     if (alt === 'bilgi') {
       const rolSayi = ROLLER.length;
-      const kanalSayi = KATEGORILER.reduce((a, k) => a + k.kanallar.length, 0);
+      const kanalSayi = KATEGORILER.reduce((a, k) => a + k.kanallar.length, 0) + SEHIR_SESLER.length;
       return interaction.reply({
         embeds: [kart(client, {
           baslik: '🛠️ /sunucu kur — Önizleme',
-          aciklama: `**${KATEGORILER.length} kategori • ${kanalSayi} kanal • ${rolSayi} rol** kurulur.\nAnime/Manga topluluk template'i + bot bağlantılı!`,
+          aciklama: `**${KATEGORILER.length + 1} kategori • ${kanalSayi} kanal • ${rolSayi} rol** kurulur.\nAnime/Manga topluluk template'i + bot bağlantılı + 🌍 şehir ses kanalları!`,
           alanlar: [
             { name: '🤖 Otomatik Bağlananlar', value: '🎭 Oto-rol → Üye\n📋 Log → loglar\n👋 HG/Çıkış → gelenler/gidenler\n🎯 Sayaç (1000) → sayaç\n🔔 İtibar bildirim → itibar-bildirim\n🤝 Partner (kanal+chat+onay+rol+yazı)\n🎫 Ticket paneli → destek\n💎 Booster rolü + özel izinler\n🥷 Alt hesap koruması (3g kick / 7g gözlem)\n💬 Günün sorusu → genel-sohbet\n🚀 Sv.5/10/20 + 🏅 25/50/100 İtibar rolleri\n👑 Owner rolü → sahip + kurucular', inline: false },
             { name: '⚠️ Dikkat', value: 'Mevcut **TÜM kanallar ve roller silinir!** (bot rolleri hariç)\nSadece **sunucu sahibi** kurabilir.', inline: false },
@@ -498,7 +518,7 @@ const sunucuSlash = {
       return interaction.reply({ content: '❌ Önce bana **Yönetici** yetkisi ver! (Sunucu Ayarları → Roller → Emoç)', ephemeral: true });
     }
 
-    bekleyen.set(interaction.guild.id, { userId: interaction.user.id, bitis: Date.now() + 60000 });
+    bekleyen.set(interaction.guild.id, { userId: interaction.user.id, bitis: Date.now() + 60000, sesLimit: interaction.options.getInteger('ses-limit') ?? 10 });
     setTimeout(() => bekleyen.delete(interaction.guild.id), 65000);
 
     const row = new ActionRowBuilder().addComponents(
@@ -509,7 +529,7 @@ const sunucuSlash = {
       embeds: [kart(client, {
         renk: RENK.hata,
         baslik: '☢️ SON UYARI!',
-        aciklama: '**TÜM kanallar ve TÜM roller kalıcı olarak silinecek!**\nGeri dönüş YOK!\n\nKurulacak: **14 kategori • 40+ kanal • 39 rol** + tüm bot ayarları otomatik.',
+        aciklama: '**TÜM kanallar ve TÜM roller kalıcı olarak silinecek!**\nGeri dönüş YOK!\n\nKurulacak: **15 kategori • 65+ kanal (26 şehir ses kanalı dahil) • 39 rol** + tüm bot ayarları otomatik.',
         altbilgi: '60 saniyen var — iyi düşün!',
       })],
       components: [row],
@@ -533,14 +553,14 @@ async function handleSunucuButton(interaction, client) {
   await interaction.deferUpdate().catch(() => {});
   const t0 = Date.now();
   try {
-    const { rolMap, tacAlanlar } = await buildEt(interaction.guild, client, interaction);
+    const { rolMap, tacAlanlar } = await buildEt(interaction.guild, client, interaction, { sesLimit: kayit.sesLimit });
     const sure = Math.round((Date.now() - t0) / 1000);
     const ozet = kart(client, {
       renk: RENK.basari,
       baslik: '🎉 SUNUCUN HAZIR!',
       aciklama: `**${sure} saniyede** her şey kuruldu! ${E(client, 'parti', '🎉')}\n👑 **Taçlı sahip + kurucular:** ${(tacAlanlar || []).map((u) => `${u}`).join(' ') || '*sunucuda bulunamadı*'}`,
       alanlar: [
-            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı', inline: false },
+            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 şehir ses kanalı (limitli)', inline: false },
         { name: '🚀 Sonraki Adımlar', value: '`/ticket-kur #destek @Destek` → destek paneli\n`/vitrin-ekle ...` → sunucunu tanıt\n`/partner ayarla` → yazını özelleştir', inline: false },
       ],
     });
