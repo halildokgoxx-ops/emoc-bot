@@ -39,7 +39,7 @@ async function baslat(){
 function renderMisafir(){
   document.getElementById('sidebar').innerHTML='<div class="side-logo"><div class="mark">✦</div><span>EMOÇ <small>PANEL</small></span></div>'
     +'<div class="side-sec">Sunucularım</div>'
-    +GUILDS.map(g=>'<button class="side-item" onclick="sunucuAc(\''+g.id+'\')"><span class="ic">◍</span><span>'+esc(g.ad).slice(0,24)+'</span>'+(g.prem?'<span class="tac">👑</span>':'')+'</button>').join('');
+    +GUILDS.map(g=>'<button class="side-item" onclick="sunucuAc(\''+g.id+'\')"><span class="ic">🌍</span><span>'+esc(g.ad).slice(0,24)+'</span>'+(g.prem?'<span class="tac">👑</span>':'')+'</button>').join('');
   document.getElementById('topbar').innerHTML='<div class="crumb"><b>Sunucularım</b></div>'
     +'<div class="top-right"><div class="search">⌕ Özellik ara<kbd>Ctrl K</kbd></div><div class="userbox"><img src="'+avatarURL(ME)+'">'+esc(ME?ME.username:'')+'</div><a class="btn btn-ghost sm" href="/">🏠 Ana Sayfa</a><a class="btn sm" href="/logout">Çıkış</a></div>';
 }
@@ -164,25 +164,25 @@ function cizHome(c){
   };
   c.innerHTML='<div class="page-h">Kontrol Paneli</div><div class="page-s">Kontrol paneline hoş geldiniz</div>'
     +'<div class="sec-h">Sunucu Yönetimi</div><div class="kart-grid">'
-    +kart('seviye','▅','Seviye Sistemi','Mesaj ve ses etkinliğini seviyeler, sıralamalar ve rollerle ödüllendirin.')
-    +kart('karsilama','◍','Karşılama & Veda','Bir üye katıldığında veya ayrıldığında olacakları yönetin')
-    +kart('otomod','◈','Otomatik Moderasyon','Sunucu moderasyonunu otomatikleştirir',true)
-    +kart('denetimMasasi','◉','Denetim Masası','Topluluk moderasyonunu güvenilir üyelerle yönetin')
-    +kart('denetim','▣','Denetim Kaydı','Sunucunuzda olanların kaydını tutar')
-    +kart('otocevap','⌁','Otomatik Cevap','Mesaj tetiklemelerini yönetin')
-    +kart('emojirol','☺','Emoji Rol','Üyelerin mesajlara tepki vererek rol almasını sağlar')
-    +kart('etiket','◌','Sunucu Etiketi','Üyeler sunucu etiketinizi aldığında otomatik rol verin')
+    +kart('seviye','📊','Seviye Sistemi','Mesaj ve ses etkinliğini seviyeler, sıralamalar ve rollerle ödüllendirin.')
+    +kart('karsilama','👋','Karşılama & Veda','Bir üye katıldığında veya ayrıldığında olacakları yönetin')
+    +kart('otomod','🛡️','Otomatik Moderasyon','Sunucu moderasyonunu otomatikleştirir',true)
+    +kart('denetimMasasi','🎛️','Denetim Masası','Topluluk moderasyonunu güvenilir üyelerle yönetin')
+    +kart('denetim','📋','Denetim Kaydı','Sunucunuzda olanların kaydını tutar')
+    +kart('otocevap','🤖','Otomatik Cevap','Mesaj tetiklemelerini yönetin')
+    +kart('emojirol','😀','Emoji Rol','Üyelerin mesajlara tepki vererek rol almasını sağlar')
+    +kart('etiket','🏷️','Sunucu Etiketi','Üyeler sunucu etiketinizi aldığında otomatik rol verin')
     +kart('medya','🎨','Medya Yükle','Toplu emoji ve sticker yükleyin.')
     +'</div><div class="sec-h">Güvenlik</div><div class="kart-grid">'
     +kart('govDavet','🔗','Davet Koruması','Sunucuya izinsiz davet paylaşımlarını engelleyin.')
     +kart('govHesap','🛡','Hesap Filtresi','Yeni ve şüpheli hesapları otomatik filtreleyin.')
-    +kart('govRol','◎','Rol Limitlemeleri','Rol verme ve alma işlemlerini sınırlayın.')
-    +kart('govBot','⚙','Bot Filtresi','Onaylanmamış bot girişlerini engelleyin.')
-    +kart('govYasak','⊘','Yasaklama Limiti','Toplu yasaklamaları sınırlayın.')
-    +kart('govAtma','↩','Atma Limiti','Toplu atmaları sınırlayın.')
+    +kart('govRol','🎭','Rol Limitlemeleri','Rol verme ve alma işlemlerini sınırlayın.')
+    +kart('govBot','🤖','Bot Filtresi','Onaylanmamış bot girişlerini engelleyin.')
+    +kart('govYasak','⛔','Yasaklama Limiti','Toplu yasaklamaları sınırlayın.')
+    +kart('govAtma','🚪','Atma Limiti','Toplu atmaları sınırlayın.')
     +kart('govKanal','#??','Kanal Limitlemeleri','Kanal açma ve silme işlemlerini sınırlayın.')
-    +kart('govWebhook','🔗','Anti-Webhook','İzinsiz webhookları otomatik silin',true)
-    +kart('govEmoji','☺','Emoji Limitleri','Emoji spamını ve izinsiz emoji eklemeyi sınırlayın',true)
+    +kart('govWebhook','🪝','Anti-Webhook','İzinsiz webhookları otomatik silin',true)
+    +kart('govEmoji','😎','Emoji Limitleri','Emoji spamını ve izinsiz emoji eklemeyi sınırlayın',true)
     +'</div>';
 }
 
@@ -236,7 +236,7 @@ function cizKarsilama(c){
   else if(GREET==='davet')sag=davetSag();
   else sag=takmaSag();
   c.innerHTML='<div class="page-h">Karşılama & Veda</div><div class="page-s">Yeni üyeleri karşılayın, ayrılanları takip edin</div>'
-    +'<div class="greet-wrap"><div class="greet-side"><h3>◈ Karşılama özellikleri</h3><p>Ayarlarını açmak için aşağıdan bir özellik grubu seçin.</p>'
+    +'<div class="greet-wrap"><div class="greet-side"><h3>👋 Karşılama özellikleri</h3><p>Ayarlarını açmak için aşağıdan bir özellik grubu seçin.</p>'
     +'<div class="g-count"><span>3 özellik grubu</span><b>0/11 etkin</b></div>'
     +tabs.map(t=>'<button class="g-opt'+(GREET===t.id?' secil':'')+'" onclick="GREET=\''+t.id+'\';renderContent()"><div class="t"><span class="mi">'+t.icon+'</span>'+t.ad+'</div><div class="b"><span>'+t.alt+'</span><span>'+(GREET===t.id?'👁 Seçili':'⚙ Ayarları aç ›')+'</span></div></button>').join('')
     +'</div><div>'+sag+'</div></div>'+saveBar();
