@@ -156,6 +156,15 @@ T('medya gif ayikla', (() => { const r = u.medyaAyikla('selam https://cdn.discor
 T('medya yok', (() => { const r = u.medyaAyikla('sadece yazi'); return r.resim === null; })());
 T('SEMA yeni alanlar', ['cikisMesaj', 'sayacMesaj', 'seviyeHiz', 'girisDM'].every((k) => k in require('./web/server').SEMA));
 T('SEMA muaf alanlar', ['linkMuaf', 'kufurMuaf', 'spamMuaf', 'capsMuaf', 'yasakMuaf'].every((k) => require('./web/server').SEMA[k] === 'muaf'));
+// index.js içinde kullanılan *Map'lerin hepsi tanımlı mı? (tanımsız Map = her mesajda crash)
+T('Map tanımları tam', (() => {
+  const t = fs.readFileSync(path.join(__dirname, 'index.js'), 'utf8');
+  const decl = new Set([...t.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*new Map\(\)/g)].map((m) => m[1]));
+  const kull = new Set([...t.matchAll(/([A-Za-z_$][\w$]*Map)\.(get|set|has|delete|clear)/g)].map((m) => m[1]));
+  const eksik = [...kull].filter((k) => !decl.has(k));
+  if (eksik.length) console.log('   eksik Map:', eksik.join(', '));
+  return eksik.length === 0;
+})());
 
   console.log(`\n📊 SONUÇ: ${pass} geçti, ${fail} kaldı`);
   await new Promise((r) => setTimeout(r, 300)); // kapanan soketler bitsin (win libuv)

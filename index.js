@@ -59,6 +59,7 @@ const joinMap = new Map(); // guildId -> [timestamps]
 const davetCache = new Map(); // guildId -> Map(davetKodu -> {kullanim, sahibi})
 const ihlalMap = new Map(); // `${gid}_${uid}` -> { sayi, son } (5dk pencerede 3 ihlal = oto-timeout)
 const sonMesajMap = new Map(); // userId -> { icerik, sayi, zaman } (tekrar spam)
+const xpSogumaMap = new Map(); // `${gid}_${uid}` -> son XP zamanı (seviye bekleme süresi)
 function ihlalKaydet(gid, uid) {
   const key = `${gid}_${uid}`;
   const simdi = Date.now();
@@ -465,7 +466,12 @@ client.on('messageCreate', async (message) => {
     await cmd.run(message, args, client);
   } catch (e) {
     console.error('Komut hatası:', e);
-    try { message.reply('❌ Bir hata oldu! Sahibime söyle.'); } catch {}
+    // Sadece komut denemesinde cevap ver — normal sohbete hata mesajı atma
+    try {
+      let pref = '!';
+      try { pref = sunucuPrefix(message.guild.id); } catch {}
+      if (message.content.startsWith(pref)) await message.reply('❌ Bir hata oldu! Sahibime söyle.');
+    } catch {}
   }
 });
 
