@@ -68,9 +68,16 @@ function mountBotAPI(app, client) {
       if (!(k in govde)) continue;
       yama[k] = temizle(tip, govde[k], guild);
     }
+    let premEngel = 0;
+    try {
+      const { PREMIUM_AYARLAR } = require('./server');
+      if (!require('../src/premium').premiumMu(guild.id)) {
+        for (const k of PREMIUM_AYARLAR) if (k in yama) { delete yama[k]; premEngel++; }
+      }
+    } catch {}
     setGuild(guild.id, yama);
     save();
-    res.json({ ok: true, sayi: Object.keys(yama).length });
+    res.json({ ok: true, sayi: Object.keys(yama).length, premEngel });
   });
 
   router.get('/istatistik', (req, res) => {
@@ -85,7 +92,18 @@ function mountBotAPI(app, client) {
 
   router.get('/komutlar', (req, res) => {
     try {
-      const liste = [...client.commands.values()].map((c) => ({ ad: c.name, aciklama: c.description || '', kategori: c.category || 'Genel' }));
+      const liste = [...client.commands.values()].map((c) => ({
+        ad: c.name,
+        aciklama: (c.category === 'Premium' ? '👑 ' : '') + (c.description || ''),
+        kategori: c.category || 'Genel',
+      }));
+      try {
+        for (const k of (require('../commands/premium').premiumKomutlar || [])) {
+          if (k && k.data && k.data.name && !liste.some((x) => x.ad === k.data.name)) {
+            liste.push({ ad: k.data.name, aciklama: '👑 ' + (k.data.description || ''), kategori: 'Premium' });
+          }
+        }
+      } catch {}
       res.json({ komutlar: liste, sayi: liste.length });
     } catch { res.status(500).json({ hata: 'hata' }); }
   });

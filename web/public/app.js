@@ -1,5 +1,5 @@
 /* Panel v6 */
-const PANEL_SURUM='v8';
+const PANEL_SURUM='v10';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
 let AKTIF='home',GREET='karsilama',ADMIN=false;
 
@@ -121,7 +121,8 @@ async function kaydet(mesaj){
   const b=document.getElementById('kaydetBtn');if(b){b.disabled=true;b.textContent='Kaydediliyor...'}
   try{
     const j=await api('/api/guild/'+SID,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(FORM)});
-    toast(mesaj||('Kaydedildi'+(j.sayi?' ('+j.sayi+' ayar)':'')));
+    if(j.premEngel>0)toast('Kaydedildi ('+j.sayi+' ayar) + 👑 '+j.premEngel+' premium ayar atlandı (free)');
+    else toast(mesaj||('Kaydedildi'+(j.sayi?' ('+j.sayi+' ayar)':'')));
   }catch{toast('Kaydedilemedi')}
   if(b){b.disabled=false;b.textContent='💾 Kaydet'}
 }
@@ -145,7 +146,7 @@ function chipRol(key,id,el){
 function renderContent(){
   const c=document.getElementById('content');
   try{ return renderContentIc(c); }
-  catch(err){ c.innerHTML='<div class="hata-kutu">Sayfa acilamadi.</div>'; }
+  catch(err){ c.innerHTML='<div class="hata-kutu">Sayfa acilamadi: '+esc(String((err&&err.message)||err)).slice(0,200)+'</div>'; }
 }
 function renderContentIc(){
   const c=document.getElementById('content');
@@ -260,7 +261,7 @@ function karsilamaSag(){
     +'<div class="field"><label>Kanal</label><select data-k="hosgeldinKanal">'+secenek('yazi',f.hosgeldinKanal,'Bir kanal seçin')+'</select></div>'
     +'<div class="field"><label>Mesaj</label><textarea data-k="hosgeldinMesaj" placeholder="Mesaj">'+esc(f.hosgeldinMesaj||'')+'</textarea><div class="chip-row"><button class="chip" onclick="chipEkle(\'hosgeldinMesaj\',\'{kullanıcı}\')">Kullanıcıyı etiketle</button><button class="chip" onclick="chipEkle(\'hosgeldinMesaj\',\'{ad}\')">Kullanıcı adı</button><button class="chip" onclick="chipEkle(\'hosgeldinMesaj\',\'{üye}\')">Üye sayısı</button><button class="chip" onclick="chipEkle(\'hosgeldinMesaj\',\'{sunucu}\')">Sunucu adı</button></div></div>'
     +'<div class="field" style="display:flex;gap:10px;align-items:center"><label class="tgl sm"><input type="checkbox" data-k="hosgeldinResim"'+(f.hosgeldinResim?' checked':'')+'><span class="ray"></span></label><span style="font-size:13px;color:var(--mut)">Üye katılınca resim at</span></div></div>'
-    +'<div class="panel"><div class="panel-top"><div><h3>Üye katılınca özel mesaj at</h3><p>Sunucuya üye katıldığında kullanıcıya özel mesaj atar</p></div><label class="tgl"><input type="checkbox" data-k="girisDMAt"'+(f.girisDMAt?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Üye katılınca özel mesaj at 👑</h3><p>Sunucuya üye katıldığında kullanıcıya özel mesaj atar</p></div><label class="tgl"><input type="checkbox" data-k="girisDMAt"'+(f.girisDMAt?' checked':'')+'><span class="ray"></span></label></div>'
     +'<div class="field"><label>Mesaj</label><textarea data-k="girisDM" placeholder="Mesaj">'+esc(f.girisDM||'')+'</textarea></div></div>'
     +'<div class="panel"><div class="panel-top"><div><h3>Giriş Etiketi</h3><p>Yeni üyeyi seçilen kanallarda etiketler ve mesajı hemen siler</p></div><label class="tgl"><input type="checkbox" data-k="girisEtiket"'+(f.girisEtiket?' checked':'')+'><span class="ray"></span></label></div>'
     +'<div class="field"><label>Giriş etiketi kanalları</label><select onchange="kanalCokluEkle(\'girisEtiketKanal\',this)">'+secenek('yazi','','Kanal seçin')+'</select><div style="margin-top:8px;font-size:12.5px;color:var(--mut)">'+((f.girisEtiketKanal||[]).map(kanalAd).join(', ')||'Seçim yok')+'</div></div></div>'
@@ -603,7 +604,7 @@ function cizDenetimMasasi(c){
 const GOV_LIMIT={govRol:['govRolSayi','govRolDakika','rol işlemi'],govYasak:['govYasakSayi','govYasakDakika','yasaklama'],govAtma:['govAtmaSayi','govAtmaDakika','atma'],govKanal:['govKanalSayi','govKanalDakika','kanal işlemi']};
 function cizGov(c,id){
   try{ return cizGovIc(c,id); }
-  catch(err){ const c2=document.getElementById('content'); c2.innerHTML='<div class="hata-kutu">Guvenlik sayfasi acilamadi.</div>'+saveBar(); }
+  catch(err){ const c2=document.getElementById('content'); c2.innerHTML='<div class="hata-kutu">G\u00FCvenlik sayfas\u0131 a\u00E7\u0131lamad\u0131: '+esc(String((err&&err.message)||err)).slice(0,200)+'</div>'+saveBar(); }
 }
 function cizGovIc(c,id){
   const ad=NAV_AD[id]||'Güvenlik';

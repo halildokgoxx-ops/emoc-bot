@@ -215,7 +215,7 @@ client.on('messageCreate', async (message) => {
 
     // --- XP / Seviye (premium x2 + özel hız + min/max + bekleme) ---
     const gg = getGuild(message.guild.id);
-    const hizCarpan = Math.max(1, Math.min(5, gg.seviyeHiz || 1));
+    const hizCarpan = premiumMu(message.guild.id) ? Math.max(1, Math.min(5, gg.seviyeHiz || 1)) : 1;
     const xpCarpan = (premiumMu(message.guild.id) ? 2 : 1) * hizCarpan;
     const xpMin = Math.max(1, Math.min(200, gg.xpMin || 5));
     const xpMax = Math.max(xpMin, Math.min(200, gg.xpMax || 15));
@@ -547,7 +547,7 @@ client.on('guildMemberAdd', async (member) => {
     // 🧲 Yapışkan rol iadesi (premium)
     try {
       const d = require('./src/db');
-      if (getGuild(member.guild.id).yapiskan) {
+      if (getGuild(member.guild.id).yapiskan && premiumMu(member.guild.id)) {
         const kayit = (d.db().yapiskan || {})[`${member.guild.id}_${member.id}`];
         if (kayit && kayit.length && !member.user.bot) {
           let n = 0;
@@ -564,7 +564,7 @@ client.on('guildMemberAdd', async (member) => {
     // 💌 Giriş DM (premium)
     try {
       const dm = getGuild(member.guild.id).girisDM;
-      if (dm && !member.user.bot) {
+      if (dm && !member.user.bot && premiumMu(member.guild.id)) {
         const txt = String(dm).replace(/{kullanıcı}/g, `${member}`).replace(/{sunucu}/g, member.guild.name).replace(/{üye}/g, `${member.guild.memberCount}`).slice(0, 1500);
         await member.send(txt).catch(() => {});
       }
@@ -574,7 +574,7 @@ client.on('guildMemberAdd', async (member) => {
       const rol = member.guild.roles.cache.get(g.otoRol);
       if (rol) await member.roles.add(rol).catch(() => {});
     }
-    if (g.otoRolCoklu && g.otoRolCoklu.length) {
+    if (g.otoRolCoklu && g.otoRolCoklu.length && premiumMu(member.guild.id)) {
       for (const rid of g.otoRolCoklu.slice(0, 3)) {
         const r = member.guild.roles.cache.get(rid);
         if (r) await member.roles.add(r).catch(() => {});
@@ -681,7 +681,7 @@ client.on('guildMemberRemove', async (member) => {
     // 🧲 Yapışkan rol kaydı (premium)
     try {
       const gg = getGuild(member.guild.id);
-      if (gg.yapiskan && !member.user.bot) {
+      if (gg.yapiskan && !member.user.bot && premiumMu(member.guild.id)) {
         const d = require('./src/db');
         if (!d.db().yapiskan) d.db().yapiskan = {};
         d.db().yapiskan[`${member.guild.id}_${member.id}`] = member.roles.cache

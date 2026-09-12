@@ -35,6 +35,12 @@ setInterval(() => {
   if (degisti) oturumKaydet();
 }, 3600_000).unref?.();
 
+// Premium sunucu gerektiren panel ayarları (free kayıtta atılır)
+const PREMIUM_AYARLAR = new Set([
+  'yapiskan', 'seviyeHiz', 'girisDM', 'girisDMAt',
+  'sesXP', 'sesXPDakika', 'sesXPMin', 'sesXPAfk',
+  'prefix', 'davetRolu', 'govDavet', 'govHesap',
+]);
 // Webden değiştirilebilir ayar şeması: key -> tip
 const SEMA = {
   antiLink: 'bool', antiKufur: 'bool', antiSpam: 'bool', antiRaid: 'bool',
@@ -683,9 +689,16 @@ function startWeb(client) {
         if (!(k in govde)) continue;
         yama[k] = temizle(tip, govde[k], guild);
       }
+      // Premium ayarlar free sunucularda kaydedilmez
+      let premEngel = 0;
+      try {
+        if (!require('../src/premium').premiumMu(guild.id)) {
+          for (const k of PREMIUM_AYARLAR) if (k in yama) { delete yama[k]; premEngel++; }
+        }
+      } catch {}
       setGuild(guild.id, yama);
       save();
-      res.json({ ok: true, sayi: Object.keys(yama).length });
+      res.json({ ok: true, sayi: Object.keys(yama).length, premEngel });
     } catch { res.status(500).json({ hata: 'kaydedilemedi' }); }
   });
 
@@ -697,4 +710,4 @@ function startWeb(client) {
   server.on('error', (e) => console.error('🌐 Web panel açılamadı, bot çalışmaya devam ediyor:', e.message));
 }
 
-module.exports = { startWeb, SEMA, temizle, discordAPI };
+  module.exports = { startWeb, SEMA, PREMIUM_AYARLAR, temizle, discordAPI };
