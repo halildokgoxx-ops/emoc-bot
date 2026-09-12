@@ -302,7 +302,31 @@ function mountBotAPI(app, client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
-  app.use('/api/bot', express.json({ limit: '200kb' }), router);
+  router.post('/embed-gonder', async (req, res) => {
+    try {
+      const r = await require('./aksiyon').embedGonder(client, req.body || {});
+      if (r.hata) return res.status(r.hata === 'yok' || r.hata === 'kanal-yok' ? 404 : 400).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'gonderilemedi' }); }
+  });
+
+  router.post('/medya-yukle', async (req, res) => {
+    try {
+      const r = await require('./aksiyon').medyaYukle(client, req.body || {});
+      if (r.hata) return res.status(r.hata === 'yok' ? 404 : 400).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  router.post('/emojirol-tepki', async (req, res) => {
+    try {
+      const r = await require('./aksiyon').emojirolTepki(client, req.body || {});
+      if (r.hata) return res.status(404).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  app.use('/api/bot', express.json({ limit: '12mb' }), router);
 }
 
 module.exports = { mountBotAPI };

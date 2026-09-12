@@ -72,6 +72,10 @@ const SEMA = {
   emojiRoller: 'json', denetimNot: 'yazi:500',
   govDavet: 'bool', govHesap: 'bool', govRol: 'bool', govBot: 'bool',
   govYasak: 'bool', govAtma: 'bool', govKanal: 'bool', govWebhook: 'bool', govEmoji: 'bool',
+  govKanalSayi: 'sayi:1:50', govKanalDakika: 'sayi:1:60',
+  govYasakSayi: 'sayi:1:50', govYasakDakika: 'sayi:1:60',
+  govAtmaSayi: 'sayi:1:50', govAtmaDakika: 'sayi:1:60',
+  govRolSayi: 'sayi:1:50', govRolDakika: 'sayi:1:60',
 };
 
 async function discordAPI(token, yol, init = {}) {
@@ -92,7 +96,7 @@ function oturum(req) {
 }
 
 function temizle(tip, v, guild) {
-  if (tip === 'bool') return v === true || v === 1 || v === '1' || v === 'true' || v === 'on';
+  if (tip === 'bool') return v === true;
   if (tip === 'rol' || tip === 'kanal') {
     if (!v) return null;
     const id = String(v).replace(/\D/g, '');
@@ -141,7 +145,7 @@ function temizle(tip, v, guild) {
 
 function startWeb(client) {
   const app = express();
-  app.use(express.json({ limit: '200kb' }));
+  app.use(express.json({ limit: '12mb' }));
   app.use(express.static(path.join(__dirname, 'public')));
   try { require('./botapi').mountBotAPI(app, client); } catch (e) { console.error('Bot API açılamadı:', e.message); }
   const PORT = process.env.PORT || 3000;
@@ -486,6 +490,40 @@ function startWeb(client) {
       } else return res.status(400).json({ hata: 'liste' });
       save();
       res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  // Embed gönder / medya yükle / emoji-rol tepki (direkt mod: aynı process)
+  async function aksiyonYetki(req, res) {
+    const guild = await yasakliYetki(req, res);
+    if (!guild) return null;
+    return guild;
+  }
+  app.post('/api/embed-gonder', async (req, res) => {
+    const guild = await aksiyonYetki(req, res);
+    if (!guild) return;
+    try {
+      const r = await require('./aksiyon').embedGonder(client, { guildId: guild.id, ...(req.body || {}) });
+      if (r.hata) return res.status(r.hata === 'yok' || r.hata === 'kanal-yok' ? 404 : 400).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'gonderilemedi' }); }
+  });
+  app.post('/api/medya-yukle', async (req, res) => {
+    const guild = await aksiyonYetki(req, res);
+    if (!guild) return;
+    try {
+      const r = await require('./aksiyon').medyaYukle(client, { guildId: guild.id, ...(req.body || {}) });
+      if (r.hata) return res.status(r.hata === 'yok' ? 404 : 400).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+  app.post('/api/emojirol-tepki', async (req, res) => {
+    const guild = await aksiyonYetki(req, res);
+    if (!guild) return;
+    try {
+      const r = await require('./aksiyon').emojirolTepki(client, { guildId: guild.id, ...(req.body || {}) });
+      if (r.hata) return res.status(404).json(r);
+      res.json(r);
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 

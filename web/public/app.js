@@ -37,11 +37,11 @@ async function baslat(){
   }catch(e){}
 }
 function renderMisafir(){
-  document.getElementById('sidebar').innerHTML='<div class="side-logo"><div class="mark">◈</div><span>Kontrol Paneli</span></div>'
+  document.getElementById('sidebar').innerHTML='<div class="side-logo"><div class="mark">✦</div><span>EMOÇ <small>PANEL</small></span></div>'
     +'<div class="side-sec">Sunucularım</div>'
     +GUILDS.map(g=>'<button class="side-item" onclick="sunucuAc(\''+g.id+'\')"><span class="ic">◍</span><span>'+esc(g.ad).slice(0,24)+'</span>'+(g.prem?'<span class="tac">👑</span>':'')+'</button>').join('');
-  document.getElementById('topbar').innerHTML='<div class="crumb"><b>Ana Sayfa</b><span class="sep">›</span><b>Sunucularım</b></div>'
-    +'<div class="top-right"><div class="search">⌕ Özellik ara<kbd>Ctrl K</kbd></div><div class="userbox"><img src="'+avatarURL(ME)+'">'+esc(ME?ME.username:'')+'</div><a class="btn sm" href="/logout">Çıkış</a></div>';
+  document.getElementById('topbar').innerHTML='<div class="crumb"><b>Sunucularım</b></div>'
+    +'<div class="top-right"><div class="search">⌕ Özellik ara<kbd>Ctrl K</kbd></div><div class="userbox"><img src="'+avatarURL(ME)+'">'+esc(ME?ME.username:'')+'</div><a class="btn btn-ghost sm" href="/">🏠 Ana Sayfa</a><a class="btn sm" href="/logout">Çıkış</a></div>';
 }
 function serverList(){
   SID=null;
@@ -69,14 +69,14 @@ async function sunucuAc(id){
 const NAV=[
   {sec:null,items:[['home','▦','Kontrol Paneli']]},
   {sec:null,items:[['ayarlar','⚙','Ayarlar'],['premium','☆','Premium'],['gomulu','▤','Gömülü Mesajlar']]},
-  {sec:'Sunucu Yönetimi',items:[['seviye','▅','Seviye Sistemi'],['karsilama','◍','Karşılama & Veda'],['otomod','◈','Otomatik Moderasyon','YENİ'],['denetimMasasi','◉','Denetim Masası'],['denetim','▣','Denetim Kaydı'],['otocevap','⌁','Otomatik Cevap'],['emojirol','☺','Emoji Rol'],['etiket','◌','Sunucu Etiketi']]},
-  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡','Hesap Filtresi','👑'],['govRol','◎','Rol Limitlemeleri'],['govBot','⚙','Bot Filtresi'],['govYasak','⊘','Yasaklama Limiti'],['govAtma','↩','Atma Limiti'],['govKanal','#','Kanal Limitlemeleri'],['govWebhook','🔗','Anti-Webhook','YENİ'],['govEmoji','☺','Emoji Limitleri','YENİ']]},
+  {sec:'Sunucu Yönetimi',items:[['seviye','▅','Seviye Sistemi'],['karsilama','◍','Karşılama & Veda'],['otomod','◈','Otomatik Moderasyon','YENİ'],['denetimMasasi','◉','Denetim Masası'],['denetim','▣','Denetim Kaydı'],['otocevap','⌁','Otomatik Cevap'],['emojirol','☺','Emoji Rol'],['etiket','◌','Sunucu Etiketi'],['medya','🎨','Medya Yükle']]},
+  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡','Hesap Filtresi','👑'],['govRol','◎','Rol Limitlemeleri'],['govBot','⚙','Bot Filtresi'],['govYasak','⊘','Yasaklama Limiti'],['govAtma','↩','Atma Limiti'],['govKanal','#','Kanal Limitlemeleri'],['govWebhook','🔗','Anti-Webhook'],['govEmoji','☺','Emoji Limitleri']]},
 ];
-const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
+const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
 
 function renderAll(){renderSide();renderTop();renderContent()}
 function renderSide(){
-  let h='<div class="side-logo"><div class="mark">◈</div><span>Kontrol Paneli</span></div>';
+  let h='<div class="side-logo"><div class="mark">✦</div><span>EMOÇ <small>PANEL</small></span></div>';
   NAV.forEach(gr=>{
     if(gr.sec)h+='<div class="side-sec">'+gr.sec+'</div>';
     gr.items.forEach(it=>{
@@ -90,9 +90,9 @@ function renderSide(){
   document.getElementById('sidebar').innerHTML=h;
 }
 function renderTop(){
-  document.getElementById('topbar').innerHTML='<div class="crumb"><span style="cursor:pointer" onclick="serverList();renderMisafir()">Ana Sayfa</span><span class="sep">›</span><span style="cursor:pointer" onclick="serverList();renderMisafir()">Sunucularım</span><span class="sep">›</span>'
+  document.getElementById('topbar').innerHTML='<div class="crumb"><span style="cursor:pointer" onclick="serverList();renderMisafir()">Sunucularım</span><span class="sep">›</span>'
     +'<button class="srv-pick" onclick="serverList();renderMisafir()">'+(SICON?'<img src="'+SICON+'">':'<span class="harf">'+esc((SNAME||'?')[0])+'</span>')+'<b>'+esc(SNAME)+'</b><span style="color:var(--mut)">▾</span></button></div>'
-    +'<div class="top-right"><div class="search">⌕ <input id="ara" placeholder="Özellik ara" style="background:none;border:0;outline:0;color:var(--txt);width:120px" onkeydown="if(event.key===\'Enter\')araGit(this.value)"><kbd>Ctrl K</kbd></div><div class="userbox"><img src="'+avatarURL(ME)+'">'+esc(ME?ME.username:'')+'<span style="color:var(--mut)">▾</span></div><a class="btn sm" href="/logout">Çıkış</a></div>';
+    +'<div class="top-right"><div class="search">⌕ <input id="ara" placeholder="Özellik ara" style="background:none;border:0;outline:0;color:var(--txt);width:120px" onkeydown="if(event.key===\'Enter\')araGit(this.value)"><kbd>Ctrl K</kbd></div><div class="userbox"><img src="'+avatarURL(ME)+'">'+esc(ME?ME.username:'')+'<span style="color:var(--mut)">▾</span></div><a class="btn btn-ghost sm" href="/">🏠 Ana Sayfa</a><a class="btn sm" href="/logout">Çıkış</a></div>';
 }
 function araGit(v){
   v=(v||'').toLocaleLowerCase('tr');
@@ -151,6 +151,7 @@ function renderContent(){
   if(AKTIF==='otocevap')return cizOtoCevap(c);
   if(AKTIF==='emojirol')return cizEmojiRol(c);
   if(AKTIF==='etiket')return cizEtiket(c);
+  if(AKTIF==='medya')return cizMedya(c);
   if(AKTIF==='premium')return cizPremium(c);
   if(AKTIF==='denetimMasasi')return cizDenetimMasasi(c);
   if(AKTIF.startsWith('gov'))return cizGov(c,AKTIF);
@@ -170,12 +171,13 @@ function cizHome(c){
     +kart('denetim','▣','Denetim Kaydı','Sunucunuzda olanların kaydını tutar')
     +kart('otocevap','⌁','Otomatik Cevap','Mesaj tetiklemelerini yönetin')
     +kart('emojirol','☺','Emoji Rol','Üyelerin mesajlara tepki vererek rol almasını sağlar')
-    +kart('etiket','◌','Sunucu Etiketi','Üyeler sunucu etiketinizi aldığında roller ekleyin ve bildirimler gönderin')
+    +kart('etiket','◌','Sunucu Etiketi','Üyeler sunucu etiketinizi aldığında otomatik rol verin')
+    +kart('medya','🎨','Medya Yükle','Toplu emoji ve sticker yükleyin.')
     +'</div><div class="sec-h">Güvenlik</div><div class="kart-grid">'
     +kart('govDavet','🔗','Davet Koruması','Sunucuya izinsiz davet paylaşımlarını engelleyin.')
     +kart('govHesap','🛡','Hesap Filtresi','Yeni ve şüpheli hesapları otomatik filtreleyin.')
     +kart('govRol','◎','Rol Limitlemeleri','Rol verme ve alma işlemlerini sınırlayın.')
-    +kart('govBot','⚙','Bot Filtresi','İzinsiz bot girişlerini engelleyin.')
+    +kart('govBot','⚙','Bot Filtresi','Onaylanmamış bot girişlerini engelleyin.')
     +kart('govYasak','⊘','Yasaklama Limiti','Toplu yasaklamaları sınırlayın.')
     +kart('govAtma','↩','Atma Limiti','Toplu atmaları sınırlayın.')
     +kart('govKanal','#','Kanal Limitlemeleri','Kanal açma ve silme işlemlerini sınırlayın.')
@@ -212,7 +214,7 @@ function cizSeviye(c){
   +'<div class="field" style="margin-top:16px"><div class="row3"><div><label>Minimum XP</label><input type="number" data-k="xpMin" value="'+(f.xpMin??15)+'"></div><div><label>Maksimum XP</label><input type="number" data-k="xpMax" value="'+(f.xpMax??25)+'"></div><div><label>Bekleme süresi</label><div style="display:flex;gap:8px;align-items:center"><input type="number" data-k="xpSoguma" value="'+(f.xpSoguma??60)+'"><span style="color:var(--mut)">s</span></div></div></div></div></div>'
   +'<div class="panel"><div class="panel-top"><div><h3>🎙 Ses XP 👑</h3><p>Premium sunucularda üyeler ses kanallarında geçirdikleri süreye göre XP kazanır.</p></div>'
   +'<label class="tgl"><input type="checkbox" data-k="sesXP"'+(f.sesXP?' checked':'')+'><span class="ray"></span></label></div>'
-  +'<div class="field" style="margin-top:16px"><div class="row3"><div><label>Dakika başına XP</label><input type="number" data-k="sesXPDakika" value="'+(f.sesXPDakika??5)+'"></div><div><label>Minimum katılımcı</label><input type="number" data-k="sesXPMin" value="'+(f.sesXPMin??2)+'"></div><div><label>AFK koruması</label><select data-k="sesXPAfk"><option value="1"'+(f.sesXPAfk!==false?' selected':'')+'>Açık</option><option value=""'+(f.sesXPAfk===false?' selected':'')+'>Kapalı</option></select></div></div>'
+  +'<div class="field" style="margin-top:16px"><div class="row3"><div><label>Dakika başına XP</label><input type="number" data-k="sesXPDakika" value="'+(f.sesXPDakika??5)+'"></div><div><label>Minimum katılımcı</label><input type="number" data-k="sesXPMin" value="'+(f.sesXPMin??2)+'"></div><div><label>AFK koruması</label><div style="display:flex;align-items:center;gap:10px;height:42px"><label class="tgl"><input type="checkbox" data-k="sesXPAfk"'+(f.sesXPAfk!==false?' checked':'')+'><span class="ray"></span></label><span style="font-size:12.5px;color:var(--mut)">'+(f.sesXPAfk!==false?'Açık':'Kapalı')+'</span></div></div></div>'
   +'<div class="hint">✔ AFK koruması etkinleştirildiğinde AFK, sessiz veya odada tek duran üyeler XP kazanamaz.</div></div></div></div>'
   +'<div class="panel" style="margin-top:16px"><div class="panel-top"><div><h3>🔔 Seviye atlama duyurusu</h3><p>Üyeleriniz seviye atladığında kişiselleştirilmiş bir mesaj gönderin.</p></div></div>'
   +'<div class="field"><label>Hedef</label><select data-k="seviyeKanal"><option value="">Kapalı</option>'+KANALLAR.filter(k=>k.tip==='yazi').map(k=>'<option value="'+k.id+'"'+(String(f.seviyeKanal)===String(k.id)?' selected':'')+'># '+esc(k.ad)+'</option>').join('')+'</select></div>'
@@ -318,7 +320,7 @@ function amModal(k){
   if(a.flood)ekstra+='<div class="field"><div class="row3"><div><label>Süre (sn)</label><input type="number" id="m-sure" value="'+esc(v.sure||10)+'"></div><div><label>Mesaj sayısı</label><input type="number" id="m-limit" value="'+esc(v.limit||5)+'"></div><div><label>Uyarı sınırı</label><input type="number" id="m-uyari" value="'+esc(v.uyari||3)+'"></div></div></div>';
   else ekstra+='<div class="field"><label>Uyarı sınırı (kaç ihlalde ceza uygulansın)</label><input type="number" id="m-uyari" value="'+esc(v.uyari||3)+'"></div>';
   if(a.yuzde)ekstra+='<div class="field"><label>Büyük harf oranı (%)</label><input type="number" id="m-limit" value="'+esc(v.limit||70)+'"></div>';
-  document.getElementById('modal-root').innerHTML='<div class="modal-bg" onclick="if(event.target===this)modalKapat()"><div class="modal"><div class="modal-h"><span>'+a.ad+'</span><button onclick="modalKapat()">✕</button></div><div class="modal-b">'
+  document.getElementById('modal-root').innerHTML='<div class="pmodal-bg" onclick="if(event.target===this)modalKapat()"><div class="pmodal"><div class="modal-h"><span>'+a.ad+'</span><button onclick="modalKapat()">✕</button></div><div class="modal-b">'
     +'<div class="set-row"><span><b>Mesajı sil</b><p>Her AutoMod ihlalinde her zaman etkindir.</p></span><label class="tgl"><input type="checkbox" id="m-sil"'+(v.mesajSil!==false?' checked':'')+'><span class="ray green"></span></label></div>'
     +'<div class="set-row"><span><b>Zaman aşımı</b><p>Belirlenen uyarı sayısından sonra üyenin etkileşimini geçici olarak engeller.</p></span><label class="tgl"><input type="checkbox" id="m-timeout"'+(v.zamanAsimi?' checked':'')+'><span class="ray"></span></label></div>'
     +'<div class="set-row"><span><b>Sunucudan at</b><p>Belirlenen uyarı sayısından sonra üyeyi sunucudan çıkarır.</p></span><label class="tgl"><input type="checkbox" id="m-kick"'+(v.sunucudanAt?' checked':'')+'><span class="ray"></span></label></div>'
@@ -379,25 +381,76 @@ function cizDenetim(c){
 function cizGomulu(c){
   const liste=Array.isArray(FORM.gomuluMesajlar)?FORM.gomuluMesajlar:[];
   c.innerHTML='<div class="page-h">Gömülü Mesajlar</div><div class="page-s">Sunucunuzdaki gömülü mesajları yönetin</div>'
-    +'<div class="panel"><div class="field"><button class="btn" style="width:100%;justify-content:space-between" onclick="gomuluYeni()">Yeni gömülü mesaj <span style="font-size:18px">+</span></button></div>'
-    +(liste.length?'<div class="kv-list" style="margin-top:14px">'+liste.map((g,i)=>'<div class="liste-satir"><span><b>'+esc(g.baslik||('Mesaj '+(i+1)))+'</b> <span style="color:var(--mut)">'+esc(kanalAd(g.kanal))+'</span></span><button class="btn sm" onclick="gomuluSil('+i+')">Sil</button></div>').join('')+'</div>':'<div class="bos">Henüz gömülü mesaj yok.</div>')
+    +'<div class="panel">'
+    +'<div class="kv-list">'+(liste.length?liste.map((g,i)=>'<div class="liste-satir"><span><b>'+esc(g.baslik||('Mesaj '+(i+1)))+'</b> <span style="color:var(--mut)">'+esc(kanalAd(g.kanal))+'</span></span><span style="display:flex;gap:6px"><button class="btn sm" onclick="gomuluGonder('+i+')">Gönder</button><button class="btn sm" onclick="gomuluDuzenle('+i+')">Düzenle</button><button class="btn sm" onclick="gomuluSil('+i+')">Sil</button></span></div>').join(''):'<div class="bos">Henüz gömülü mesaj yok — aşağıdan oluştur.</div>')+'</div>'
+    +'<div class="field"><button class="btn pri" style="width:100%;justify-content:space-between" onclick="gomuluDuzenle(-1)">Yeni gömülü mesaj <span style="font-size:18px">+</span></button></div>'
     +'</div>'+saveBar();
 }
-function gomuluYeni(){
+let GOMULU_IDX=-1;
+function gomuluDuzenle(i){
   if(!Array.isArray(FORM.gomuluMesajlar))FORM.gomuluMesajlar=[];
-  document.getElementById('modal-root').innerHTML='<div class="modal-bg" onclick="if(event.target===this)modalKapat()"><div class="modal"><div class="modal-h"><span>Yeni gömülü mesaj</span><button onclick="modalKapat()">✕</button></div><div class="modal-b">'
-    +'<div class="field"><label>Başlık</label><input type="text" id="g-baslik" placeholder="Duyuru"></div>'
-    +'<div class="field"><label>Açıklama</label><textarea id="g-acik" placeholder="Mesaj içeriği"></textarea></div>'
-    +'<div class="field"><label>Kanal</label><select id="g-kanal">'+secenek('yazi','','Bir kanal seçin')+'</select></div>'
-    +'<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px"><button class="btn" onclick="modalKapat()">İptal</button><button class="btn pri" onclick="gomuluEkle()">Ekle</button></div></div></div></div>';
+  GOMULU_IDX=i;
+  const g=i>=0?FORM.gomuluMesajlar[i]:{baslik:'',aciklama:'',kanal:'',renk:'#8b7cf6'};
+  document.getElementById('modal-root').innerHTML='<div class="pmodal-bg" onclick="if(event.target===this)modalKapat()"><div class="pmodal"><div class="modal-h"><span>'+(i>=0?'Gömülü mesajı düzenle':'Yeni gömülü mesaj')+'</span><button onclick="modalKapat()">✕</button></div><div class="modal-b">'
+    +'<div class="field"><label>Kanal</label><select id="g-kanal">'+secenek('yazi',g.kanal,'Bir kanal seçin')+'</select></div>'
+    +'<div class="field"><label>Başlık</label><input type="text" id="g-baslik" maxlength="100" placeholder="Duyuru" value="'+esc(g.baslik||'')+'"></div>'
+    +'<div class="field"><label>Mesaj</label><div class="chip-row" style="margin:0 0 8px"><span class="chip" onclick="gDegisken(\'{kullanıcı}\')">{kullanıcı}</span><span class="chip" onclick="gDegisken(\'{sunucu}\')">{sunucu}</span><span class="chip" onclick="gDegisken(\'{üye}\')">{üye}</span></div><textarea id="g-acik" rows="4" placeholder="Mesaj içeriği — link de ekleyebilirsin">'+esc(g.aciklama||'')+'</textarea></div>'
+    +'<div class="field"><label>Renk</label><input type="color" id="g-renk" value="'+(/^#[0-9a-f]{6}$/i.test(g.renk||'')?g.renk:'#8b7cf6')+'" style="max-width:80px;height:40px;padding:4px"></div>'
+    +'<div class="onizleme-kutu"><div class="onizleme-baslik">ÖNİZLEME</div><div class="onizleme-mesaj" id="g-oniz"></div></div>'
+    +'<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap"><button class="btn" onclick="modalKapat()">İptal</button><button class="btn" onclick="gomuluTaslak()">Taslak Kaydet</button><button class="btn pri" onclick="gomuluGonderModal()">Gönder</button></div></div></div></div>';
+  const ta=document.getElementById('g-acik');
+  const guncelle=()=>{
+    const kutu=document.getElementById('g-oniz');if(!kutu)return;
+    let m=ta.value||'...';
+    m=m.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+    const mm=m.match(/(https?:\/\/\S+)/);
+    kutu.innerHTML='<b>'+esc(document.getElementById('g-baslik').value||'Duyuru')+'</b><p>'+m+'</p>'+(mm?'<p><a href="'+mm[1]+'" target="_blank" style="color:var(--acc)">'+mm[1].slice(0,60)+'</a></p>':'');
+    kutu.style.borderLeft='3px solid '+(document.getElementById('g-renk').value||'#8b7cf6');
+  };
+  ta.addEventListener('input',guncelle);
+  document.getElementById('g-baslik').addEventListener('input',guncelle);
+  guncelle();ta.focus();
 }
-function gomuluEkle(){
-  const b=document.getElementById('g-baslik').value.trim(),a=document.getElementById('g-acik').value.trim(),k=document.getElementById('g-kanal').value;
-  if(!a){toast('Açıklama yaz');return}
-  FORM.gomuluMesajlar.push({baslik:b.slice(0,100),aciklama:a.slice(0,1500),kanal:k||null});
+function gDegisken(kod){
+  const ta=document.getElementById('g-acik');if(!ta)return;
+  ta.value+=(ta.value?' ':'')+kod;ta.focus();
+  ta.dispatchEvent(new Event('input'));
+}
+function gOku(){
+  return {
+    baslik:document.getElementById('g-baslik').value.trim().slice(0,100),
+    aciklama:document.getElementById('g-acik').value.trim().slice(0,1500),
+    kanal:document.getElementById('g-kanal').value||null,
+    renk:document.getElementById('g-renk').value||'#8b7cf6',
+  };
+}
+async function gomuluTaslak(){
+  const v=gOku();
+  if(!v.aciklama){toast('Açıklama yaz');return}
+  if(GOMULU_IDX>=0)FORM.gomuluMesajlar[GOMULU_IDX]=v;
+  else FORM.gomuluMesajlar.push(v);
+  await formKaydet('Taslak kaydedildi!');
   modalKapat();renderContent();
 }
-function gomuluSil(i){FORM.gomuluMesajlar.splice(i,1);renderContent()}
+async function gomuluGonderModal(){
+  const v=gOku();
+  if(!v.aciklama){toast('Açıklama yaz');return}
+  if(!v.kanal){toast('Kanal seç');return}
+  try{
+    const j=await api('/api/embed-gonder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,...v})});
+    if(j.ok){toast('Gönderildi!');modalKapat()}
+    else toast('Gönderilemedi!');
+  }catch{toast('Gönderilemedi!')}
+}
+async function gomuluGonder(i){
+  const g=FORM.gomuluMesajlar[i];if(!g)return;
+  if(!g.kanal){toast('Önce düzenleyip kanal seç');gomuluDuzenle(i);return}
+  try{
+    const j=await api('/api/embed-gonder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,...g})});
+    toast(j.ok?'Gönderildi!':'Gönderilemedi!');
+  }catch{toast('Gönderilemedi!')}
+}
+function gomuluSil(i){domKaydet();FORM.gomuluMesajlar.splice(i,1);renderContent()}
 
 /* oto cevap */
 async function cizOtoCevap(c){
@@ -421,25 +474,50 @@ async function ocSil(t){
 }
 
 /* emoji rol */
+function erMesajId(url){
+  const m=String(url||'').match(/(\d{17,22})\s*$/);
+  return m?m[1]:String(url||'').trim();
+}
 function cizEmojiRol(c){
   const liste=Array.isArray(FORM.emojiRoller)?FORM.emojiRoller:[];
   c.innerHTML='<div class="page-h">Emoji Rol</div><div class="page-s">Üyelerin mesajlara tepki vererek rol almasını sağlar</div>'
     +'<div class="panel"><div class="row3"><div><label>Kanal</label><select id="er-kanal">'+secenek('yazi','','Seçin')+'</select></div><div><label>Emoji</label><input type="text" id="er-emoji" placeholder="😀"></div><div><label>Rol</label><select id="er-rol">'+secenek('rol','','Seçin')+'</select></div></div>'
-    +'<div style="margin-top:12px"><button class="btn pri sm" onclick="erEkle()">+ Ekle</button></div>'
-    +'<div style="margin-top:14px">'+(liste.length?liste.map((x,i)=>'<div class="liste-satir"><span>'+esc(x.emoji)+' → '+esc(rolAd(x.rol))+' <span style="color:var(--mut)">'+esc(kanalAd(x.kanal))+'</span></span><button class="btn sm" onclick="erSil('+i+')">Sil</button></div>').join(''):'<div class="bos">Kayıt yok.</div>')+'</div></div>'+saveBar();
+    +'<div class="field"><label>Mesaj (ID veya mesaj bağlantısı — bot tepkiyi bu mesajın altına koyar)</label><input type="text" id="er-mesaj" placeholder="örn: 123456789012345678"></div>'
+    +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri sm" onclick="erEkle()">+ Ekle</button><button class="btn sm" onclick="erTepkiTumu()">Tümüne Tepki Koy</button></div>'
+    +'<div style="margin-top:14px">'+(liste.length?liste.map((x,i)=>'<div class="liste-satir"><span>✅ '+esc(x.emoji)+' → '+esc(rolAd(x.rol))+' <span style="color:var(--mut)">'+esc(kanalAd(x.kanal))+(x.mesajId?' • '+esc(x.mesajId):'')+'</span></span><span style="display:flex;gap:6px"><button class="btn sm" onclick="erTepki('+i+')">Tepkiyi Koy</button><button class="btn sm" onclick="erSil('+i+')">Sil</button></span></div>').join(''):'<div class="bos">Kayıt yok.</div>')+'</div></div>'+saveBar();
 }
-function erEkle(){
+async function erEkle(){
+  domKaydet();
   const k=document.getElementById('er-kanal').value,e=document.getElementById('er-emoji').value.trim(),r=document.getElementById('er-rol').value;
+  const m=erMesajId(document.getElementById('er-mesaj').value);
   if(!e||!r){toast('Emoji ve rol gerekli');return}
+  if(!m){toast('Mesaj ID gerekli');return}
   if(!Array.isArray(FORM.emojiRoller))FORM.emojiRoller=[];
-  FORM.emojiRoller.push({kanal:k||null,emoji:e.slice(0,10),rol:r});renderContent();
+  FORM.emojiRoller.push({kanal:k||null,mesajId:m,emoji:e.slice(0,40),rol:r});
+  await formKaydet('Eklendi! Tepki konuluyor...');
+  erTepki(FORM.emojiRoller.length-1,true);
 }
-function erSil(i){FORM.emojiRoller.splice(i,1);renderContent()}
+function erSil(i){domKaydet();FORM.emojiRoller.splice(i,1);renderContent()}
+async function erTepki(i,sessiz){
+  try{
+    const j=await api('/api/emojirol-tepki',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,index:i})});
+    const s=(j.sonuc||[])[0];
+    if(s&&s.ok)toast('Tepki konuldu!');
+    else if(!sessiz)toast('Tepki konulamadı (mesaj/izin kontrol et)');
+  }catch{ if(!sessiz)toast('Tepki konulamadı'); }
+}
+async function erTepkiTumu(){
+  try{
+    const j=await api('/api/emojirol-tepki',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID})});
+    const ok=(j.sonuc||[]).filter(x=>x.ok).length;
+    toast(ok+'/'+((j.sonuc||[]).length)+' mesaja tepki konuldu!');
+  }catch{toast('Olmadı! Önce Kaydet yap.')}
+}
 
 /* etiket */
 async function cizEtiket(c){
-  c.innerHTML='<div class="page-h">Sunucu Etiketi</div><div class="page-s">Üyeler sunucu etiketinizi aldığında roller ekleyin ve bildirimler gönderin</div>'
-    +'<div class="panel"><div class="row3"><div><label>Etiket</label><input type="text" id="et-tag" maxlength="20" placeholder="örn: ★"></div><div><label>Rol</label><select id="et-rol">'+secenek('rol','','Seçin')+'</select></div><div><label>&nbsp;</label><button class="btn pri" onclick="etKaydet()">Kaydet</button></div></div><div id="et-durum" style="margin-top:12px;color:var(--mut);font-size:13px">Yükleniyor...</div></div>'+saveBar();
+  c.innerHTML='<div class="page-h">Sunucu Etiketi</div><div class="page-s">Üyeler sunucu etiketinizi aldığında otomatik rol verilir</div>'
+    +'<div class="panel"><div class="row3"><div><label>Etiket</label><input type="text" id="et-tag" maxlength="20" placeholder="örn: ★"></div><div><label>Rol</label><select id="et-rol">'+secenek('rol','','Seçin')+'</select></div><div><label>&nbsp;</label><button class="btn pri" onclick="etKaydet()">Kaydet</button></div></div><div id="et-durum" style="margin-top:12px;color:var(--mut);font-size:13px">Yükleniyor...</div><div class="hint">Etiketi alan üyeler otomatik algılanır, rolü olmayanlara eklenir, etiketi çıkarandan alınır.</div></div>'+saveBar();
   try{
     const j=await api('/api/liste/'+SID);
     document.getElementById('et-durum').innerHTML=j.tagSistemi?('Aktif: <b>'+esc(j.tagSistemi.tag)+'</b> → '+esc(rolAd(j.tagSistemi.rolId))+' <button class="btn sm" onclick="etKapat()">Kapat</button>'):'Kapalı.';
@@ -457,6 +535,42 @@ async function etKapat(){
   toast('Kapatıldı');renderContent();
 }
 
+/* medya toplu yükleme */
+function cizMedya(c){
+  c.innerHTML='<div class="page-h">Medya Yükle</div><div class="page-s">Emojileri ve stickerları toplu yükleyin — bot tek tek ekler</div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>😀 Emoji Yükle</h3><p>PNG, JPG veya GIF (en fazla 256KB, en fazla 10 dosya).</p></div></div>'
+    +'<div class="field"><label>Emoji dosyaları</label><input type="file" id="md-emoji" accept=".png,.jpg,.jpeg,.gif" multiple></div>'
+    +'<div style="margin-top:12px"><button class="btn pri sm" onclick="medyaYukle(\'emoji\')">Yükle</button></div><div id="md-emoji-sonuc" style="margin-top:10px"></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>✨ Sticker Yükle</h3><p>PNG (en fazla 500KB, en fazla 10 dosya).</p></div></div>'
+    +'<div class="field"><label>Sticker dosyaları</label><input type="file" id="md-sticker" accept=".png" multiple></div>'
+    +'<div style="margin-top:12px"><button class="btn pri sm" onclick="medyaYukle(\'sticker\')">Yükle</button></div><div id="md-sticker-sonuc" style="margin-top:10px"></div></div>';
+}
+function dosyaOku(f){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res({ad:f.name.replace(/\.[^.]+$/,''),data:String(r.result)});
+    r.onerror=rej;r.readAsDataURL(f);
+  });
+}
+async function medyaYukle(tip){
+  const inp=document.getElementById(tip==='emoji'?'md-emoji':'md-sticker');
+  const kutu=document.getElementById(tip==='emoji'?'md-emoji-sonuc':'md-sticker-sonuc');
+  const files=[...(inp.files||[])].slice(0,10);
+  if(!files.length){toast('Dosya seç');return}
+  kutu.innerHTML='<div class="bos">Okunuyor...</div>';
+  try{
+    const dosyalar=[];
+    for(const f of files)dosyalar.push(await dosyaOku(f));
+    kutu.innerHTML='<div class="bos">Yükleniyor...</div>';
+    const j=await api('/api/medya-yukle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,tip,dosyalar})});
+    const s=j.sonuc||[];
+    const ok=s.filter(x=>x.ok).length;
+    kutu.innerHTML=s.map(x=>'<div class="liste-satir"><span>'+(x.ok?'✅':'❌')+' <b>'+esc(x.ad)+'</b></span><span style="color:var(--mut);font-size:12px">'+(x.ok?'eklendi':(x.hata==='boyut'?'dosya çok büyük':'oluşturulamadı'))+'</span></div>').join('')
+      +'<div class="hint">'+ok+'/'+s.length+' eklendi.</div>';
+    toast(ok+'/'+s.length+' eklendi!');
+  }catch{kutu.innerHTML='';toast('Yüklenemedi!')}
+}
+
 function cizPremium(c){
   c.innerHTML='<div class="page-h">Premium</div><div class="page-s">Premium özellikler ve durum</div><div class="panel"><h3 style="font-size:14px">👑 Premium</h3><p style="color:var(--mut);font-size:13px;margin-top:6px">Premium kodun varsa bota <code>/premium aktifleştir</code> yazarak açabilirsin. Ses XP, davet rolleri ve gelişmiş karşılama gibi özellikler premium sunucularda çalışır.</p></div>';
 }
@@ -466,21 +580,33 @@ function cizDenetimMasasi(c){
     +'<div class="field"><label>Bildirim kanalı</label><select data-k="logKanal">'+secenek('yazi',FORM.logKanal,'Bir kanal seçin')+'</select></div>'
     +'<div class="field"><label>Not</label><input type="text" data-k="denetimNot" value="'+esc(FORM.denetimNot||'')+'" placeholder="örn: 3 uyarıda sustur"></div></div>'+saveBar();
 }
+const GOV_LIMIT={govRol:['govRolSayi','govRolDakika','rol işlemi'],govYasak:['govYasakSayi','govYasakDakika','yasaklama'],govAtma:['govAtmaSayi','govAtmaDakika','atma'],govKanal:['govKanalSayi','govKanalDakika','kanal işlemi']};
 function cizGov(c,id){
   const ad=NAV_AD[id]||'Güvenlik';
   const acik={
     govDavet:'İzinsiz davet paylaşımlarını engeller.',
     govHesap:'Yeni açılmış ve şüpheli hesapları filtreler.',
-    govRol:'Kısa sürede çok fazla rol işlemini engeller.',
-    govBot:'İzinsiz botları sunucudan uzak tutar.',
+    govRol:'Kısa sürede çok fazla rol açma/silme işlemini engeller.',
+    govBot:'Onaylanmamış (doğrulanmamış) botların sunucuya girmesini engeller.',
     govYasak:'Kısa sürede çok fazla yasaklamayı engeller.',
-    govAtma:'Kısa sürede çok fazla atmayı engeller.',
+    govAtma:'Kısa sürede çok fazla üyeyi atmayı engeller.',
     govKanal:'Kısa sürede çok fazla kanal açma/silmeyi engeller.',
-    govWebhook:'İzinsiz webhookları otomatik siler.',
-    govEmoji:'Emoji spamını ve izinsiz emoji işlemlerini sınırlar.'
+    govWebhook:'İzinsiz oluşturulan webhookları otomatik siler.',
+    govEmoji:'Yetkisiz emoji ve sticker eklemelerini kaldırır.'
   }[id]||'';
-  c.innerHTML='<div class="page-h">'+ad+'</div><div class="page-s">'+acik+'</div>'
-    +'<div class="panel"><div class="panel-top"><div><h3>'+ad+'</h3><p>'+acik+'</p></div><label class="tgl"><input type="checkbox" data-k="'+id+'"'+(FORM[id]?' checked':'')+'><span class="ray"></span></label></div>'
+  const premKilit=(id==='govDavet'||id==='govHesap')&&!PREMIUM_AKTIF;
+  let limitHtml='';
+  if(GOV_LIMIT[id]){
+    const [sK,dK,birim]=GOV_LIMIT[id];
+    limitHtml='<div class="field"><div class="row3"><div><label>En fazla ('+birim+')</label><input type="number" data-k="'+sK+'" value="'+(FORM[sK]??3)+'" min="1" max="50"></div>'
+      +'<div><label>Süre (dakika)</label><input type="number" data-k="'+dK+'" value="'+(FORM[dK]??1)+'" min="1" max="60"></div>'
+      +'<div><label>Ceza</label><select disabled><option>Rolleri al + 10dk sustur</option></select></div></div>'
+      +'<div class="hint">Limit aşılınca işlemi yapanın rolleri alınır ve 10 dakika susturulur.</div></div>';
+  }
+  const kilitHtml=premKilit?'<div class="kilit"><div class="kilit-ic"><div style="font-size:34px">👑</div><b>Premium Gerekli</b><p>Bu koruma premium sunucularda çalışır.</p></div></div>':'';
+  c.innerHTML='<div class="page-h">'+ad+(premKilit?' 👑':'')+'</div><div class="page-s">'+acik+'</div>'
+    +'<div class="panel'+(premKilit?' kilitli':'')+'">'+kilitHtml+'<div class="panel-top"><div><h3>'+ad+'</h3><p>'+acik+'</p></div><label class="tgl"><input type="checkbox" data-k="'+id+'"'+(FORM[id]?' checked':'')+(premKilit?' disabled':'')+'><span class="ray"></span></label></div>'
+    +limitHtml
     +'<div class="warn yel">⚠ Bu koruma tetiklendiğinde olay güvenlik kanalına kaydedilir.</div>'
     +'<div class="field"><label>Güvenlik kanalı</label><select data-k="guvenlikKanal">'+secenek('yazi',FORM.guvenlikKanal,'Bir kanal seçin')+'</select></div></div>'+saveBar();
 }

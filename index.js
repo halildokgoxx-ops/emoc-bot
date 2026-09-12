@@ -32,7 +32,7 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
   ],
-  partials: [Partials.Channel, Partials.Message, Partials.User],
+  partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.User],
 });
 
 client.commands = new Collection();
@@ -435,6 +435,13 @@ client.on('guildMemberAdd', async (member) => {
       const g = getGuild(member.guild.id);
       if (g.antiBot) {
         await member.kick('Anti-Bot aktif').catch(() => {});
+        return;
+      }
+      // 🤖 Bot Filtresi: onaylanmamış (doğrulanmamış) botları engelle
+      if (g.govBot && !member.user.verified) {
+        await member.kick('Bot Filtresi: onaylanmamış bot').catch(() => {});
+        guvenlikLog(member.guild, '🤖 Onaylanmamış Bot Engellendi',
+          `${member.user.tag} (\`${member.id}\`)\nDoğrulanmamış bot sunucuya alınmadı.`).catch(() => {});
         return;
       }
     }
@@ -936,6 +943,223 @@ client.on('userUpdate', async (eski, yeni) => {
     }
   } catch {}
 });
+// ---- Güvenlik logu (güvenlik kanalı → yoksa log kanalı) ----
+async function guvenlikLog(guild, baslik, aciklama) {
+  try {
+    const g = getGuild(guild.id);
+    const k = guild.channels.cache.get(g.guvenlikKanal || g.logKanal);
+    if (k && k.isTextBased()) {
+      await k.send({ embeds: [new EmbedBuilder().setColor(config.colors.warn).setTitle(baslik).setDescription(aciklama).setTimestamp()] }).catch(() => {});
+    }
+  } catch {}
+}
+
+// ---- Limit takip (yasak/atma/kanal/rol) ----
+const limitMap = new Map(); // `${gid}_${uid}_${tur}` -> [timestamp]
+function limitKaydet(gid, uid, tur, sayi, dakika) {
+  const key = `${gid}_${uid}_${tur}`;
+  const simdi = Date.now();
+  const pencere = Math.max(1, dakika || 1) * 60_000;
+  const arr = (limitMap.get(key) || []).filter((t) => simdi - t < pencere);
+  arr.push(simdi);
+  if (limitMap.size > 5000) limitMap.clear();
+  limitMap.set(key, arr);
+  return arr.length;
+}
+async function limitCeza(guild, executor, turAd, detay) {
+  try {
+    if (!executor || executor.bot) return;
+    if (executor.id === guild.ownerId) return;
+    const uye = await guild.members.fetch(executor.id).catch(() => null);
+    if (uye && !uye.permissions.has(PermissionFlagsBits.Administrator)) {
+      const enUst = guild.members.me.roles.highest;
+      const alinacak = [...uye.roles.cache.values()].filter((r) => r.id !== guild.id && !r.managed && r.position < enUst.position);
+      for (const r of alinacak) await uye.roles.remove(r, 'Limit aşımı: ' + turAd).catch(() => {});
+      await uye.timeout(10 * 60_000, 'Limit aşımı: ' + turAd).catch(() => {});
+    }
+    guvenlikLog(guild, '🚨 Limit Aşımı: ' + turAd,
+      `${executor} (\`${executor.tag}\`)\n${detay || ''}\nRoller alındı + 10dk susturma uygulandı.`).catch(() => {});
+  } catch {}
+}
+function limitKontrol(guild, executor, tur, turAd, sayi, dakika, detay) {
+  if (!executor || executor.bot) return;
+  const n = limitKaydet(guild.id, executor.id, tur, sayi, dakika);
+  if (n === (Math.max(1, sayi || 3) + 1)) limitCeza(guild, executor, turAd, detay);
+}
+async function sonExecutor(guild, tip, ms = 10000) {
+  try {
+    const logs = await guild.fetchAuditLogs({ type: tip, limit: 3 });
+    return logs.entries.find((x) => Date.now() - x.createdTimestamp < ms) || null;
+  } catch { return null; }
+}
+
+// ---- Yasaklama / Atma / Kanal / Rol limitleri ----
+client.on('guildBanAdd', async (ban) => {
+  try {
+    const g = getGuild(ban.guild.id);
+    if (!g.govYasak) return;
+    const audit = await require('./src/logger').executorBul(ban.guild, AuditLogEvent.MemberBanAdd, ban.user.id).catch(() => null);
+    if (!audit || !audit.executor) return;
+    limitKontrol(ban.guild, audit.executor, 'yasak', 'Yasaklama Limiti',
+      g.govYasakSayi || 3, g.govYasakDakika || 1, `Hedef: ${ban.user.tag}`);
+  } catch {}
+});
+client.on('guildMemberRemove', async (member) => {
+  try {
+    const g = getGuild(member.guild.id);
+    if (!g.govAtma) return;
+    const audit = await require('./src/logger').executorBul(member.guild, AuditLogEvent.MemberKick, member.id).catch(() => null);
+    if (!audit || !audit.executor) return; // kendi ayrıldı
+    limitKontrol(member.guild, audit.executor, 'atma', 'Atma Limiti',
+      g.govAtmaSayi || 3, g.govAtmaDakika || 1, `Hedef: ${member.user ? member.user.tag : member.id}`);
+  } catch {}
+});
+client.on('channelCreate', async (kanal) => {
+  try {
+    if (!kanal.guild) return;
+    const g = getGuild(kanal.guild.id);
+    if (!g.govKanal) return;
+    const e = await sonExecutor(kanal.guild, AuditLogEvent.ChannelCreate).catch(() => null);
+    if (!e || !e.executor) return;
+    limitKontrol(kanal.guild, e.executor, 'kanal', 'Kanal Limitlemeleri',
+      g.govKanalSayi || 3, g.govKanalDakika || 1, `Kanal açıldı: #${kanal.name}`);
+  } catch {}
+});
+client.on('channelDelete', async (kanal) => {
+  try {
+    if (!kanal.guild) return;
+    const g = getGuild(kanal.guild.id);
+    if (!g.govKanal) return;
+    const e = await sonExecutor(kanal.guild, AuditLogEvent.ChannelDelete).catch(() => null);
+    if (!e || !e.executor) return;
+    limitKontrol(kanal.guild, e.executor, 'kanal', 'Kanal Limitlemeleri',
+      g.govKanalSayi || 3, g.govKanalDakika || 1, `Kanal silindi: #${kanal.name}`);
+  } catch {}
+});
+client.on('roleCreate', async (rol) => {
+  try {
+    const g = getGuild(rol.guild.id);
+    if (!g.govRol) return;
+    const e = await sonExecutor(rol.guild, AuditLogEvent.RoleCreate).catch(() => null);
+    if (!e || !e.executor) return;
+    limitKontrol(rol.guild, e.executor, 'rol', 'Rol Limitlemeleri',
+      g.govRolSayi || 3, g.govRolDakika || 1, `Rol açıldı: @${rol.name}`);
+  } catch {}
+});
+client.on('roleDelete', async (rol) => {
+  try {
+    const g = getGuild(rol.guild.id);
+    if (!g.govRol) return;
+    const e = await sonExecutor(rol.guild, AuditLogEvent.RoleDelete).catch(() => null);
+    if (!e || !e.executor) return;
+    limitKontrol(rol.guild, e.executor, 'rol', 'Rol Limitlemeleri',
+      g.govRolSayi || 3, g.govRolDakika || 1, `Rol silindi: @${rol.name}`);
+  } catch {}
+});
+
+// ---- Anti-Webhook: izinsiz webhookları sil ----
+client.on('webhooksUpdate', async (kanal) => {
+  try {
+    if (!kanal.guild) return;
+    const g = getGuild(kanal.guild.id);
+    if (!g.govWebhook) return;
+    const e = await sonExecutor(kanal.guild, AuditLogEvent.WebhookCreate).catch(() => null);
+    if (!e || !e.executor || e.executor.bot || e.executor.id === client.user.id) return;
+    const wh = await kanal.fetchWebhooks().catch(() => null);
+    const hedef = wh && e.target && e.target.id ? wh.get(e.target.id) : null;
+    if (hedef && (!hedef.owner || hedef.owner.id !== client.user.id)) {
+      await hedef.delete('Anti-Webhook: izinsiz').catch(() => {});
+      guvenlikLog(kanal.guild, '🔗 İzinsiz Webhook Silindi',
+        `${e.executor} (\`${e.executor.tag}\`)\n#${kanal.name} kanalındaki izinsiz webhook kaldırıldı.`).catch(() => {});
+    }
+  } catch {}
+});
+
+// ---- Emoji/Sticker limiti: yetkisiz eklemeleri kaldır ----
+async function medyaDenetle(guild, tip, hedef, ad) {
+  try {
+    const g = getGuild(guild.id);
+    if (!g.govEmoji) return;
+    const e = await sonExecutor(guild, tip).catch(() => null);
+    if (!e || !e.executor || e.executor.bot || e.executor.id === client.user.id) return;
+    const uye = await guild.members.fetch(e.executor.id).catch(() => null);
+    if (uye && uye.permissions.has(PermissionFlagsBits.ManageGuildExpressions)) return;
+    await hedef.delete('Emoji Limiti: yetkisiz ekleme').catch(() => {});
+    guvenlikLog(guild, '☺️ Yetkisiz Medya Kaldırıldı',
+      `${e.executor} (\`${e.executor.tag}\`)\nİzinsiz eklenen ${ad} kaldırıldı.`).catch(() => {});
+  } catch {}
+}
+client.on('emojiCreate', async (emoji) => {
+  await medyaDenetle(emoji.guild, AuditLogEvent.EmojiCreate, emoji, 'emoji');
+});
+client.on('stickerCreate', async (sticker) => {
+  await medyaDenetle(sticker.guild, AuditLogEvent.StickerCreate, sticker, 'sticker');
+});
+
+// ---- Emoji Rol: tepki verene rol ver / alınca geri al ----
+function emojiEsles(kayit, emoji) {
+  if (!kayit || !emoji) return false;
+  const k = String(kayit).trim();
+  const idEsles = k.match(/(\d{15,25})/);
+  if (idEsles) return String(emoji.id) === idEsles[1];
+  if (emoji.id) return false;
+  return emoji.name === k;
+}
+async function tepkiEsles(guild, reaction, user) {
+  try {
+    if (!guild || !user || user.bot) return null;
+    const g = getGuild(guild.id);
+    const liste = g.emojiRoller || [];
+    if (!liste.length) return null;
+    if (reaction.partial) await reaction.fetch().catch(() => null);
+    const kanalId = reaction.message.channelId;
+    const mesajId = reaction.message.id;
+    for (const k of liste) {
+      if (k.kanal && String(k.kanal) !== String(kanalId)) continue;
+      if (k.mesajId && String(k.mesajId) !== String(mesajId)) continue;
+      if (!emojiEsles(k.emoji, reaction.emoji)) continue;
+      const rol = guild.roles.cache.get(String(k.rol).replace(/\D/g, ''));
+      if (!rol || rol.managed) continue;
+      if (rol.position >= guild.members.me.roles.highest.position) continue;
+      const uye = await guild.members.fetch(user.id).catch(() => null);
+      if (!uye || uye.user.bot) continue;
+      return { uye, rol };
+    }
+  } catch {}
+  return null;
+}
+client.on('messageReactionAdd', async (reaction, user) => {
+  const r = await tepkiEsles(reaction.message.guild, reaction, user).catch(() => null);
+  if (r) await r.uye.roles.add(r.rol, 'Emoji rol').catch(() => {});
+});
+client.on('messageReactionRemove', async (reaction, user) => {
+  const r = await tepkiEsles(reaction.message.guild, reaction, user).catch(() => null);
+  if (r) await r.uye.roles.remove(r.rol, 'Emoji rol').catch(() => {});
+});
+async function emojiRolTepkiKoy(guild, onlyIndex = -1) {
+  const sonuc = [];
+  try {
+    const g = getGuild(guild.id);
+    const liste = g.emojiRoller || [];
+    for (let i = 0; i < liste.length; i++) {
+      if (onlyIndex >= 0 && i !== onlyIndex) continue;
+      const k = liste[i];
+      try {
+        const kanal = guild.channels.cache.get(String(k.kanal));
+        if (!kanal || !kanal.isTextBased()) { sonuc.push({ i, ok: false, hata: 'kanal-yok' }); continue; }
+        const mesaj = await kanal.messages.fetch(String(k.mesajId)).catch(() => null);
+        if (!mesaj) { sonuc.push({ i, ok: false, hata: 'mesaj-yok' }); continue; }
+        const em = String(k.emoji).trim();
+        const idEsles = em.match(/(\d{15,25})/);
+        const tepki = idEsles ? (guild.emojis.cache.get(idEsles[1]) || idEsles[1]) : em;
+        await mesaj.react(tepki).catch(() => { throw new Error('tepki-olmadi'); });
+        sonuc.push({ i, ok: true });
+      } catch (e) { sonuc.push({ i, ok: false, hata: 'tepki-olmadi' }); }
+    }
+  } catch {}
+  return sonuc;
+}
+
 client.on('interactionCreate', async (interaction) => {
   try {
     // 1) Slash komutlar

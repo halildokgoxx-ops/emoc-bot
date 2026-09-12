@@ -81,7 +81,7 @@ function yonetebilirMi(g) {
 
 function startKopru() {
   const app = express();
-  app.use(express.json({ limit: '200kb' }));
+  app.use(express.json({ limit: '12mb' }));
   app.use(express.static(path.join(__dirname, 'public')));
   const PORT = process.env.PORT || 3100;
   const bazURL = () => (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
@@ -300,6 +300,15 @@ function startKopru() {
       res.json(j);
     } catch (e) { res.status(e.kod === 404 ? 404 : 502).json({ hata: 'bot-hatasi', detay: e.message }); }
   });
+
+  async function aksiyonIlet(req, res, yol) {
+    if (!(await yasakliKontrol(req, res))) return;
+    try { res.json(await botAPI(yol, { method: 'POST', body: JSON.stringify(req.body || {}) })); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  }
+  app.post('/api/embed-gonder', (req, res) => aksiyonIlet(req, res, '/api/bot/embed-gonder'));
+  app.post('/api/medya-yukle', (req, res) => aksiyonIlet(req, res, '/api/bot/medya-yukle'));
+  app.post('/api/emojirol-tepki', (req, res) => aksiyonIlet(req, res, '/api/bot/emojirol-tepki'));
 
   app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
   app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
