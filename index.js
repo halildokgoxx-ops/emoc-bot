@@ -1112,23 +1112,85 @@ client.on('roleDelete', async (rol) => {
   } catch {}
 });
 
-// ---- Anti-Webhook: izinsiz webhookları sil ----
+// ---- Anti-Webhook (premium): izinsiz webhook → onay akışı ----
+const whOnayMap = new Map(); // onayId -> { guildId, kanalId, isim, avatar, isteyenId }
+let whOnaySayac = 0;
 client.on('webhooksUpdate', async (kanal) => {
   try {
     if (!kanal.guild) return;
     const g = getGuild(kanal.guild.id);
-    if (!g.govWebhook) return;
+    if (!g.govWebhook || !premiumMu(kanal.guild.id)) return;
     const e = await sonExecutor(kanal.guild, AuditLogEvent.WebhookCreate).catch(() => null);
     if (!e || !e.executor || e.executor.bot || e.executor.id === client.user.id) return;
     const wh = await kanal.fetchWebhooks().catch(() => null);
     const hedef = wh && e.target && e.target.id ? wh.get(e.target.id) : null;
-    if (hedef && (!hedef.owner || hedef.owner.id !== client.user.id)) {
-      await hedef.delete('Anti-Webhook: izinsiz').catch(() => {});
+    if (!hedef || (hedef.owner && hedef.owner.id === client.user.id)) return;
+    const isim = hedef.name || 'webhook';
+    const avatar = hedef.avatarURL ? hedef.avatarURL() : null;
+    await hedef.delete('Anti-Webhook: onaysız').catch(() => {});
+    // Onay kanalı yoksa direkt sil + log (eski davranış)
+    const onayKanal = g.webhookOnayKanal ? kanal.guild.channels.cache.get(g.webhookOnayKanal) : null;
+    if (!onayKanal || !onayKanal.isTextBased()) {
       guvenlikLog(kanal.guild, '🔗 İzinsiz Webhook Silindi',
         `${e.executor} (\`${e.executor.tag}\`)\n#${kanal.name} kanalındaki izinsiz webhook kaldırıldı.`).catch(() => {});
+      return;
     }
+    if (whOnayMap.size > 50) whOnayMap.clear();
+    const oid = `${Date.now().toString(36)}${(whOnaySayac++ % 1296).toString(36)}`;
+    whOnayMap.set(oid, { guildId: kanal.guild.id, kanalId: kanal.id, isim, avatar, isteyenId: e.executor.id });
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+    await onayKanal.send({
+      content: `<@${e.executor.id}> webhook açmak istiyor!`,
+      embeds: [new EmbedBuilder().setColor(config.colors.warn).setTitle('🪝 Webhook Onay İsteği')
+        .setDescription(`👤 İsteyen: ${e.executor} (\`${e.executor.tag}\`)\n🆔 ID: \`${e.executor.id}\`\n📛 İsim: **${isim}**\n#️⃣ Kanal: <#${kanal.id}>\n\nOnaylarsan webhook açılır, reddedersen açılmaz.`)
+        .setTimestamp()],
+      components: [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`wh_onay_${oid}`).setLabel('Onayla').setStyle(ButtonStyle.Success).setEmoji('✅'),
+        new ButtonBuilder().setCustomId(`wh_red_${oid}`).setLabel('Reddet').setStyle(ButtonStyle.Danger).setEmoji('✖️'),
+      )],
+    }).catch(() => {});
   } catch {}
 });
+async function webhookOnayButon(interaction) {
+  try {
+    const parca = interaction.customId.split('_');
+    const aksiyon = parca[1];
+    const oid = parca.slice(2).join('_');
+    const kayit = whOnayMap.get(oid);
+    if (!kayit) return interaction.reply({ content: '❌ Bu istek artık geçerli değil!', ephemeral: true }).catch(() => {});
+    if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageGuild)) {
+      return interaction.reply({ content: '❌ Sunucuyu Yönet yetkisi gerek!', ephemeral: true }).catch(() => {});
+    }
+    const guild = interaction.guild;
+    whOnayMap.delete(oid);
+    if (aksiyon === 'red') {
+      await interaction.update({ content: `✖️ Webhook isteği reddedildi.`, embeds: [], components: [] }).catch(() => {});
+      guvenlikLog(guild, '🪝 Webhook Reddedildi',
+        `<@${kayit.isteyenId}> adlı üyenin **${kayit.isim}** webhook isteği ${interaction.user} tarafından reddedildi.`).catch(() => {});
+      return;
+    }
+    const kanal = guild.channels.cache.get(kayit.kanalId);
+    if (!kanal || !kanal.isTextBased()) {
+      await interaction.update({ content: '❌ Kanal bulunamadı!', embeds: [], components: [] }).catch(() => {});
+      return;
+    }
+    let yeni = null;
+    try {
+      yeni = await kanal.createWebhook({ name: kayit.isim.slice(0, 80), avatar: kayit.avatar, reason: `Webhook onayı: ${interaction.user.tag}` });
+    } catch {}
+    if (!yeni) {
+      await interaction.update({ content: '❌ Webhook açılamadı (izin/kota)!', embeds: [], components: [] }).catch(() => {});
+      return;
+    }
+    await interaction.update({ content: `✅ Webhook açıldı: **${kayit.isim}** (<#${kayit.kanalId}>)`, embeds: [], components: [] }).catch(() => {});
+    try {
+      const isteyen = await guild.members.fetch(kayit.isteyenId).catch(() => null);
+      if (isteyen) await isteyen.send(`✅ **${guild.name}** sunucusunda webhook isteğin onaylandı!\n🔗 URL: ||${yeni.url}||\n⚠️ Bu bağlantıyı kimseyle paylaşma!`).catch(() => {});
+    } catch {}
+    guvenlikLog(guild, '🪝 Webhook Onaylandı',
+      `<@${kayit.isteyenId}> adlı üyenin **${kayit.isim}** webhook isteği ${interaction.user} tarafından onaylandı.`).catch(() => {});
+  } catch {}
+}
 
 // ---- Emoji/Sticker limiti: yetkisiz eklemeleri kaldır ----
 async function medyaDenetle(guild, tip, hedef, ad) {
@@ -1336,6 +1398,9 @@ client.on('interactionCreate', async (interaction) => {
       if (interaction.customId.startsWith('gv_')) {
         const gv = require('./commands/guvenlik');
         return gv.handleGuvButton(interaction, client);
+      }
+      if (interaction.customId.startsWith('wh_onay_') || interaction.customId.startsWith('wh_red_')) {
+        return webhookOnayButon(interaction);
       }
       if (interaction.customId.startsWith('cekilis_katil_')) {
         const ck = require('./commands/cekilis');

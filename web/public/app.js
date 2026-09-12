@@ -1,5 +1,5 @@
 /* Panel v6 */
-const PANEL_SURUM='v10';
+const PANEL_SURUM='v11';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
 let AKTIF='home',GREET='karsilama',ADMIN=false;
 
@@ -20,6 +20,16 @@ const AM_LIST=[
 
 window.addEventListener('error',function(e){try{toast('Hata: '+String((e&&e.message)||'bilinmiyor').slice(0,120))}catch(_){}});
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('goster');clearTimeout(t._z);t._z=setTimeout(()=>t.classList.remove('goster'),2400)}
+function hataMesaj(j,varsayilan){
+  const h=j&&j.hata;
+  if(h==='kanal-yok')return 'Kanal bulunamadı! Bot kanalı görmüyor olabilir.';
+  if(h==='mesaj-yok')return 'Mesaj bulunamadı! ID veya bağlantı doğru mu?';
+  if(h==='tepki-olmadi')return 'Tepki konulamadı! Botun tepki izni ve emoji erişimi var mı?';
+  if(h==='bos')return 'Boş mesaj gönderilemez!';
+  if(h==='bot-hatasi')return 'Bota ulaşılamadı! Bot çalışıyor mu? Birazdan tekrar dene.';
+  if(h==='yok')return 'Sunucu bulunamadı! Bot o sunucuda mı?';
+  return varsayilan||'Olmadı! Bot izinlerini kontrol et.';
+}
 async function api(y,init){const r=await fetch(y,init);if(r.status===401){location.href='/login';throw new Error('giris')}return r.json()}
 function avatarURL(u){return u&&u.avatar?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`:'https://cdn.discordapp.com/embed/avatars/0.png'}
 function esc(s){return String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -460,7 +470,7 @@ async function gomuluGonderModal(){
   try{
     const j=await api('/api/embed-gonder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,...v})});
     if(j.ok){toast('Gönderildi!');modalKapat()}
-    else toast('Gönderilemedi!');
+    else toast(hataMesaj(j,'Gönderilemedi!'));
   }catch{toast('Gönderilemedi!')}
 }
 async function gomuluGonder(i){
@@ -468,7 +478,7 @@ async function gomuluGonder(i){
   if(!g.kanal){toast('Önce düzenleyip kanal seç');gomuluDuzenle(i);return}
   try{
     const j=await api('/api/embed-gonder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,...g})});
-    toast(j.ok?'Gönderildi!':'Gönderilemedi!');
+    toast(j.ok?'Gönderildi!':hataMesaj(j,'Gönderilemedi!'));
   }catch{toast('Gönderilemedi!')}
 }
 function gomuluSil(i){domKaydet();FORM.gomuluMesajlar.splice(i,1);renderContent()}
@@ -524,8 +534,8 @@ async function erTepki(i,sessiz){
     const j=await api('/api/emojirol-tepki',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,index:i})});
     const s=(j.sonuc||[])[0];
     if(s&&s.ok)toast('Tepki konuldu!');
-    else if(!sessiz)toast('Tepki konulamadı (mesaj/izin kontrol et)');
-  }catch{ if(!sessiz)toast('Tepki konulamadı'); }
+    else if(!sessiz)toast(hataMesaj(j,'Tepki konulamadı!'));
+  }catch{ if(!sessiz)toast('Bota ulaşılamadı! Bot çalışıyor mu?'); }
 }
 async function erTepkiTumu(){
   try{
@@ -616,7 +626,7 @@ function cizGovIc(c,id){
     govYasak:'Kısa sürede çok fazla yasaklamayı engeller.',
     govAtma:'Kısa sürede çok fazla üyeyi atmayı engeller.',
     govKanal:'Kısa sürede çok fazla kanal açma/silmeyi engeller.',
-    govWebhook:'İzinsiz oluşturulan webhookları otomatik siler.',
+    govWebhook:'İzinsiz webhookları onaya düşürür veya siler. 👑',
     govEmoji:'Yetkisiz emoji ve sticker eklemelerini kaldırır.'
   }[id]||'';
   const premKilit=(id==='govDavet'||id==='govHesap')&&!PREMIUM_AKTIF;
@@ -630,6 +640,7 @@ function cizGovIc(c,id){
   }
   let ekstra='';
   if(id==='govDavet')ekstra='<div class="field"><label>Muaf roller (davet paylaşabilir)</label>'+rolChips('davetMuaf')+'<div class="hint">Seçili roller + yönetici/mesaj yönetimi olanlar etkilenmez.</div></div>';
+  if(id==='govWebhook')ekstra='<div class="field"><label>Onay kanalı (premium)</label><select data-k="webhookOnayKanal">'+secenek('yazi',FORM.webhookOnayKanal,'Seçilmezse direkt silinir')+'</select><div class="hint">Biri izinsiz webhook açarsa webhook silinir, isteği onaya düşer: kim istedi etiketlenir, ID görünür, Onayla/Reddet butonu gelir.</div></div>';
   if(id==='govHesap')ekstra='<div class="field"><label>Minimum hesap yaşı (gün)</label><input type="number" data-k="govHesapGun" value="'+(FORM.govHesapGun??7)+'" min="1" max="30"'+(premKilit?' disabled':'')+'><div class="hint">Hesabı bundan yeni olan üyeler sunucuya alınmaz.</div></div>';
   const premBanner=premKilit?'<div class="prem-banner">👑<span><b>Premium Koruması</b> — bu ayar premium sunucularda çalışır, ayarları yine de inceleyebilirsin.</span></div>':'';
   c.innerHTML='<div class="page-h">'+ad+(premKilit?' 👑':'')+'</div><div class="page-s">'+acik+'</div>'

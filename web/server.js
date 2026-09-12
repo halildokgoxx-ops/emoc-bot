@@ -83,7 +83,7 @@ const SEMA = {
   govAtmaSayi: 'sayi:1:50', govAtmaDakika: 'sayi:1:60',
   govRolSayi: 'sayi:1:50', govRolDakika: 'sayi:1:60',
   govHesapGun: 'sayi:1:30', davetMuaf: 'muaf',
-  prefix: 'yazi:5', starboard: 'json',
+  prefix: 'yazi:5', starboard: 'json', webhookOnayKanal: 'kanal',
 };
 
 async function discordAPI(token, yol, init = {}) {
