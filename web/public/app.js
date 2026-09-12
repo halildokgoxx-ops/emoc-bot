@@ -1,5 +1,5 @@
 /* Panel v6 */
-const PANEL_SURUM='v16';
+const PANEL_SURUM='v17';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
 let AKTIF='home',GREET='karsilama',ADMIN=false,PREMIUM_AKTIF=false,BAKIM=null;
 
@@ -248,10 +248,14 @@ function cizSeviye(c){
 
 /* karşılama */
 function cizKarsilama(c){
+  const say=(...ks)=>ks.filter((k)=>!!FORM[k]).length;
+  const nKars=say('hosgeldinAt','girisDMAt','girisEtiket','cikisAt','otoRolAktif');
+  const nDavet=say('davetGirisAt','davetCikisAt','davetRolu');
+  const nTakma=say('takmaTemizle','yeniIsimAktif','isimFiltre');
   const tabs=[
-    {id:'karsilama',icon:'💬',ad:'Karşılama ve veda',alt:'0/5 etkin'},
-    {id:'davet',icon:'🔗',ad:'Davet takibi',alt:'0/3 etkin'},
-    {id:'takma',icon:'▤',ad:'Takma ad araçları',alt:'0/3 etkin'},
+    {id:'karsilama',icon:'💬',ad:'Karşılama ve veda',alt:nKars+'/5 etkin'},
+    {id:'davet',icon:'🔗',ad:'Davet takibi',alt:nDavet+'/3 etkin'},
+    {id:'takma',icon:'▤',ad:'Takma ad araçları',alt:nTakma+'/3 etkin'},
   ];
   let sag='';
   if(GREET==='karsilama')sag=karsilamaSag();
@@ -259,7 +263,7 @@ function cizKarsilama(c){
   else sag=takmaSag();
   c.innerHTML='<div class="page-h">Karşılama & Veda</div><div class="page-s">Yeni üyeleri karşılayın, ayrılanları takip edin</div>'
     +'<div class="greet-wrap"><div class="greet-side"><h3>👋 Karşılama özellikleri</h3><p>Ayarlarını açmak için aşağıdan bir özellik grubu seçin.</p>'
-    +'<div class="g-count"><span>3 özellik grubu</span><b>0/11 etkin</b></div>'
+    +'<div class="g-count"><span>3 özellik grubu</span><b>'+(nKars+nDavet+nTakma)+'/11 etkin</b></div>'
     +tabs.map(t=>'<button class="g-opt'+(GREET===t.id?' secil':'')+'" onclick="GREET=\''+t.id+'\';renderContent()"><div class="t"><span class="mi">'+t.icon+'</span>'+t.ad+'</div><div class="b"><span>'+t.alt+'</span><span>'+(GREET===t.id?'👁 Seçili':'⚙ Ayarları aç ›')+'</span></div></button>').join('')
     +'</div><div>'+sag+'</div></div>'+saveBar();
 }
@@ -874,13 +878,13 @@ async function adKomutlarTab(){
   try{
     const j=await api('/api/admin/komutlar');
     const l=j.komutlar||[];
-    document.getElementById('ad-k-liste').innerHTML=l.map(k=>'<div class="liste-satir ad-k-satir" data-ad="'+k.ad+'"><span> <b>/'+k.ad+'</b> <span style="color:var(--mut2);font-size:11px">'+esc(k.kategori)+'</span></span><label class="tgl sm"><input type="checkbox"'+(k.kapali?'':' checked')+' onchange="adKomutDegistir(\''+k.ad+'\',this.checked)"><span class="ray"></span></label></div>').join('');
+    document.getElementById('ad-k-liste').innerHTML=l.map(k=>'<div class="liste-satir" data-kad="'+k.ad+'"><span> <b>/'+k.ad+'</b> <span style="color:var(--mut2);font-size:11px">'+esc(k.kategori)+'</span></span><label class="tgl sm"><input type="checkbox"'+(k.kapali?'':' checked')+' onchange="adKomutDegistir(\''+k.ad+'\',this.checked)"><span class="ray"></span></label></div>').join('');
   }catch{ document.getElementById('ad-k-liste').innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'; }
 }
 function adKomutFiltre(v){
   v=(v||'').toLowerCase();
-  document.querySelectorAll('.ad-k-satir').forEach(el=>{
-    el.style.display=(!v||el.dataset.ad.includes(v))?'':'none';
+  document.querySelectorAll('[data-kad]').forEach(el=>{
+    el.style.display=(!v||el.dataset.kad.includes(v))?'':'none';
   });
 }
 async function adKomutDegistir(ad,acik){

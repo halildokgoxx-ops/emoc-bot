@@ -25,6 +25,16 @@ async function gonder(guild, embed) {
   if (k) await k.send({ embeds: [embed] }).catch(() => {});
 }
 
+// Denetim Kaydı toggle'ları: anahtar kapalıysa log atlama (yoksa/tanımsızsa açık)
+function logOlayAcik(gid, ...anahtarlar) {
+  try {
+    const g = getGuild(gid);
+    if (g.logAktif === false) return false;
+    const o = g.logOlaylar;
+    if (!o || typeof o !== 'object') return true;
+    return anahtarlar.some((k) => !(k in o) || !!o[k]);
+  } catch { return true; }
+}
 async function executorBul(guild, tip, hedefId, ms = 8000) {
   try {
     const logs = await guild.fetchAuditLogs({ type: tip, limit: 6 });
@@ -47,6 +57,7 @@ function zamanAlan(tarihMs) {
 async function logSilinen(message) {
   try {
     if (!message.guild || message.author.bot) return;
+    if (!logOlayAcik(message.guild.id, 'mesajSil')) return;
     const ekler = [...message.attachments.values()];
     const resimler = ekler.filter(a => (a.contentType || '').startsWith('image/'));
     const videolar = ekler.filter(a => (a.contentType || '').startsWith('video/'));
@@ -88,6 +99,7 @@ async function logSilinen(message) {
 async function logDuzenlenen(eski, yeni) {
   try {
     if (!yeni.guild || yeni.author.bot) return;
+    if (!logOlayAcik(yeni.guild.id, 'mesajGuncelle')) return;
     if ((eski.content || '') === (yeni.content || '')) return; // sadece embed güncellendi
     const e = new EmbedBuilder().setColor(config.colors.warn)
       .setTitle('✏️ Mesaj Düzenlendi (Hayalet Edit?)')
@@ -139,4 +151,4 @@ async function antiNuke(guild, sebep) {
   } catch {}
 }
 
-module.exports = { gonder, executorBul, logSilinen, logDuzenlenen, patlamaKontrol, antiNuke, boyutYaz };
+module.exports = { gonder, executorBul, logOlayAcik, logSilinen, logDuzenlenen, patlamaKontrol, antiNuke, boyutYaz };

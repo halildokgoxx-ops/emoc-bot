@@ -22,7 +22,7 @@ Yönetici yetkisiyle ekle!
 
 ## ⭐ İtibar Sistemi
 **Kullanıcı:** `!1 @kullanıcı <sebep>` → +1 • mesaja cevap verip `!1 <sebep>` → ona +1 • `!itibar top` → sunucu ligi • `!itibar` → kendi profilin
-**Yönetici:** `/itibar ver` • `/itibar al` • `/itibar sure-ayarla dakika:60` (iki oy arası bekleme) • `/itibar bildirim-kanal kanal:#kanal` (hak yenilenince etiket + 🔔 Bildirim Aç/Kapat butonu!)
+**Yönetici:** `/itibar ver` • `/itibar sure-ayarla dakika:60` (iki oy arası bekleme) • `/itibar bildirim-kanal kanal:#kanal` (hak yenilenince etiket + 🔔 Bildirim Aç/Kapat butonu!) • Eksi itibar kaldırıldı, sadece verilebilir
 - Unvanlar: 🌱 → ✨ → 🥉 Bronz (10) → 🥈 Gümüş (25) → 🥇 Altın (50) → 💎 Elmas (100) → 👑 Efsane (250)
 
 ## ✨ Özel Uygulama Emojileri (17 adet yüklü!)

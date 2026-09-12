@@ -71,7 +71,7 @@ async function yardimEmbed(client, kategori = null, oneEk = null) {
     if (c.category === 'Premium') return '`/premium` (alt komut)';
     if (c.name === 'level') return '`/level` (alt komut)';
     if (c.name === '1') return '`!1`';
-    if (c.name === '-1') return '`!-1`';
+    if (c.name === '-1') return '`!-1` (kaldırıldı)';
     if (slashMod && slashMod.isSlash(c.name)) return `\`/${c.name}\``;
     return `\`!${c.name}\``;
   };

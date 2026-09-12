@@ -60,6 +60,38 @@ const davetCache = new Map(); // guildId -> Map(davetKodu -> {kullanim, sahibi})
 const ihlalMap = new Map(); // `${gid}_${uid}` -> { sayi, son } (5dk pencerede 3 ihlal = oto-timeout)
 const sonMesajMap = new Map(); // userId -> { icerik, sayi, zaman } (tekrar spam)
 const xpSogumaMap = new Map(); // `${gid}_${uid}` -> son XP zamanı (seviye bekleme süresi)
+async function seviyeMesajGonder(guild, user, level, odulRol, yedekKanal) {
+  try {
+    const gAyar = getGuild(guild.id);
+    const sablon = String(gAyar.seviyeMesaj || '').trim();
+    const degis = (s) => String(s)
+      .split('{user}').join(String(user))
+      .split('{kullanıcı}').join(user.username)
+      .split('{kullanici}').join(user.username)
+      .split('{ad}').join(user.username)
+      .split('{level}').join(String(level))
+      .split('{seviye}').join(String(level))
+      .split('{xp}').join('0')
+      .split('{sunucu}').join(guild.name);
+    const roket = E(client, 'roket', '🚀');
+    const parti = E(client, 'parti', '🎉');
+    const aciklama = (sablon ? degis(sablon) : String(user) + ' **Sv.' + level + '** oldu! GG!\n' + (odulRol ? '\u{1F3AD} Ödül rolü kazandın: ' + odulRol : '\u{1F4A1} Ödüllü seviyeler için /seviye-rol liste yaz!')).slice(0, 4000);
+    const { EmbedBuilder: EBSEV } = require('discord.js');
+    const emb = new EBSEV().setColor(config.colors.gold)
+      .setTitle(roket + ' SEVİYE ATLADI! ' + parti)
+      .setThumbnail(user.displayAvatarURL({ size: 128 }))
+      .setDescription(aciklama)
+      .setFooter({ text: 'Emoç • Seviye Sistemi' }).setTimestamp();
+    if (gAyar.seviyeOzel) {
+      const dmK = await user.send({ embeds: [emb] }).catch(() => null);
+      if (dmK) return;
+    }
+    const hedefKanal = (gAyar.seviyeKanal || gAyar.levelBildirimKanal)
+      ? (guild.channels.cache.get(gAyar.seviyeKanal || gAyar.levelBildirimKanal) || yedekKanal || null)
+      : (yedekKanal || null);
+    if (hedefKanal && hedefKanal.isTextBased()) await hedefKanal.send({ embeds: [emb] }).catch(() => {});
+  } catch {}
+} // `${gid}_${uid}` -> son XP zamanı (seviye bekleme süresi)
 function ihlalKaydet(gid, uid) {
   const key = `${gid}_${uid}`;
   const simdi = Date.now();
@@ -77,6 +109,59 @@ function sunucuPrefix(gid) {
     if (ozel && premiumMu(gid)) return ozel.slice(0, 5);
   } catch {}
   return config.prefix;
+}
+const amIhlalMap = new Map(); // `${gid}_${uid}_${kural}` -> { sayi, son }
+const amFloodMap = new Map(); // flood penceresi: userId -> [ts]
+const amFotoMap = new Map(); // foto penceresi: userId -> [ts]
+function amCfg(g, ad) {
+  const v = g[ad];
+  return (v && typeof v === 'object') ? v : null;
+}
+async function amKuralIslet(message, kural, cfg, sebepKisa) {
+  const gid = message.guild.id, uid = message.author.id;
+  if (cfg.mesajSil !== false) await message.delete().catch(() => {});
+  const key = gid + '_' + uid + '_' + kural;
+  const simdi = Date.now();
+  let k = amIhlalMap.get(key);
+  if (!k || simdi - k.son > 5 * 60_000) k = { sayi: 0, son: 0 };
+  k.sayi++;
+  k.son = simdi;
+  amIhlalMap.set(key, k);
+  if (amIhlalMap.size > 5000) amIhlalMap.clear();
+  const uyari = Math.max(1, parseInt(cfg.uyari, 10) || 3);
+  const neden = 'AutoMod ' + kural + ': ' + sebepKisa;
+  const logla = async (ek) => {
+    try {
+      const w = await message.channel.send(ek).catch(() => null);
+      if (w) setTimeout(() => w.delete().catch(() => {}), 5000);
+    } catch {}
+  };
+  if (k.sayi < uyari) {
+    await logla(message.author + ' \u26A0\uFE0F ' + sebepKisa + ' (' + k.sayi + '/' + uyari + ')');
+    return;
+  }
+  amIhlalMap.delete(key);
+  try {
+    if (cfg.yasakla) {
+      await message.guild.members.ban(uid, { reason: neden }).catch(() => {});
+      await logla(message.author + ' \u26D4 yasakland\u0131! (' + sebepKisa + ')');
+    } else if (cfg.sunucudanAt) {
+      await message.member.kick(neden).catch(() => {});
+      await logla(message.author + ' sunucudan at\u0131ld\u0131! (' + sebepKisa + ')');
+    } else {
+      await message.member.timeout(10 * 60_000, neden).catch(() => {});
+      await logla(message.author + ' 10dk susturuldu! (' + sebepKisa + ')');
+    }
+  } catch {}
+  if (!require('./src/logger').logOlayAcik(gid, 'modAuto')) return;
+  try {
+    const gg = getGuild(gid);
+    const lk = gg.guvenlikKanal || gg.logKanal ? message.guild.channels.cache.get(gg.guvenlikKanal || gg.logKanal) : null;
+    if (lk && lk.isTextBased()) {
+      const { EmbedBuilder: EB } = require('discord.js');
+      await lk.send({ embeds: [new EB().setColor(0xff3d71).setTitle('\u{1F6E1}\uFE0F AutoMod cezas\u0131').setDescription(message.author.tag + ' (\u0060' + uid + '\u0060)\nKural: **' + kural + '**\nSebep: ' + sebepKisa).setTimestamp()] }).catch(() => {});
+    }
+  } catch {}
 }
 async function otoCeza(message, sebep) {
   try {
@@ -223,7 +308,7 @@ client.on('messageCreate', async (message) => {
     const xpSog = Math.max(0, Math.min(600, gg.xpSoguma || 0)) * 1000;
     const xpKey = `${message.guild.id}_${message.author.id}`;
     let xpKazan = 0;
-    if (Date.now() - (xpSogumaMap.get(xpKey) || 0) >= xpSog) {
+    if (gg.mesajXP !== false && Date.now() - (xpSogumaMap.get(xpKey) || 0) >= xpSog) {
       xpKazan = (Math.floor(Math.random() * (xpMax - xpMin + 1)) + xpMin) * xpCarpan;
       xpSogumaMap.set(xpKey, Date.now());
     }
@@ -246,40 +331,7 @@ client.on('messageCreate', async (message) => {
           }
         }
       } catch {}
-      const roket = E(client, 'roket', '🚀');
-      const parti = E(client, 'parti', '🎉');
-      try {
-        const gAyar = getGuild(message.guild.id);
-        const sablon = String(gAyar.seviyeMesaj || '').trim();
-        const degis = (s) => String(s)
-          .split('{user}').join(`${message.author}`)
-          .split('{kullanıcı}').join(message.author.username)
-          .split('{kullanici}').join(message.author.username)
-          .split('{ad}').join(message.author.username)
-          .split('{level}').join(String(u.level))
-          .split('{seviye}').join(String(u.level))
-          .split('{xp}').join(String(u.xp || 0))
-          .split('{sunucu}').join(message.guild.name);
-        const aciklama = (sablon ? degis(sablon) : `${message.author} **Sv.${u.level}** oldu! GG!\n${odulRol ? `🎭 Ödül rolü kazandın: ${odulRol}` : `💡 Ödüllü seviyeler için \`/seviye-rol liste\` yaz!`}`).slice(0, 4000);
-        const emb = new EmbedBuilder().setColor(config.colors.gold)
-          .setTitle(`${roket} SEVİYE ATLADI! ${parti}`)
-          .setThumbnail(message.author.displayAvatarURL({ size: 128 }))
-          .setDescription(aciklama)
-          .setFooter({ text: 'Emoç • Seviye Sistemi' }).setTimestamp();
-        if (gAyar.seviyeOzel) {
-          await message.author.send({ embeds: [emb] }).catch(async () => {
-            const h = gAyar.seviyeKanal || gAyar.levelBildirimKanal
-              ? (message.guild.channels.cache.get(gAyar.seviyeKanal || gAyar.levelBildirimKanal) || message.channel)
-              : message.channel;
-            await h.send({ embeds: [emb] }).catch(() => {});
-          });
-        } else {
-          const hedefKanal = (gAyar.seviyeKanal || gAyar.levelBildirimKanal)
-            ? (message.guild.channels.cache.get(gAyar.seviyeKanal || gAyar.levelBildirimKanal) || message.channel)
-            : message.channel;
-          await hedefKanal.send({ embeds: [emb] }).catch(() => {});
-        }
-      } catch {}
+      await seviyeMesajGonder(message.guild, message.author, u.level, odulRol, message.channel);
     }
     // Günlük görev ilerleme (mesaj)
     try {
@@ -305,105 +357,194 @@ client.on('messageCreate', async (message) => {
     const muafRol = (liste) => (liste || []).some((id) => message.member?.roles.cache.has(id));
     const muafKanal = (liste) => (liste || []).includes(message.channel.id);
     const dokunulmaz = uyeYetkili || muafRol(g.yoneticiRol) || muafRol(g.moderatorRol);
+    const icerik = message.content || '';
+    const icerikLow = icerik.toLocaleLowerCase('tr');
+    const amMuafR = (...ls) => ls.some((l) => muafRol(l));
+    const amMuafK = (...ls) => ls.some((l) => muafKanal(l));
+    const cfgKelime = amCfg(g, 'amKelime');
+    const cfgKufur = amCfg(g, 'amKufur');
+    const cfgReklam = amCfg(g, 'amReklam');
+    const cfgLink = amCfg(g, 'amLink');
+    const cfgCaps = amCfg(g, 'amCaps');
+    const cfgTekrar = amCfg(g, 'amTekrar');
+    const cfgFlood = amCfg(g, 'amFlood');
+    const cfgEmoji = amCfg(g, 'amEmoji');
+    const cfgEtiket = amCfg(g, 'amEtiket');
+    const cfgUzun = amCfg(g, 'amUzun');
+    const cfgKarakter = amCfg(g, 'amKarakter');
+    const cfgFoto = amCfg(g, 'amFoto');
     if (!dokunulmaz) {
-      // Yasaklı kelime
-      if ((g.yasakli || []).some(k => message.content.toLocaleLowerCase('tr').includes(k)) && !muafRol(g.yasakMuaf) && !muafKanal(g.yasakMuafKanal)) {
-        await message.delete().catch(() => {});
-        const w = await message.channel.send(`${message.author} 🚫 Yasaklı kelime kullandın!`).catch(() => null);
-        if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
-        return;
-      }
-      // Anti-küfür (+ 3. ihlalde oto-timeout)
-      if (g.antiKufur && kufurMu(message.content) && !muafRol(g.kufurMuaf) && !muafKanal(g.kufurMuafKanal)) {
-        await message.delete().catch(() => {});
-        const n = ihlalKaydet(message.guild.id, message.author.id);
-        if (n >= 3) {
-          ihlalMap.delete(`${message.guild.id}_${message.author.id}`);
-          await otoCeza(message, 'üst üste küfür (3/3)');
-        } else {
-          const w = await message.channel.send(`${message.author} 🤬 Küfür yasak! (${n}/3)`).catch(() => null);
-          if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
+      // Yasakli kelime (+panel listesi)
+      {
+        const kelimeler = [...(g.yasakli || []), ...((cfgKelime && cfgKelime.kelimeler) || [])].map((k) => String(k).toLocaleLowerCase('tr')).filter(Boolean);
+        if (kelimeler.length && kelimeler.some((k) => icerikLow.includes(k)) && !amMuafR(cfgKelime && cfgKelime.muafRol, g.yasakMuaf) && !amMuafK(cfgKelime && cfgKelime.muafKanal, g.yasakMuafKanal)) {
+          if (cfgKelime) {
+            if (cfgKelime.enabled) { await amKuralIslet(message, 'kelime', cfgKelime, 'Yasakli kelime'); return; }
+          } else {
+            await message.delete().catch(() => {});
+            const w = await message.channel.send(message.author + ' \u{1F6AB} Yasakl\u0131 kelime kulland\u0131n!').catch(() => null);
+            if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
+            return;
+          }
         }
-        return;
       }
-      // Anti-dolandırıcılık (sahte nitro/steam/airdrop tuzakları)
-      if (g.antiLink && dolandiriciMi(message.content) && !muafRol(g.linkMuaf) && !muafKanal(g.linkMuafKanal)) {
-        await message.delete().catch(() => {});
-        const n = ihlalKaydet(message.guild.id, message.author.id);
-        if (n >= 3) {
-          ihlalMap.delete(`${message.guild.id}_${message.author.id}`);
-          await otoCeza(message, 'dolandırıcılık linki (3/3)');
-        } else {
-          const w = await message.channel.send(`${message.author} 🚨 Sahte link tuzağı yasak! Hesabını çaldırma, bu linklere TIKLAMA! (${n}/3)`).catch(() => null);
-          if (w) setTimeout(() => w.delete().catch(() => {}), 6000);
+      // Kufur
+      if (kufurMu(icerik) && !amMuafR(cfgKufur && cfgKufur.muafRol, g.kufurMuaf) && !amMuafK(cfgKufur && cfgKufur.muafKanal, g.kufurMuafKanal)) {
+        if (cfgKufur) {
+          if (cfgKufur.enabled) { await amKuralIslet(message, 'kufur', cfgKufur, 'K\u00FCf\u00FCr yasak!'); return; }
+        } else if (g.antiKufur) {
+          await message.delete().catch(() => {});
+          const n = ihlalKaydet(message.guild.id, message.author.id);
+          if (n >= 3) {
+            ihlalMap.delete(message.guild.id + '_' + message.author.id);
+            await otoCeza(message, '\u00FCst \u00FCste k\u00FCf\u00FCr (3/3)');
+          } else {
+            const w = await message.channel.send(message.author + ' \u{1F921} K\u00FCf\u00FCr yasak! (' + n + '/3)').catch(() => null);
+            if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
+          }
+          return;
         }
-        return;
       }
-      // Anti-link (+ 3. ihlalde oto-timeout)
-      if (g.antiLink && linkMu(message.content) && !muafRol(g.linkMuaf) && !muafKanal(g.linkMuafKanal)) {
-        await message.delete().catch(() => {});
-        const n = ihlalKaydet(message.guild.id, message.author.id);
-        if (n >= 3) {
-          ihlalMap.delete(`${message.guild.id}_${message.author.id}`);
-          await otoCeza(message, 'üst üste link (3/3)');
-        } else {
-          const w = await message.channel.send(`${message.author} 🔗 Link atmak yasak! (${n}/3)`).catch(() => null);
-          if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
+      // Reklam / dolandiricilik metni
+      if (dolandiriciMi(icerik) && !amMuafR(cfgReklam && cfgReklam.muafRol, g.linkMuaf) && !amMuafK(cfgReklam && cfgReklam.muafKanal, g.linkMuafKanal)) {
+        if (cfgReklam) {
+          if (cfgReklam.enabled) { await amKuralIslet(message, 'reklam', cfgReklam, 'Reklam/doland\u0131r\u0131c\u0131l\u0131k'); return; }
+        } else if (!cfgLink && g.antiLink) {
+          await message.delete().catch(() => {});
+          const n = ihlalKaydet(message.guild.id, message.author.id);
+          if (n >= 3) {
+            ihlalMap.delete(message.guild.id + '_' + message.author.id);
+            await otoCeza(message, 'doland\u0131r\u0131c\u0131l\u0131k linki (3/3)');
+          } else {
+            const w = await message.channel.send(message.author + ' \u{1F6A8} Sahte link tuza\u011F\u0131 yasak! Hesab\u0131n\u0131 \u00E7ald\u0131rma, bu linklere TIKLAMA! (' + n + '/3)').catch(() => null);
+            if (w) setTimeout(() => w.delete().catch(() => {}), 6000);
+          }
+          return;
         }
-        return;
       }
-      // Davet Koruması (premium): izinsiz davet linklerini sil
+      // Linkler
+      if (linkMu(icerik) && !amMuafR(cfgLink && cfgLink.muafRol, g.linkMuaf) && !amMuafK(cfgLink && cfgLink.muafKanal, g.linkMuafKanal)) {
+        if (cfgLink) {
+          if (cfgLink.enabled) { await amKuralIslet(message, 'link', cfgLink, 'Link atmak yasak!'); return; }
+        } else if (!cfgReklam && g.antiLink) {
+          await message.delete().catch(() => {});
+          const n = ihlalKaydet(message.guild.id, message.author.id);
+          if (n >= 3) {
+            ihlalMap.delete(message.guild.id + '_' + message.author.id);
+            await otoCeza(message, '\u00FCst \u00FCste link (3/3)');
+          } else {
+            const w = await message.channel.send(message.author + ' \u{1F517} Link atmak yasak! (' + n + '/3)').catch(() => null);
+            if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
+          }
+          return;
+        }
+      }
+      // Davet Korumasi (premium): izinsiz davet linklerini sil
       if (g.govDavet && !muafRol(g.davetMuaf)) {
         try {
-          if (premiumMu(message.guild.id) && /(discord\.gg|discord\.com\/invite|discordapp\.com\/invite)\/\S+/i.test(message.content)) {
+          if (premiumMu(message.guild.id) && /(discord\.gg|discord\.com\/invite|discordapp\.com\/invite)\/\S+/i.test(icerik)) {
             await message.delete().catch(() => {});
-            const w = await message.channel.send(`${message.author} 🔗 Davet paylaşımı korumalı, sildim!`).catch(() => null);
+            const w = await message.channel.send(message.author + ' \u{1F517} Davet payla\u015F\u0131m\u0131 korumal\u0131, sildim!').catch(() => null);
             if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
             return;
           }
         } catch {}
       }
-      // Caps engel
-      if (g.capsEngel && message.content.length >= 8 && !muafRol(g.capsMuaf) && !muafKanal(g.capsMuafKanal)) {
-        const harf = message.content.replace(/[^a-zA-ZçÇğĞıİöÖşŞüÜ]/g, '');
+      // Caps
+      if (icerik.length >= 8 && !amMuafR(cfgCaps && cfgCaps.muafRol, g.capsMuaf) && !amMuafK(cfgCaps && cfgCaps.muafKanal, g.capsMuafKanal)) {
+        const harf = icerik.replace(/[^a-zA-Z\u00E7\u00C7\u011F\u011E\u0131\u0130\u00F6\u00D6\u015F\u015E\u00FC\u00DC]/g, '');
         if (harf.length >= 6 && harf === harf.toUpperCase()) {
-          await message.delete().catch(() => {});
-          const w = await message.channel.send(`${message.author} 🔠 CAPS kapat!`).catch(() => null);
-          if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
-          return;
+          if (cfgCaps) {
+            if (cfgCaps.enabled) { await amKuralIslet(message, 'caps', cfgCaps, 'CAPS kapat!'); return; }
+          } else if (g.capsEngel) {
+            await message.delete().catch(() => {});
+            const w = await message.channel.send(message.author + ' \u{1F520} CAPS kapat!').catch(() => null);
+            if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
+            return;
+          }
         }
       }
-      // Tekrar spam (aynı mesajı 15sn içinde 3x atma)
-      if (g.antiSpam && message.content.length > 5 && !muafRol(g.spamMuaf) && !muafKanal(g.spamMuafKanal)) {
+      // Tekrar spam (ayni mesaji 15sn icinde 3x)
+      if (icerik.length > 5 && !amMuafR(cfgTekrar && cfgTekrar.muafRol, g.spamMuaf) && !amMuafK(cfgTekrar && cfgTekrar.muafKanal, g.spamMuafKanal)) {
         const simdi = Date.now();
         const s = sonMesajMap.get(message.author.id);
-        if (s && s.icerik === message.content && simdi - s.zaman < 15000) {
+        if (s && s.icerik === icerik && simdi - s.zaman < 15000) {
           s.sayi++;
           s.zaman = simdi;
           if (s.sayi >= 3) {
             sonMesajMap.delete(message.author.id);
-            await message.delete().catch(() => {});
-            const w = await message.channel.send(`${message.author} 📢 Aynı mesajı atıp durma!`).catch(() => null);
-            if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
-            return;
+            if (cfgTekrar && cfgTekrar.enabled) { await amKuralIslet(message, 'tekrar', cfgTekrar, 'Ayn\u0131 mesaj\u0131 at\u0131p durma!'); return; }
+            if (!cfgTekrar && g.antiSpam) {
+              await message.delete().catch(() => {});
+              const w = await message.channel.send(message.author + ' \u{1F4E2} Ayn\u0131 mesaj\u0131 at\u0131p durma!').catch(() => null);
+              if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
+              return;
+            }
           }
         } else {
-          sonMesajMap.set(message.author.id, { icerik: message.content, sayi: 1, zaman: simdi });
+          sonMesajMap.set(message.author.id, { icerik, sayi: 1, zaman: simdi });
         }
       }
-      // Anti-spam (5sn içinde 5 mesaj)
-      if (g.antiSpam && !muafRol(g.spamMuaf) && !muafKanal(g.spamMuafKanal)) {
-        const simdi = Date.now();
-        const arr = spamMap.get(message.author.id) || [];
-        const taze = arr.filter(t => simdi - t < 5000);
-        taze.push(simdi);
-        spamMap.set(message.author.id, taze);
-        if (taze.length >= 5) {
-          spamMap.set(message.author.id, []);
-          await message.member.timeout(60_000, 'Spam').catch(() => {});
-          const w = await message.channel.send(`${message.author} 📢 Spam yapma! 1dk susturuldun.`).catch(() => null);
-          if (w) setTimeout(() => w.delete().catch(() => {}), 5000);
-          return;
+      // Flood (hizli mesaj)
+      if (!amMuafR(cfgFlood && cfgFlood.muafRol, g.spamMuaf) && !amMuafK(cfgFlood && cfgFlood.muafKanal, g.spamMuafKanal)) {
+        if (cfgFlood && cfgFlood.enabled) {
+          const pencere = Math.max(3, parseInt(cfgFlood.sure, 10) || 10) * 1000;
+          const limit = Math.max(2, parseInt(cfgFlood.limit, 10) || 5);
+          const simdi = Date.now();
+          const arr = (amFloodMap.get(message.author.id) || []).filter((x) => simdi - x < pencere);
+          arr.push(simdi);
+          amFloodMap.set(message.author.id, arr);
+          if (arr.length >= limit) {
+            amFloodMap.set(message.author.id, []);
+            await amKuralIslet(message, 'flood', cfgFlood, 'Flood yapma!');
+            return;
+          }
+        } else if (!cfgFlood && g.antiSpam) {
+          const simdi = Date.now();
+          const arr = spamMap.get(message.author.id) || [];
+          const taze = arr.filter((x) => simdi - x < 5000);
+          taze.push(simdi);
+          spamMap.set(message.author.id, taze);
+          if (taze.length >= 5) {
+            spamMap.set(message.author.id, []);
+            await message.member.timeout(60_000, 'Spam').catch(() => {});
+            const w = await message.channel.send(message.author + ' \u{1F4E2} Spam yapma! 1dk susturuldun.').catch(() => null);
+            if (w) setTimeout(() => w.delete().catch(() => {}), 5000);
+            return;
+          }
+        }
+      }
+      // Asiri emoji
+      if (cfgEmoji && cfgEmoji.enabled && !amMuafR(cfgEmoji.muafRol) && !amMuafK(cfgEmoji.muafKanal)) {
+        const say = ((icerik.match(/<a?:\w+:\d+>/g) || []).length) + ((icerik.match(/\p{Extended_Pictographic}/gu) || []).length);
+        if (say > (parseInt(cfgEmoji.limit, 10) || 6)) { await amKuralIslet(message, 'emoji', cfgEmoji, '\u00C7ok fazla emoji!'); return; }
+      }
+      // Asiri etiketleme
+      if (cfgEtiket && cfgEtiket.enabled && !amMuafR(cfgEtiket.muafRol) && !amMuafK(cfgEtiket.muafKanal)) {
+        const say = message.mentions.users.size + message.mentions.roles.size + ((icerik.match(/@everyone|@here/g) || []).length);
+        if (say > (parseInt(cfgEtiket.limit, 10) || 3)) { await amKuralIslet(message, 'etiket', cfgEtiket, '\u00C7ok fazla etiket!'); return; }
+      }
+      // Uzun metin
+      if (cfgUzun && cfgUzun.enabled && !amMuafR(cfgUzun.muafRol) && !amMuafK(cfgUzun.muafKanal)) {
+        if (icerik.split('\n').length > (parseInt(cfgUzun.limit, 10) || 6)) { await amKuralIslet(message, 'uzun', cfgUzun, '\u00C7ok uzun mesaj!'); return; }
+      }
+      // Karakter siniri
+      if (cfgKarakter && cfgKarakter.enabled && !amMuafR(cfgKarakter.muafRol) && !amMuafK(cfgKarakter.muafKanal)) {
+        if (icerik.length > (parseInt(cfgKarakter.limit, 10) || 500)) { await amKuralIslet(message, 'karakter', cfgKarakter, '\u00C7ok uzun mesaj!'); return; }
+      }
+      // Fotograf spami
+      if (cfgFoto && cfgFoto.enabled && !amMuafR(cfgFoto.muafRol) && !amMuafK(cfgFoto.muafKanal)) {
+        const adet = [...message.attachments.values()].filter((a) => (a.contentType || '').startsWith('image/')).length;
+        if (adet > 0) {
+          const simdi = Date.now();
+          const arr = (amFotoMap.get(message.author.id) || []).filter((x) => simdi - x.t < 60000);
+          for (let i = 0; i < adet; i++) arr.push({ t: simdi });
+          amFotoMap.set(message.author.id, arr);
+          if (arr.length >= (parseInt(cfgFoto.limit, 10) || 5)) {
+            amFotoMap.set(message.author.id, []);
+            await amKuralIslet(message, 'foto', cfgFoto, 'Foto\u011Fraf spam\u0131!');
+            return;
+          }
         }
       }
     }
@@ -586,7 +727,7 @@ client.on('guildMemberAdd', async (member) => {
       }
     } catch {}
     // Oto-rol (+ premium çoklu)
-    if (g.otoRol) {
+    if (g.otoRol && g.otoRolAktif !== false) {
       const rol = member.guild.roles.cache.get(g.otoRol);
       if (rol) await member.roles.add(rol).catch(() => {});
     }
@@ -596,6 +737,35 @@ client.on('guildMemberAdd', async (member) => {
         if (r) await member.roles.add(r).catch(() => {});
       }
     }
+    // 🏷️ Takma ad araçları
+    try {
+      const tg = getGuild(member.guild.id);
+      const botRol = member.guild.members.me.roles.highest;
+      const degistirebilir = !member.user.bot && member.manageable && botRol;
+      // İsim filtresi: yasaklı kelime varsa sunucudan çıkar
+      if (tg.isimFiltre && Array.isArray(tg.isimKelimeler) && tg.isimKelimeler.length && !member.user.bot) {
+        const ad = String(member.displayName || member.user.username).toLocaleLowerCase('tr');
+        const kotu = tg.isimKelimeler.some((k) => k && ad.includes(String(k).toLocaleLowerCase('tr')));
+        const baglanti = tg.isimFiltreBaglanti && /(discord\.gg|discord\.com\/invite|https?:\/\/)/i.test(String(member.displayName || ''));
+        if (kotu || baglanti) {
+          await member.ban({ reason: 'İsim filtresi: yasaklı takma ad' }).catch(() => {});
+          guvenlikLog(member.guild, '🏷️ İsim Filtresi',
+            member.user.tag + ' (\u0060' + member.id + '\u0060)\nYasaklı takma ad nedeniyle yasaklandı.').catch(() => {});
+          return;
+        }
+      }
+      // Takma adları temizle: alfabe dışı karakterleri sil
+      if (tg.takmaTemizle && degistirebilir) {
+        const temiz = String(member.displayName).replace(/[^a-zA-ZçÇğĞıİöÖşŞüÜ0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 32);
+        if (temiz && temiz !== member.displayName) await member.setNickname(temiz, 'Takma ad temizleme').catch(() => {});
+      }
+      // Yeni üye ismi: şablonu uygula
+      if (tg.yeniIsimAktif && degistirebilir) {
+        const sablon = String(tg.yeniIsimSablon || '{kullanıcı}');
+        const isim = sablon.split('{kullanıcı}').join(member.user.username).split('{kullanici}').join(member.user.username).split('{ad}').join(member.user.username).trim().slice(0, 32);
+        if (isim && isim !== member.displayName) await member.setNickname(isim, 'Yeni üye ismi').catch(() => {});
+      }
+    } catch {}
     // 📨 Davet takibi + sayaç + davet ödülleri (premium)
     try {
       if (premiumMu(member.guild.id)) {
@@ -636,15 +806,38 @@ client.on('guildMemberAdd', async (member) => {
           save();
         }
         try { await require('./commands/premium').premiumSayacGuncelle(client, member.guild, member, davetEdenId); } catch {}
+        if (davetEdenId && g.davetGirisAt !== false && g.davetKanal) {
+          const dk = member.guild.channels.cache.get(g.davetKanal);
+          if (dk && dk.isTextBased()) {
+            try {
+              const davetEden = await member.guild.members.fetch(davetEdenId).catch(() => null);
+              const txt = String(g.davetGirisMesaj || '{davet eden} adlı üye {yeni üye} adlı üyeyi sunucuya davet etti.')
+                .replace(/{davet eden}/g, davetEden ? String(davetEden) : 'Biri')
+                .replace(/{yeni üye}/g, String(member))
+                .replace(/{üye sayısı}/g, String(member.guild.memberCount))
+                .replace(/{sunucu}/g, member.guild.name).slice(0, 1500);
+              await dk.send(txt).catch(() => {});
+            } catch {}
+          }
+        }
       }
     } catch {}
 
+    try {
+      if (logger.logOlayAcik(member.guild.id, 'uyeKatildi') && !member.user.bot) {
+        const kk = getGuild(member.guild.id).logKanal ? member.guild.channels.cache.get(getGuild(member.guild.id).logKanal) : null;
+        if (kk && kk.isTextBased()) {
+          const { EmbedBuilder: EB2 } = require('discord.js');
+          await kk.send({ embeds: [new EB2().setColor(config.colors.success).setTitle('\u{1F44B} \u00DCye Kat\u0131ld\u0131').setThumbnail(member.user.displayAvatarURL({ size: 64 })).setDescription(String(member) + ' (\u0060' + member.user.tag + '\u0060)\n\u{1F465} \u00DCye say\u0131s\u0131: **' + member.guild.memberCount + '**').setTimestamp()] }).catch(() => {});
+        }
+      }
+    } catch {}
     // Hesap yaşı kontrolü (şüpheli)
     const yas = Date.now() - member.user.createdTimestamp;
     const supheli = yas < 7 * 86400_1000;
 
     // Hoşgeldin (premium embed varsa o, yoksa klasik)
-    if (g.hosgeldinKanal) {
+    if (g.hosgeldinKanal && g.hosgeldinAt !== false) {
       const k = member.guild.channels.cache.get(g.hosgeldinKanal);
       if (k) {
         if (g.hgEmbed && premiumMu(member.guild.id)) {
@@ -707,7 +900,7 @@ client.on('guildMemberRemove', async (member) => {
       }
     } catch {}
     const g = getGuild(member.guild.id);
-    if (g.cikisKanal) {
+    if (g.cikisKanal && g.cikisAt !== false) {
       const k = member.guild.channels.cache.get(g.cikisKanal);
       if (k) {
         if (g.vedaEmbed && premiumMu(member.guild.id)) {
@@ -730,6 +923,35 @@ client.on('guildMemberRemove', async (member) => {
       }
     }
     try { await require('./commands/premium').premiumSayacGuncelle(member.client, member.guild, null, null); } catch {}
+    try {
+      const ayr = getUser(member.guild.id, member.id);
+      if (ayr.davetEden && premiumMu(member.guild.id)) {
+        const inv = getUser(member.guild.id, ayr.davetEden);
+        inv.davetSayisi = Math.max(0, (inv.davetSayisi || 1) - 1);
+        save();
+        if (g.davetCikisAt !== false && g.davetCikisKanal) {
+          const dk = member.guild.channels.cache.get(g.davetCikisKanal);
+          if (dk && dk.isTextBased()) {
+            const eden = await member.guild.members.fetch(ayr.davetEden).catch(() => null);
+            const txt = String(g.davetCikisMesaj || '{davet eden} tarafından davet edilen {ayrılan} sunucudan ayrıldı.')
+              .replace(/{davet eden}/g, eden ? String(eden) : 'Biri')
+              .replace(/{ayrılan}/g, String(member.user ? member.user.tag : 'biri'))
+              .replace(/{sunucu}/g, member.guild.name).slice(0, 1500);
+            await dk.send(txt).catch(() => {});
+          }
+        }
+      }
+    } catch {}
+    try {
+      if (logger.logOlayAcik(member.guild.id, 'uyeAyrildi')) {
+        const gk = getGuild(member.guild.id);
+        const kk = gk.logKanal ? member.guild.channels.cache.get(gk.logKanal) : null;
+        if (kk && kk.isTextBased()) {
+          const { EmbedBuilder: EB3 } = require('discord.js');
+          await kk.send({ embeds: [new EB3().setColor(config.colors.error).setTitle('\u{1F44B} \u00DCye Ayr\u0131ld\u0131').setThumbnail(member.user.displayAvatarURL({ size: 64 })).setDescription(String(member.user.tag) + ' (\u0060' + member.id + '\u0060)').setTimestamp()] }).catch(() => {});
+        }
+      }
+    } catch {}
     // Sayaç çıkışı
     if (g.sayacHedef && g.sayacKanal) {
       const k = member.guild.channels.cache.get(g.sayacKanal);
@@ -749,6 +971,7 @@ client.on('messageDeleteBulk', async (msgs) => {
   try {
     const ilk = msgs.first();
     if (!ilk || !ilk.guild) return;
+    if (!logger.logOlayAcik(ilk.guild.id, 'mesajSil')) return;
     const audit = await logger.executorBul(ilk.guild, AuditLogEvent.MessageBulkDelete, ilk.channel.id).catch(() => null);
     await logger.gonder(ilk.guild, new EmbedBuilder().setColor(config.colors.error).setTitle('🧹 Toplu Mesaj Silindi')
       .addFields(
@@ -761,6 +984,7 @@ client.on('messageDeleteBulk', async (msgs) => {
 
 client.on('guildBanAdd', async (ban) => {
   try {
+    if (!logger.logOlayAcik(ban.guild.id, 'uyeYasak', 'modYasak')) { await logger.patlamaKontrol(ban.guild, 'ban').catch(() => {}); return; }
     const audit = await logger.executorBul(ban.guild, AuditLogEvent.MemberBanAdd, ban.user.id).catch(() => null);
     await logger.gonder(ban.guild, new EmbedBuilder().setColor(config.colors.error).setTitle('🔨 Üye Banlandı')
       .setThumbnail(ban.user.displayAvatarURL({ size: 128 }))
@@ -775,6 +999,7 @@ client.on('guildBanAdd', async (ban) => {
 
 client.on('guildBanRemove', async (ban) => {
   try {
+    if (!logger.logOlayAcik(ban.guild.id, 'uyeYasakKaldir', 'modYasakKaldir')) return;
     const audit = await logger.executorBul(ban.guild, AuditLogEvent.MemberBanRemove, ban.user.id).catch(() => null);
     await logger.gonder(ban.guild, new EmbedBuilder().setColor(config.colors.success).setTitle('🔓 Ban Kaldırıldı')
       .addFields(
@@ -838,6 +1063,7 @@ client.on('guildMemberUpdate', async (eski, yeni) => {
     const eT = eski.communicationDisabledUntilTimestamp;
     const yT = yeni.communicationDisabledUntilTimestamp;
     if ((eT || 0) !== (yT || 0)) {
+      if (!logger.logOlayAcik(yeni.guild.id, 'uyeSus', 'modSus', 'modSusKaldir')) return;
       const audit = await logger.executorBul(yeni.guild, AuditLogEvent.MemberUpdate, yeni.id).catch(() => null);
       if (yT && yT > Date.now()) {
         await logger.gonder(yeni.guild, new EmbedBuilder().setColor(config.colors.warn).setTitle('🔇 Susturma (Timeout)')
@@ -855,6 +1081,7 @@ client.on('guildMemberUpdate', async (eski, yeni) => {
     }
     // Nick değişimi
     if (eski.nickname !== yeni.nickname) {
+      if (!logger.logOlayAcik(yeni.guild.id, 'uyeAd')) return;
       const audit = await logger.executorBul(yeni.guild, AuditLogEvent.MemberUpdate, yeni.id).catch(() => null);
       await logger.gonder(yeni.guild, new EmbedBuilder().setColor(config.colors.main).setTitle('✏️ Nick Değişti')
         .addFields(
@@ -871,6 +1098,7 @@ client.on('guildMemberUpdate', async (eski, yeni) => {
     const eklenen = [...yR].filter(r => !eR.has(r) && r !== yeni.guild.id);
     const cikarilan = [...eR].filter(r => !yR.has(r) && r !== yeni.guild.id);
     if (eklenen.length || cikarilan.length) {
+      if (!logger.logOlayAcik(yeni.guild.id, 'uyeRol')) return;
       const audit = await logger.executorBul(yeni.guild, AuditLogEvent.MemberRoleUpdate, yeni.id).catch(() => null);
       const satir = [];
       for (const r of eklenen) satir.push(`➕ <@&${r}>`);
@@ -893,6 +1121,7 @@ function kanalLog(baslik, renk, kanal, ekstra = null) {
 client.on('channelCreate', async (k) => {
   try {
     if (!k.guild) return;
+    if (!logger.logOlayAcik(k.guild.id, 'kanalOlustur')) return;
     const a = await logger.executorBul(k.guild, AuditLogEvent.ChannelCreate, k.id).catch(() => null);
     await kanalLog('📗 Kanal Açıldı', config.colors.success, k, a ? `${a.executor}` : null);
   } catch {}
@@ -900,6 +1129,7 @@ client.on('channelCreate', async (k) => {
 client.on('channelDelete', async (k) => {
   try {
     if (!k.guild) return;
+    if (!logger.logOlayAcik(k.guild.id, 'kanalSil')) { await logger.patlamaKontrol(k.guild, 'kanal-silme').catch(() => {}); return; }
     const a = await logger.executorBul(k.guild, AuditLogEvent.ChannelDelete, k.id).catch(() => null);
     await kanalLog('📕 Kanal Silindi!', config.colors.error, k, a ? `${a.executor} (\`${a.executor.tag}\`)` : 'Bilinmiyor');
     await logger.patlamaKontrol(k.guild, 'kanal-silme').catch(() => {});
@@ -908,6 +1138,7 @@ client.on('channelDelete', async (k) => {
 client.on('channelUpdate', async (e, y) => {
   try {
     if (!y.guild || y.isThread()) return;
+    if (!logger.logOlayAcik(y.guild.id, 'kanalGuncelle')) return;
     const degisen = [];
     if (e.name !== y.name) degisen.push(`İsim: **${e.name}** → **${y.name}**`);
     if (e.topic !== y.topic) degisen.push(`Konu değişti`);
@@ -922,6 +1153,7 @@ client.on('channelUpdate', async (e, y) => {
 
 client.on('roleCreate', async (r) => {
   try {
+    if (!logger.logOlayAcik(r.guild.id, 'rolOlustur')) return;
     const a = await logger.executorBul(r.guild, AuditLogEvent.RoleCreate, r.id).catch(() => null);
     await logger.gonder(r.guild, new EmbedBuilder().setColor(config.colors.success).setTitle('🎭 Rol Oluşturuldu')
       .setDescription(`<@&${r.id}> **${r.name}**\n👮 ${a ? `${a.executor}` : 'Bilinmiyor'}`).setTimestamp());
@@ -929,6 +1161,7 @@ client.on('roleCreate', async (r) => {
 });
 client.on('roleDelete', async (r) => {
   try {
+    if (!logger.logOlayAcik(r.guild.id, 'rolSil')) { await logger.patlamaKontrol(r.guild, 'rol-silme').catch(() => {}); return; }
     const a = await logger.executorBul(r.guild, AuditLogEvent.RoleDelete, r.id).catch(() => null);
     await logger.gonder(r.guild, new EmbedBuilder().setColor(config.colors.error).setTitle('🗑️ Rol Silindi!')
       .setDescription(`**${r.name}** (\`${r.id}\`)\n👮 ${a ? `${a.executor} (\`${a.executor.tag}\`)` : 'Bilinmiyor'}`).setTimestamp());
@@ -948,6 +1181,7 @@ client.on('roleUpdate', async (e, y) => {
       if (yeni.includes('Administrator')) degisen.push(`🚨 **YÖNETİCİ İZNİ VERİLDİ!**`);
     }
     if (!degisen.length) return;
+    if (!logger.logOlayAcik(y.guild.id, 'rolGuncelle')) return;
     const a = await logger.executorBul(y.guild, AuditLogEvent.RoleUpdate, y.id).catch(() => null);
     await logger.gonder(y.guild, new EmbedBuilder().setColor(config.colors.warn).setTitle('🎭 Rol Güncellendi')
       .setDescription(`<@&${y.id}> **${y.name}**\n👮 ${a ? `${a.executor}` : 'Bilinmiyor'}\n\n${degisen.join('\n').slice(0, 1500)}`).setTimestamp());
@@ -962,6 +1196,7 @@ client.on('guildUpdate', async (e, y) => {
     if (e.banner !== y.banner) degisen.push(`🏞️ Banner değişti`);
     if (e.verificationLevel !== y.verificationLevel) degisen.push(`🔒 Doğrulama: **${y.verificationLevel}**`);
     if (!degisen.length) return;
+    if (!logger.logOlayAcik(y.id, 'sunucuGuncelle')) return;
     const a = await logger.executorBul(y, AuditLogEvent.GuildUpdate, y.id).catch(() => null);
     await logger.gonder(y, new EmbedBuilder().setColor(config.colors.warn).setTitle('⚙️ Sunucu Ayarı Değişti')
       .setDescription(`👮 ${a ? `${a.executor}` : 'Bilinmiyor'}\n\n${degisen.join('\n')}`).setTimestamp());
@@ -984,6 +1219,7 @@ client.on('inviteDelete', async (i) => {
 client.on('voiceStateUpdate', async (e, y) => {
   try {
     if (!y.guild || y.member.user.bot) return;
+    if (!logger.logOlayAcik(y.guild.id, 'uyeSes')) return;
     if (!e.channel && y.channel) {
       await logger.gonder(y.guild, new EmbedBuilder().setColor(config.colors.success).setTitle('🔊 Sese Girdi').setDescription(`${y.member} → **${y.channel.name}**`).setTimestamp());
     } else if (e.channel && !y.channel) {
@@ -1261,7 +1497,27 @@ async function medyaDenetle(guild, tip, hedef, ad) {
       `${e.executor} (\`${e.executor.tag}\`)\nİzinsiz eklenen ${ad} kaldırıldı.`).catch(() => {});
   } catch {}
 }
+client.on('emojiUpdate', async (eski, yeni) => {
+  try {
+    if (!logger.logOlayAcik(yeni.guild.id, 'emojiGuncelle')) return;
+    const { EmbedBuilder: EB4 } = require('discord.js');
+    await logger.gonder(yeni.guild, new EB4().setColor(config.colors.warn).setTitle('\u{1F3A8} Emoji G\u00FCncellendi').setDescription(String(eski.name || '?') + ' \u2192 **' + String(yeni.name || '?') + '**').setTimestamp());
+  } catch {}
+});
+client.on('emojiDelete', async (emoji) => {
+  try {
+    if (!logger.logOlayAcik(emoji.guild.id, 'emojiSil')) return;
+    const { EmbedBuilder: EB5 } = require('discord.js');
+    await logger.gonder(emoji.guild, new EB5().setColor(config.colors.error).setTitle('\u{1F5D1}\uFE0F Emoji Silindi').setDescription('**' + String(emoji.name || '?') + '**').setTimestamp());
+  } catch {}
+});
 client.on('emojiCreate', async (emoji) => {
+  try {
+    if (logger.logOlayAcik(emoji.guild.id, 'emojiOlustur')) {
+      const { EmbedBuilder: EB6 } = require('discord.js');
+      await logger.gonder(emoji.guild, new EB6().setColor(config.colors.success).setTitle('\u{1F600} Emoji Olu\u015Fturuldu').setDescription(String(emoji) + ' **' + String(emoji.name || '?') + '**').setTimestamp());
+    }
+  } catch {}
   await medyaDenetle(emoji.guild, AuditLogEvent.EmojiCreate, emoji, 'emoji');
 });
 client.on('stickerCreate', async (sticker) => {
@@ -1339,6 +1595,49 @@ client.on('messageReactionRemove', async (reaction, user) => {
   const r = await tepkiEsles(reaction.message.guild, reaction, user).catch(() => null);
   if (r) await r.uye.roles.remove(r.rol, 'Emoji rol').catch(() => {});
 });
+const sesMap = new Map(); // `${gid}_${uid}` -> ses giris zamani
+setInterval(async () => {
+  try {
+    for (const [, guild] of client.guilds.cache) {
+      try {
+        const g = getGuild(guild.id);
+        if (!g.sesXP || !premiumMu(guild.id)) continue;
+        const dkXp = Math.max(1, Math.min(100, g.sesXPDakika || 5));
+        const minKatilim = Math.max(1, Math.min(10, g.sesXPMin || 2));
+        const afkId = guild.afkChannelId;
+        const odadakiler = [...guild.members.cache.values()].filter((m) =>
+          !m.user.bot && m.voice.channelId && m.voice.channelId !== afkId &&
+          !m.voice.mute && !m.voice.deaf && !m.voice.selfMute && !m.voice.selfDeaf);
+        if (!odadakiler.length) continue;
+        for (const m of odadakiler) {
+          try {
+            const kanaldakiler = odadakiler.filter((x) => x.voice.channelId === m.voice.channelId).length;
+            if (kanaldakiler < minKatilim) continue;
+            const u = getUser(guild.id, m.id);
+            u.xp = (u.xp || 0) + dkXp;
+            u.mesaj = u.mesaj || 0;
+            const ihtiyac = (u.level || 0) * 100 + 100;
+            if (u.xp >= ihtiyac) {
+              u.level = (u.level || 0) + 1;
+              u.xp = 0;
+              let odulRol = null;
+              try {
+                const roller = getGuild(guild.id).seviyeRoller || [];
+                const eslesme = roller.find((r) => r.seviye === u.level);
+                if (eslesme) {
+                  const rol = guild.roles.cache.get(eslesme.rolId);
+                  if (rol) { await m.roles.add(rol).catch(() => {}); odulRol = rol; }
+                }
+              } catch {}
+              await seviyeMesajGonder(guild, m.user, u.level, odulRol);
+            }
+          } catch {}
+        }
+        save();
+      } catch {}
+    }
+  } catch {}
+}, 60_000).unref?.();
 async function emojiRolTepkiKoy(guild, onlyIndex = -1) {
   const sonuc = [];
   try {
