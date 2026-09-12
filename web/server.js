@@ -76,6 +76,7 @@ const SEMA = {
   govYasakSayi: 'sayi:1:50', govYasakDakika: 'sayi:1:60',
   govAtmaSayi: 'sayi:1:50', govAtmaDakika: 'sayi:1:60',
   govRolSayi: 'sayi:1:50', govRolDakika: 'sayi:1:60',
+  govHesapGun: 'sayi:1:30', davetMuaf: 'muaf',
 };
 
 async function discordAPI(token, yol, init = {}) {

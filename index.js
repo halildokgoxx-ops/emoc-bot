@@ -239,16 +239,38 @@ client.on('messageCreate', async (message) => {
       } catch {}
       const roket = E(client, 'roket', '🚀');
       const parti = E(client, 'parti', '🎉');
-      const hedefKanal = getGuild(message.guild.id).levelBildirimKanal
-        ? (message.guild.channels.cache.get(getGuild(message.guild.id).levelBildirimKanal) || message.channel)
-        : message.channel;
-      hedefKanal.send({
-        embeds: [new EmbedBuilder().setColor(config.colors.gold)
+      try {
+        const gAyar = getGuild(message.guild.id);
+        const sablon = String(gAyar.seviyeMesaj || '').trim();
+        const degis = (s) => String(s)
+          .split('{user}').join(`${message.author}`)
+          .split('{kullanıcı}').join(message.author.username)
+          .split('{kullanici}').join(message.author.username)
+          .split('{ad}').join(message.author.username)
+          .split('{level}').join(String(u.level))
+          .split('{seviye}').join(String(u.level))
+          .split('{xp}').join(String(u.xp || 0))
+          .split('{sunucu}').join(message.guild.name);
+        const aciklama = (sablon ? degis(sablon) : `${message.author} **Sv.${u.level}** oldu! GG!\n${odulRol ? `🎭 Ödül rolü kazandın: ${odulRol}` : `💡 Ödüllü seviyeler için \`/seviye-rol liste\` yaz!`}`).slice(0, 4000);
+        const emb = new EmbedBuilder().setColor(config.colors.gold)
           .setTitle(`${roket} SEVİYE ATLADI! ${parti}`)
           .setThumbnail(message.author.displayAvatarURL({ size: 128 }))
-          .setDescription(`${message.author} **Sv.${u.level}** oldu! GG!\n${odulRol ? `🎭 Ödül rolü kazandın: ${odulRol}` : `💡 Ödüllü seviyeler için \`/seviye-rol liste\` yaz!`}`)
-          .setFooter({ text: 'Emoç • Seviye Sistemi' }).setTimestamp()],
-      }).catch(() => {});
+          .setDescription(aciklama)
+          .setFooter({ text: 'Emoç • Seviye Sistemi' }).setTimestamp();
+        if (gAyar.seviyeOzel) {
+          await message.author.send({ embeds: [emb] }).catch(async () => {
+            const h = gAyar.seviyeKanal || gAyar.levelBildirimKanal
+              ? (message.guild.channels.cache.get(gAyar.seviyeKanal || gAyar.levelBildirimKanal) || message.channel)
+              : message.channel;
+            await h.send({ embeds: [emb] }).catch(() => {});
+          });
+        } else {
+          const hedefKanal = (gAyar.seviyeKanal || gAyar.levelBildirimKanal)
+            ? (message.guild.channels.cache.get(gAyar.seviyeKanal || gAyar.levelBildirimKanal) || message.channel)
+            : message.channel;
+          await hedefKanal.send({ embeds: [emb] }).catch(() => {});
+        }
+      } catch {}
     }
     // Günlük görev ilerleme (mesaj)
     try {
@@ -320,6 +342,17 @@ client.on('messageCreate', async (message) => {
           if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
         }
         return;
+      }
+      // Davet Koruması (premium): izinsiz davet linklerini sil
+      if (g.govDavet && !muafRol(g.davetMuaf)) {
+        try {
+          if (premiumMu(message.guild.id) && /(discord\.gg|discord\.com\/invite|discordapp\.com\/invite)\/\S+/i.test(message.content)) {
+            await message.delete().catch(() => {});
+            const w = await message.channel.send(`${message.author} 🔗 Davet paylaşımı korumalı, sildim!`).catch(() => null);
+            if (w) setTimeout(() => w.delete().catch(() => {}), 4000);
+            return;
+          }
+        } catch {}
       }
       // Caps engel
       if (g.capsEngel && message.content.length >= 8 && !muafRol(g.capsMuaf) && !muafKanal(g.capsMuafKanal)) {
@@ -445,6 +478,20 @@ client.on('guildMemberAdd', async (member) => {
         return;
       }
     }
+    // 🛡️ Hesap Filtresi (premium): X günden yeni hesapları alma
+    try {
+      const hg = getGuild(member.guild.id);
+      if (hg.govHesap && !member.user.bot && premiumMu(member.guild.id)) {
+        const sinir = Math.max(1, Math.min(30, hg.govHesapGun || 7));
+        const yas = (Date.now() - member.user.createdTimestamp) / 86400000;
+        if (yas < sinir) {
+          await member.kick(`Hesap filtresi (${sinir} günden yeni)`).catch(() => {});
+          guvenlikLog(member.guild, '🛡️ Hesap Filtresi',
+            `${member.user.tag} (\`${member.id}\`)\n📅 Hesap yaşı: **${yas.toFixed(1)} gün** (< ${sinir} gün) → sunucuya alınmadı.`).catch(() => {});
+          return;
+        }
+      }
+    } catch {}
     // 🥷 Alt hesap koruması (<3 gün = kick, <7 gün = 10dk gözlem)
     try {
       const gg = getGuild(member.guild.id);

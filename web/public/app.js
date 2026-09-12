@@ -67,10 +67,10 @@ async function sunucuAc(id){
 }
 
 const NAV=[
-  {sec:null,items:[['home','▦','Kontrol Paneli']]},
-  {sec:null,items:[['ayarlar','⚙','Ayarlar'],['premium','☆','Premium'],['gomulu','▤','Gömülü Mesajlar']]},
-  {sec:'Sunucu Yönetimi',items:[['seviye','▅','Seviye Sistemi'],['karsilama','◍','Karşılama & Veda'],['otomod','◈','Otomatik Moderasyon','YENİ'],['denetimMasasi','◉','Denetim Masası'],['denetim','▣','Denetim Kaydı'],['otocevap','⌁','Otomatik Cevap'],['emojirol','☺','Emoji Rol'],['etiket','◌','Sunucu Etiketi'],['medya','🎨','Medya Yükle']]},
-  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡','Hesap Filtresi','👑'],['govRol','◎','Rol Limitlemeleri'],['govBot','⚙','Bot Filtresi'],['govYasak','⊘','Yasaklama Limiti'],['govAtma','↩','Atma Limiti'],['govKanal','#','Kanal Limitlemeleri'],['govWebhook','🔗','Anti-Webhook'],['govEmoji','☺','Emoji Limitleri']]},
+  {sec:null,items:[['home','🏠','Kontrol Paneli']]},
+  {sec:null,items:[['ayarlar','⚙️','Ayarlar'],['premium','⭐','Premium'],['gomulu','📝','Gömülü Mesajlar']]},
+  {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi'],['medya','🎨','Medya Yükle']]},
+  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡️','Hesap Filtresi','👑'],['govRol','🎭','Rol Limitlemeleri'],['govBot','🤖','Bot Filtresi'],['govYasak','⛔','Yasaklama Limiti'],['govAtma','🚪','Atma Limiti'],['govKanal','#️⃣','Kanal Limitlemeleri'],['govWebhook','🪝','Anti-Webhook'],['govEmoji','😎','Emoji Limitleri']]},
 ];
 const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
 
@@ -180,7 +180,7 @@ function cizHome(c){
     +kart('govBot','⚙','Bot Filtresi','Onaylanmamış bot girişlerini engelleyin.')
     +kart('govYasak','⊘','Yasaklama Limiti','Toplu yasaklamaları sınırlayın.')
     +kart('govAtma','↩','Atma Limiti','Toplu atmaları sınırlayın.')
-    +kart('govKanal','#','Kanal Limitlemeleri','Kanal açma ve silme işlemlerini sınırlayın.')
+    +kart('govKanal','#??','Kanal Limitlemeleri','Kanal açma ve silme işlemlerini sınırlayın.')
     +kart('govWebhook','🔗','Anti-Webhook','İzinsiz webhookları otomatik silin',true)
     +kart('govEmoji','☺','Emoji Limitleri','Emoji spamını ve izinsiz emoji eklemeyi sınırlayın',true)
     +'</div>';
@@ -219,7 +219,7 @@ function cizSeviye(c){
   +'<div class="panel" style="margin-top:16px"><div class="panel-top"><div><h3>🔔 Seviye atlama duyurusu</h3><p>Üyeleriniz seviye atladığında kişiselleştirilmiş bir mesaj gönderin.</p></div></div>'
   +'<div class="field"><label>Hedef</label><select data-k="seviyeKanal"><option value="">Kapalı</option>'+KANALLAR.filter(k=>k.tip==='yazi').map(k=>'<option value="'+k.id+'"'+(String(f.seviyeKanal)===String(k.id)?' selected':'')+'># '+esc(k.ad)+'</option>').join('')+'</select></div>'
   +'<div class="field" style="display:flex;align-items:center;gap:12px"><label class="tgl"><input type="checkbox" data-k="seviyeOzel"'+(f.seviyeOzel?' checked':'')+'><span class="ray"></span></label><span style="font-size:13px">Özel mesaj olarak gönder</span></div>'
-  +'<div class="field"><label>Mesaj şablonu</label><textarea data-k="seviyeMesaj" rows="2">🎉 '+(esc(f.seviyeMesaj)||'Tebrikler {user}, **{level}**. seviyeye ulaştın! /rank ile seviyeni kontrol et.')+'</textarea>'
+  +'<div class="field"><label>Mesaj şablonu</label><div class="chip-row" style="margin:0 0 8px"><button class="chip" onclick="chipEkle(\'seviyeMesaj\',\'{user}\')">{user}</button><button class="chip" onclick="chipEkle(\'seviyeMesaj\',\'{level}\')">{level}</button><button class="chip" onclick="chipEkle(\'seviyeMesaj\',\'{xp}\')">{xp}</button><button class="chip" onclick="chipEkle(\'seviyeMesaj\',\'{sunucu}\')">{sunucu}</button></div><textarea data-k="seviyeMesaj" rows="2">🎉 '+(esc(f.seviyeMesaj)||'Tebrikler {user}, **{level}**. seviyeye ulaştın! /rank ile seviyeni kontrol et.')+'</textarea>'
   +'<div style="margin-top:8px"><button class="link-btn" onclick="toast(\'Değişkenler: {user} {level} {xp}\')">⚙ Gelişmiş Mesaj Ayarla</button></div></div></div>'
   +saveBar();
 }
@@ -603,10 +603,13 @@ function cizGov(c,id){
       +'<div><label>Ceza</label><select disabled><option>Rolleri al + 10dk sustur</option></select></div></div>'
       +'<div class="hint">Limit aşılınca işlemi yapanın rolleri alınır ve 10 dakika susturulur.</div></div>';
   }
-  const kilitHtml=premKilit?'<div class="kilit"><div class="kilit-ic"><div style="font-size:34px">👑</div><b>Premium Gerekli</b><p>Bu koruma premium sunucularda çalışır.</p></div></div>':'';
+  let ekstra='';
+  if(id==='govDavet')ekstra='<div class="field"><label>Muaf roller (davet paylaşabilir)</label>'+rolChips('davetMuaf')+'<div class="hint">Seçili roller + yönetici/mesaj yönetimi olanlar etkilenmez.</div></div>';
+  if(id==='govHesap')ekstra='<div class="field"><label>Minimum hesap yaşı (gün)</label><input type="number" data-k="govHesapGun" value="'+(FORM.govHesapGun??7)+'" min="1" max="30"'+(premKilit?' disabled':'')+'><div class="hint">Hesabı bundan yeni olan üyeler sunucuya alınmaz.</div></div>';
+  const premBanner=premKilit?'<div class="prem-banner">👑<span><b>Premium Koruması</b> — bu ayar premium sunucularda çalışır, ayarları yine de inceleyebilirsin.</span></div>':'';
   c.innerHTML='<div class="page-h">'+ad+(premKilit?' 👑':'')+'</div><div class="page-s">'+acik+'</div>'
-    +'<div class="panel'+(premKilit?' kilitli':'')+'">'+kilitHtml+'<div class="panel-top"><div><h3>'+ad+'</h3><p>'+acik+'</p></div><label class="tgl"><input type="checkbox" data-k="'+id+'"'+(FORM[id]?' checked':'')+(premKilit?' disabled':'')+'><span class="ray"></span></label></div>'
-    +limitHtml
+    +'<div class="panel">'+premBanner+'<div class="panel-top"><div><h3>'+ad+'</h3><p>'+acik+'</p></div><label class="tgl"><input type="checkbox" data-k="'+id+'"'+(FORM[id]?' checked':'')+(premKilit?' disabled':'')+'><span class="ray"></span></label></div>'
+    +limitHtml+ekstra
     +'<div class="warn yel">⚠ Bu koruma tetiklendiğinde olay güvenlik kanalına kaydedilir.</div>'
     +'<div class="field"><label>Güvenlik kanalı</label><select data-k="guvenlikKanal">'+secenek('yazi',FORM.guvenlikKanal,'Bir kanal seçin')+'</select></div></div>'+saveBar();
 }
