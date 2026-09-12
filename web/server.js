@@ -329,6 +329,32 @@ function startWeb(client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
+  // Web-içi panel duyurusu: giriş yapan herkes görür, sadece admin yazar
+  app.get('/api/duyuru', (req, res) => {
+    const s = oturum(req);
+    if (!s) return res.status(401).json({ hata: 'giris-yok' });
+    try {
+      res.json({ duyuru: require('../src/db').db().panelDuyuru || null });
+    } catch { res.json({ duyuru: null }); }
+  });
+  app.post('/api/admin/duyuru-panel', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const d = require('../src/db').db();
+      const { baslik, metin } = req.body || {};
+      if (!String(metin || '').trim()) d.panelDuyuru = null;
+      else {
+        d.panelDuyuru = {
+          baslik: String(baslik || 'Duyuru').slice(0, 100),
+          metin: String(metin).slice(0, 1000),
+          tarih: Date.now(),
+        };
+      }
+      require('../src/db').save();
+      res.json({ ok: true, duyuru: d.panelDuyuru || null });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.post('/api/admin/kod-sil', (req, res) => {
     if (!adminKontrol(req, res)) return;
     try {

@@ -306,6 +306,18 @@ function startKopru() {
     try { res.json(await botAPI(yol, { method: 'POST', body: JSON.stringify(req.body || {}) })); }
     catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   }
+  app.get('/api/duyuru', async (req, res) => {
+    const s = oturum(req);
+    if (!s) return res.status(401).json({ hata: 'giris-yok' });
+    try { res.json(await botAPI('/api/bot/panel-duyuru')); }
+    catch { res.json({ duyuru: null }); }
+  });
+  app.post('/api/admin/duyuru-panel', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI('/api/bot/panel-duyuru', { method: 'POST', body: JSON.stringify(req.body || {}) })); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
   app.post('/api/embed-gonder', (req, res) => aksiyonIlet(req, res, '/api/bot/embed-gonder'));
   app.post('/api/medya-yukle', (req, res) => aksiyonIlet(req, res, '/api/bot/medya-yukle'));
   app.post('/api/emojirol-tepki', (req, res) => aksiyonIlet(req, res, '/api/bot/emojirol-tepki'));

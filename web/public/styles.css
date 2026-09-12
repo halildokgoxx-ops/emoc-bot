@@ -237,6 +237,21 @@ input[type=file]::file-selector-button{background:linear-gradient(135deg,#a08ffb
 .set-row b{font-size:13.5px;display:block}
 .set-row p{font-size:12.5px;color:var(--mut);margin-top:3px}
 
+/* renk seçici */
+.renk-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.renk{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.15);cursor:pointer;padding:0;transition:transform var(--tr),border-color var(--tr),box-shadow var(--tr)}
+.renk:hover{transform:scale(1.15)}
+.renk.secil{border-color:#fff;box-shadow:0 0 0 2px var(--acc),0 4px 12px rgba(0,0,0,.4)}
+.renk-hex{max-width:110px!important;font-family:monospace;text-transform:lowercase}
+/* panel duyuru bandı */
+#duyuru-bar:empty{display:none}
+.duyuru-bar{max-width:1180px;margin:14px auto 0;padding:0 28px}
+.duyuru-ic{display:flex;gap:12px;align-items:flex-start;background:linear-gradient(90deg,rgba(232,193,90,.16),rgba(232,193,90,.05));border:1px solid rgba(232,193,90,.4);border-radius:12px;padding:13px 16px;font-size:13px}
+.duyuru-ic b{color:#ffe9a8}
+.duyuru-ic p{color:#e8d9ac;margin-top:3px;line-height:1.55}
+.duyuru-ic button{margin-left:auto;background:none;border:0;color:var(--mut);cursor:pointer;font-size:15px;flex-shrink:0}
+/* sürüm rozeti */
+.side-ver{margin-top:14px;padding:10px 12px;font-size:11px;color:var(--mut2);text-align:center;border-top:1px solid var(--line)}
 /* embed önizleme */
 .onizleme-kutu{background:rgba(0,0,0,.28);border:1px dashed rgba(255,255,255,.14);border-radius:10px;padding:12px 14px;margin-top:14px}
 .onizleme-baslik{font-size:10px;font-weight:800;letter-spacing:2px;color:var(--mut);margin-bottom:8px}

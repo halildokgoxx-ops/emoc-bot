@@ -326,6 +326,30 @@ function mountBotAPI(app, client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
+  // Web-içi panel duyurusu (sadece panelde banner olarak görünür)
+  router.get('/panel-duyuru', (req, res) => {
+    try {
+      const d = require('../src/db').db();
+      res.json({ duyuru: d.panelDuyuru || null });
+    } catch { res.json({ duyuru: null }); }
+  });
+  router.post('/panel-duyuru', (req, res) => {
+    try {
+      const d = require('../src/db').db();
+      const { baslik, metin } = req.body || {};
+      if (!String(metin || '').trim()) d.panelDuyuru = null;
+      else {
+        d.panelDuyuru = {
+          baslik: String(baslik || 'Duyuru').slice(0, 100),
+          metin: String(metin).slice(0, 1000),
+          tarih: Date.now(),
+        };
+      }
+      save();
+      res.json({ ok: true, duyuru: d.panelDuyuru || null });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.use('/api/bot', express.json({ limit: '12mb' }), router);
 }
 

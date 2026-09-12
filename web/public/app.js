@@ -1,6 +1,7 @@
-/* Panel */
+/* Panel v6 */
+const PANEL_SURUM='v6';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
-let AKTIF='home',GREET='karsilama';
+let AKTIF='home',GREET='karsilama',ADMIN=false;
 
 const AM_LIST=[
   {k:'amReklam',ad:'Reklamları engelle',ac:'Reklam içeren mesajları siler'},
@@ -26,7 +27,8 @@ function rolAd(id){const r=ROLLER.find(x=>String(x.id)===String(id));return r?('
 
 async function baslat(){
   try{
-    const me=await api('/api/me');ME=me.user;
+    const me=await api('/api/me');ME=me.user;ADMIN=!!me.admin;
+    duyuruYukle();
     const j=await api('/api/guilds');GUILDS=j.guilds||[];
     if(!GUILDS.length){
       renderMisafir();document.getElementById('content').innerHTML='<div class="hata-kutu">Yönetebileceğin bir sunucu bulunamadı. Botun o sunucuda olduğundan emin ol.<br><br><a class="btn sm" href="/davet">Botu Ekle</a></div>';
@@ -39,7 +41,7 @@ async function baslat(){
 function renderMisafir(){
   document.getElementById('sidebar').innerHTML='<div class="side-logo"><div class="mark">✦</div><span>EMOÇ <small>PANEL</small></span></div>'
     +'<div class="side-sec">Sunucularım</div>'
-    +GUILDS.map(g=>'<button class="side-item" onclick="sunucuAc(\''+g.id+'\')"><span class="ic">🌍</span><span>'+esc(g.ad).slice(0,24)+'</span>'+(g.prem?'<span class="tac">👑</span>':'')+'</button>').join('');
+    +GUILDS.map(g=>'<button class="side-item" onclick="sunucuAc(\''+g.id+'\')"><span class="ic">🌍</span><span>'+esc(g.ad).slice(0,24)+'</span>'+(g.prem?'<span class="tac">👑</span>':'')+'</button>').join('')+'<div class="side-ver">'+PANEL_SURUM+' • EMOÇ</div>';
   document.getElementById('topbar').innerHTML='<div class="crumb"><b>Sunucularım</b></div>'
     +'<div class="top-right"><div class="search">⌕ Özellik ara<kbd>Ctrl K</kbd></div><div class="userbox"><img src="'+avatarURL(ME)+'">'+esc(ME?ME.username:'')+'</div><a class="btn btn-ghost sm" href="/">🏠 Ana Sayfa</a><a class="btn sm" href="/logout">Çıkış</a></div>';
 }
@@ -70,13 +72,13 @@ const NAV=[
   {sec:null,items:[['home','🏠','Kontrol Paneli']]},
   {sec:null,items:[['ayarlar','⚙️','Ayarlar'],['premium','⭐','Premium'],['gomulu','📝','Gömülü Mesajlar']]},
   {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi'],['medya','🎨','Medya Yükle']]},
-  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡️','Hesap Filtresi','👑'],['govRol','🎭','Rol Limitlemeleri'],['govBot','🤖','Bot Filtresi'],['govYasak','⛔','Yasaklama Limiti'],['govAtma','🚪','Atma Limiti'],['govKanal','#️⃣','Kanal Limitlemeleri'],['govWebhook','🪝','Anti-Webhook'],['govEmoji','😎','Emoji Limitleri']]},
+  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡️','Hesap Filtresi','👑'],['govRol','🎭','Rol Limitlemeleri'],['govBot','🤖','Bot Filtresi'],['govYasak','⛔','Yasaklama Limiti'],['govAtma','🚪','Atma Limiti'],['govKanal','📁','Kanal Limitlemeleri'],['govWebhook','🪝','Anti-Webhook'],['govEmoji','😎','Emoji Limitleri']]},
 ];
-const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
+const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',admin:'Admin Paneli',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
 
 function renderAll(){renderSide();renderTop();renderContent()}
 function renderSide(){
-  let h='<div class="side-logo"><div class="mark">✦</div><span>EMOÇ <small>PANEL</small></span></div>';
+  let h=(ADMIN?'<button class="side-item'+(AKTIF==='admin'?' aktif':'')+'" onclick="git(\'admin\')"><span class="ic">👑</span><span>Admin Paneli</span></button>':'')+'<div class="side-logo"><div class="mark">✦</div><span>EMOÇ <small>PANEL</small></span></div>';
   NAV.forEach(gr=>{
     if(gr.sec)h+='<div class="side-sec">'+gr.sec+'</div>';
     gr.items.forEach(it=>{
@@ -87,7 +89,7 @@ function renderSide(){
       h+='<button class="side-item'+(AKTIF===id?' aktif':'')+'" onclick="git(\''+id+'\')"><span class="ic">'+ic+'</span><span>'+ad+'</span>'+rozH+'</button>';
     });
   });
-  document.getElementById('sidebar').innerHTML=h;
+  document.getElementById('sidebar').innerHTML=h+'<div class="side-ver">'+PANEL_SURUM+' • EMOÇ</div>';
 }
 function renderTop(){
   document.getElementById('topbar').innerHTML='<div class="crumb"><span style="cursor:pointer" onclick="serverList();renderMisafir()">Sunucularım</span><span class="sep">›</span>'
@@ -154,6 +156,7 @@ function renderContent(){
   if(AKTIF==='medya')return cizMedya(c);
   if(AKTIF==='premium')return cizPremium(c);
   if(AKTIF==='denetimMasasi')return cizDenetimMasasi(c);
+  if(AKTIF==='admin'){if(!ADMIN){c.innerHTML='<div class="hata-kutu">Yetkin yok.</div>';return}return cizAdmin(c)}
   if(AKTIF.startsWith('gov'))return cizGov(c,AKTIF);
   c.innerHTML='<div class="bos">Hazırlanıyor.</div>';
 }
@@ -388,16 +391,25 @@ function cizGomulu(c){
     +'<div class="field"><button class="btn pri" style="width:100%;justify-content:space-between" onclick="gomuluDuzenle(-1)">Yeni gömülü mesaj <span style="font-size:18px">+</span></button></div>'
     +'</div>'+saveBar();
 }
+const RENKLER=['#8b7cf6','#5865F2','#57F287','#FEE75C','#EB459E','#ED4245','#E67E22','#1ABC9C','#9B59B6','#2C2F33','#ffffff','#000000'];
+let G_RENK='#8b7cf6';
+function normRenk(r){r=String(r||'').trim();if(/^#[0-9a-f]{6}$/i.test(r))return r;if(/^[0-9a-f]{6}$/i.test(r))return '#'+r;return '#8b7cf6'}
+function renkSec(r){
+  G_RENK=normRenk(r);
+  document.querySelectorAll('#g-renkler .renk').forEach(el=>el.classList.toggle('secil',el.title.toLowerCase()===G_RENK.toLowerCase()));
+  const h=document.getElementById('g-hex');if(h&&h.value.toLowerCase()!==G_RENK.toLowerCase())h.value=G_RENK;
+  const ta=document.getElementById('g-acik');if(ta)ta.dispatchEvent(new Event('input'));
+}
 let GOMULU_IDX=-1;
 function gomuluDuzenle(i){
   if(!Array.isArray(FORM.gomuluMesajlar))FORM.gomuluMesajlar=[];
-  GOMULU_IDX=i;
+  GOMULU_IDX=i;G_RENK=normRenk((i>=0&&FORM.gomuluMesajlar[i]||{}).renk);
   const g=i>=0?FORM.gomuluMesajlar[i]:{baslik:'',aciklama:'',kanal:'',renk:'#8b7cf6'};
   document.getElementById('modal-root').innerHTML='<div class="pmodal-bg" onclick="if(event.target===this)modalKapat()"><div class="pmodal"><div class="modal-h"><span>'+(i>=0?'Gömülü mesajı düzenle':'Yeni gömülü mesaj')+'</span><button onclick="modalKapat()">✕</button></div><div class="modal-b">'
     +'<div class="field"><label>Kanal</label><select id="g-kanal">'+secenek('yazi',g.kanal,'Bir kanal seçin')+'</select></div>'
     +'<div class="field"><label>Başlık</label><input type="text" id="g-baslik" maxlength="100" placeholder="Duyuru" value="'+esc(g.baslik||'')+'"></div>'
     +'<div class="field"><label>Mesaj</label><div class="chip-row" style="margin:0 0 8px"><span class="chip" onclick="gDegisken(\'{kullanıcı}\')">{kullanıcı}</span><span class="chip" onclick="gDegisken(\'{sunucu}\')">{sunucu}</span><span class="chip" onclick="gDegisken(\'{üye}\')">{üye}</span></div><textarea id="g-acik" rows="4" placeholder="Mesaj içeriği — link de ekleyebilirsin">'+esc(g.aciklama||'')+'</textarea></div>'
-    +'<div class="field"><label>Renk</label><input type="color" id="g-renk" value="'+(/^#[0-9a-f]{6}$/i.test(g.renk||'')?g.renk:'#8b7cf6')+'" style="max-width:80px;height:40px;padding:4px"></div>'
+    +'<div class="field"><label>Renk</label><div class="renk-row" id="g-renkler">'+RENKLER.map(r=>'<button class="renk'+(normRenk(g.renk)===r?' secil':'')+'" style="background:'+r+'" onclick="renkSec(\''+r+'\')" title="'+r+'"></button>').join('')+'<input type="text" id="g-hex" class="renk-hex" maxlength="7" value="'+normRenk(g.renk)+'" onkeydown="if(event.key===\'Enter\'){renkSec(this.value)}" title="#rrggbb"></div></div>'
     +'<div class="onizleme-kutu"><div class="onizleme-baslik">ÖNİZLEME</div><div class="onizleme-mesaj" id="g-oniz"></div></div>'
     +'<div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap"><button class="btn" onclick="modalKapat()">İptal</button><button class="btn" onclick="gomuluTaslak()">Taslak Kaydet</button><button class="btn pri" onclick="gomuluGonderModal()">Gönder</button></div></div></div></div>';
   const ta=document.getElementById('g-acik');
@@ -407,7 +419,7 @@ function gomuluDuzenle(i){
     m=m.replace(/</g,'&lt;').replace(/\n/g,'<br>');
     const mm=m.match(/(https?:\/\/\S+)/);
     kutu.innerHTML='<b>'+esc(document.getElementById('g-baslik').value||'Duyuru')+'</b><p>'+m+'</p>'+(mm?'<p><a href="'+mm[1]+'" target="_blank" style="color:var(--acc)">'+mm[1].slice(0,60)+'</a></p>':'');
-    kutu.style.borderLeft='3px solid '+(document.getElementById('g-renk').value||'#8b7cf6');
+    kutu.style.borderLeft='3px solid '+G_RENK;
   };
   ta.addEventListener('input',guncelle);
   document.getElementById('g-baslik').addEventListener('input',guncelle);
@@ -423,7 +435,7 @@ function gOku(){
     baslik:document.getElementById('g-baslik').value.trim().slice(0,100),
     aciklama:document.getElementById('g-acik').value.trim().slice(0,1500),
     kanal:document.getElementById('g-kanal').value||null,
-    renk:document.getElementById('g-renk').value||'#8b7cf6',
+    renk:G_RENK,
   };
 }
 async function gomuluTaslak(){
@@ -616,5 +628,122 @@ function cizGov(c,id){
     +'<div class="field"><label>Güvenlik kanalı</label><select data-k="guvenlikKanal">'+secenek('yazi',FORM.guvenlikKanal,'Bir kanal seçin')+'</select></div></div>'+saveBar();
 }
 
+async function duyuruYukle(){
+  try{
+    const j=await api('/api/duyuru');
+    const bar=document.getElementById('duyuru-bar');
+    if(!bar)return;
+    if(j&&j.duyuru&&j.duyuru.metin){
+      bar.innerHTML='<div class="duyuru-bar"><div class="duyuru-ic"><span style="font-size:18px">📢</span><span><b>'+esc(j.duyuru.baslik||'Duyuru')+'</b><p>'+esc(j.duyuru.metin)+'</p></span><button onclick="this.closest(\'#duyuru-bar\').innerHTML=\'\'">✕</button></div></div>';
+    } else bar.innerHTML='';
+  }catch{}
+}
+function tarihYaz(ms){
+  if(!ms)return '—';
+  const d=new Date(ms);
+  return d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+}
+async function cizAdmin(c){
+  c.innerHTML='<div class="page-h">👑 Admin Paneli</div><div class="page-s">Sadece bot sahipleri görür</div>'
+    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">📊 Genel</h3><div id="ad-genel"><div class="bos">Yükleniyor...</div></div></div>'
+    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">🌍 Sunucular ve Premium</h3><div id="ad-sunucu"><div class="bos">Yükleniyor...</div></div></div>'
+    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">🎟️ Premium Kodları</h3><div class="row3"><div><label>Süre (örn: 30d, 1y)</label><input type="text" id="ad-kodsure" placeholder="30d"></div><div><label>&nbsp;</label><button class="btn pri sm" onclick="adKodUret()">Üret</button></div></div><div id="ad-kodlar" style="margin-top:10px"><div class="bos">Yükleniyor...</div></div></div>'
+    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">📢 Discord Duyuru</h3><div class="field"><label>Sunucu</label><select id="ad-dsunucu"></select></div><div class="field"><label>Kanal</label><select id="ad-dkanal"><option>Önce sunucu seç</option></select></div><div class="field"><label>Mesaj</label><textarea id="ad-dmesaj" rows="3" placeholder="Duyuru metni"></textarea></div><div class="field" style="display:flex;gap:10px;align-items:center"><label class="tgl sm"><input type="checkbox" id="ad-dhepsi"><span class="ray"></span></label><span style="font-size:13px">@everyone ile gönder</span><button class="btn pri sm" style="margin-left:auto" onclick="adDuyuru()">Gönder</button></div></div>'
+    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">📣 Panel Duyurusu (sadece web içi)</h3><div id="ad-pmevcut"></div><div class="field"><label>Başlık</label><input type="text" id="ad-pbaslik" maxlength="100" placeholder="Duyuru"></div><div class="field"><label>Metin</label><textarea id="ad-pmetin" rows="3" maxlength="1000" placeholder="Panelde banner olarak görünür"></textarea></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn pri sm" onclick="adPanelDuyuru()">Yayınla</button><button class="btn sm" onclick="adPanelDuyuruKaldir()">Kaldır</button></div></div>';
+  try{
+    const j=await api('/api/admin/ozet');
+    const g=document.getElementById('ad-genel');
+    if(g)g.innerHTML='<div class="kv-list">'
+      +'<div class="liste-satir"><span>🌍 Sunucu</span><b>'+j.sunucu+'</b></div>'
+      +'<div class="liste-satir"><span>👥 Toplam üye</span><b>'+j.uye+'</b></div>'
+      +'<div class="liste-satir"><span>👑 Premium</span><b>'+j.premiumSayi+'</b></div>'
+      +'<div class="liste-satir"><span>🆓 Free</span><b>'+j.freeSayi+'</b></div>'
+      +'<div class="liste-satir"><span>⏱️ Çalışma</span><b>'+Math.floor((j.uptime||0)/3600)+' sa</b></div></div>';
+    const satir=(s,prem)=>'<div class="liste-satir"><span>🌍 <b>'+esc(s.ad)+'</b> <span style="color:var(--mut)">👥 '+s.uye+(prem?' • 👑 '+tarihYaz(s.bitis):' • free')+'</span></span><span style="display:flex;gap:6px;align-items:center"><input type="number" id="gun-'+s.id+'" placeholder="gün" min="1" max="36500" style="max-width:80px"><button class="btn sm" onclick="adPremium(\''+s.id+'\',true)">Ver</button><button class="btn btn-ghost sm" onclick="adPremium(\''+s.id+'\',false)">Kapat</button></span></div>';
+    const sk=document.getElementById('ad-sunucu');
+    if(sk)sk.innerHTML='<div class="log-sec">👑 Premium ('+(j.premium||[]).length+')</div>'+((j.premium||[]).map(s=>satir(s,true)).join('')||'<div class="bos">Yok</div>')
+      +'<div class="log-sec">🆓 Free ('+(j.free||[]).length+')</div>'+((j.free||[]).map(s=>satir(s,false)).join('')||'<div class="bos">Yok</div>');
+    const ds=document.getElementById('ad-dsunucu');
+    if(ds){
+      const tum=[...(j.premium||[]),...(j.free||[])];
+      ds.innerHTML=tum.map(s=>'<option value="'+s.id+'">'+esc(s.ad)+'</option>').join('');
+      ds.onchange=adKanalDoldur;adKanalDoldur();
+    }
+    adKodListe();adPanelMevcut();
+  }catch{
+    c.innerHTML='<div class="hata-kutu">Yüklenemedi (yetki/bot bağlantısı).</div>';
+  }
+}
+async function adPremium(gid,ac){
+  const gun=parseInt((document.getElementById('gun-'+gid)||{}).value,10)||30;
+  try{
+    await api('/api/admin/premium',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:gid,islem:ac?'ac':'kapat',gun})});
+    toast(ac?'👑 Premium verildi ('+gun+' gün)!':'Premium kapatıldı!');
+    renderContent();
+  }catch{toast('Olmadı!')}
+}
+async function adKanalDoldur(){
+  const gid=document.getElementById('ad-dsunucu').value;
+  const ks=document.getElementById('ad-dkanal');
+  ks.innerHTML='<option>Yükleniyor...</option>';
+  try{
+    const j=await api('/api/admin/kanallar/'+gid);
+    ks.innerHTML=(j.kanallar||[]).map(k=>'<option value="'+k.id+'">'+(k.tip==='ses'?'🔊':'💬')+' #'+esc(k.ad)+'</option>').join('');
+  }catch{ks.innerHTML='<option>Yüklenemedi</option>'}
+}
+async function adDuyuru(){
+  const gid=document.getElementById('ad-dsunucu').value;
+  const kid=document.getElementById('ad-dkanal').value;
+  const mesaj=document.getElementById('ad-dmesaj').value;
+  const everyone=document.getElementById('ad-dhepsi').checked;
+  if(!mesaj.trim()){toast('Mesaj yaz!');return}
+  try{
+    await api('/api/admin/duyuru',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:gid,channelId:kid,mesaj,everyone})});
+    toast('Duyuru gönderildi!');document.getElementById('ad-dmesaj').value='';
+  }catch{toast('Gönderilemedi!')}
+}
+async function adKodListe(){
+  const kutu=document.getElementById('ad-kodlar');if(!kutu)return;
+  try{
+    const j=await api('/api/admin/kodlar');
+    const l=j.kodlar||[];
+    kutu.innerHTML=l.length?l.slice(0,20).map(k=>'<div class="liste-satir"><span><code>'+k.kod+'</code> <span style="color:var(--mut)">'+(k.gun>=36500?'SINIRSIZ':k.gun+' gün')+(k.kullanan?' • kullanıldı':' • boşta')+'</span></span><button class="btn btn-ghost sm" onclick="adKodSil(\''+k.kod+'\')">Sil</button></div>').join(''):'<div class="bos">Kod yok.</div>';
+  }catch{kutu.innerHTML='<div class="bos">Yüklenemedi.</div>'}
+}
+async function adKodUret(){
+  const sure=(document.getElementById('ad-kodsure')||{}).value||'30d';
+  try{
+    const j=await api('/api/admin/kod-uret',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sure})});
+    toast('Kod: '+j.kod);adKodListe();
+  }catch{toast('Üretilemedi!')}
+}
+async function adKodSil(kod){
+  try{
+    await api('/api/admin/kod-sil',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kod})});
+    toast('Silindi!');adKodListe();
+  }catch{toast('Silinemedi!')}
+}
+async function adPanelMevcut(){
+  const kutu=document.getElementById('ad-pmevcut');if(!kutu)return;
+  try{
+    const j=await api('/api/duyuru');
+    kutu.innerHTML=j.duyuru?'<div class="warn yel">📢 Yayında: <b>'+esc(j.duyuru.baslik||'Duyuru')+'</b> — '+esc(String(j.duyuru.metin).slice(0,120))+'</div>':'<div class="hint">Şu an yayında duyuru yok.</div>';
+  }catch{}
+}
+async function adPanelDuyuru(){
+  const baslik=document.getElementById('ad-pbaslik').value;
+  const metin=document.getElementById('ad-pmetin').value;
+  if(!metin.trim()){toast('Metin yaz!');return}
+  try{
+    await api('/api/admin/duyuru-panel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({baslik,metin})});
+    toast('Yayınlandı!');adPanelMevcut();duyuruYukle();
+  }catch{toast('Olmadı!')}
+}
+async function adPanelDuyuruKaldir(){
+  try{
+    await api('/api/admin/duyuru-panel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({baslik:'',metin:''})});
+    toast('Kaldırıldı!');adPanelMevcut();duyuruYukle();
+  }catch{toast('Olmadı!')}
+}
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLocaleLowerCase('tr')==='k'){e.preventDefault();document.getElementById('ara')?.focus()}});
 baslat();

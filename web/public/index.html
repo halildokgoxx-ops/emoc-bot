@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
 <meta name="theme-color" content="#0b0b16">
 <meta name="description" content="EMOÇ — Discord sunucunun süper gücü. Güvenlik, itibar, çekiliş, partner ve dahası!">
-<link rel="stylesheet" href="/styles.css?v=2">
+<link rel="stylesheet" href="/styles.css?v=6">
 <style>
 #ilerleme { position: fixed; top: 0; left: 0; height: 3px; width: 0%;
   background: linear-gradient(90deg, var(--mor, #8b5cf6), var(--pembe, #ec4899));
@@ -117,17 +117,31 @@ function modalAc(baslik, metin, komut) {
 document.getElementById('modal-kapat').onclick = () => document.getElementById('modal').classList.remove('acik');
 document.getElementById('modal').onclick = (e) => { if (e.target.id === 'modal') e.target.classList.remove('acik'); };
 
-fetch('/health').then(r => r.json()).then(j => {
-  document.getElementById('istatistik').innerHTML =
-    `<div class="istat"><b>🌍 ${j.sunucu ?? '?'}</b><span>Sunucu</span></div>` +
-    `<div class="istat"><b>⚡ Çevrimiçi</b><span>Bot Durumu</span></div>` +
-    `<div class="istat"><b>🤖 ${(j.bot || '?').split('#')[0]}</b><span>Bot</span></div>` +
-    `<div class="istat"><b>📖 <span id="komut-sayi">…</span></b><span>Komut</span></div>`;
-  fetch('/api/komutlar').then(r => r.json()).then(k => {
-    const el = document.getElementById('komut-sayi');
-    if (el) el.textContent = k.sayi || '?';
-  }).catch(() => {});
-}).catch(() => {});
+function istatYukle(deneme) {
+  fetch('/health').then(r => r.json()).then(j => {
+    document.getElementById('istatistik').innerHTML =
+      `<div class="istat"><b>🌍 ${j.sunucu ?? '?'}</b><span>Sunucu</span></div>` +
+      `<div class="istat"><b>⚡ Çevrimiçi</b><span>Bot Durumu</span></div>` +
+      `<div class="istat"><b>🤖 ${(j.bot || '?').split('#')[0]}</b><span>Bot</span></div>` +
+      `<div class="istat"><b>📖 <span id="komut-sayi">…</span></b><span>Komut</span></div>`;
+    fetch('/api/komutlar').then(r => r.json()).then(k => {
+      const el = document.getElementById('komut-sayi');
+      if (el) el.textContent = k.sayi || '130+';
+    }).catch(() => {
+      const el = document.getElementById('komut-sayi');
+      if (el) el.textContent = '130+';
+    });
+  }).catch(() => {
+    if (deneme < 3) setTimeout(() => istatYukle(deneme + 1), 2500);
+    else {
+      document.getElementById('istatistik').innerHTML =
+        `<div class="istat"><b>⚡ Çevrimiçi</b><span>Bot Durumu</span></div>` +
+        `<div class="istat"><b>📖 130+</b><span>Komut</span></div>` +
+        `<div class="istat"><b>🛡️ 7</b><span>Koruma Kalkanı</span></div>`;
+    }
+  });
+}
+istatYukle(0);
 window.addEventListener('scroll', () => {
   const h = document.documentElement;
   const oran = h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight);
@@ -143,7 +157,9 @@ fetch('/api/istatistik').then(r => r.json()).then(j => {
     d.innerHTML = `${s.ikon ? `<img src="${s.ikon}" style="width:56px;height:56px;border-radius:50%">` : `<div class="ikon">🌍</div>`}<h3>${s.ad}</h3><p>👥 ${s.uye} üye</p>`;
     g.appendChild(d);
   });
-}).catch(() => {});
+}).catch(() => {
+  document.getElementById('sunucu-grid').innerHTML = '<div class="kart"><div class="ikon">🌍</div><h3>Bot çevrimiçi</h3><p>Giriş yapıp sunucunu bağla!</p></div>';
+});
 fetch('/api/vitrin').then(r => r.json()).then(j => {
   const g = document.getElementById('vitrin-grid');
   if (!g) return;
