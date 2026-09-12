@@ -422,6 +422,27 @@ function mountBotAPI(app, client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
+  // Admin toplu (aksiyon.js) — ince sarmalayıcılar
+  async function adminSarmala(req, res, fn) {
+    try {
+      const r = await fn(client, req.body || {}, req.params || {});
+      const kod = !r ? 500 : r.hata === 'yok' || r.hata === 'bulunamadi' ? 404 : r.hata === 'uye-yok' || r.hata === 'islem' || r.hata === 'premium-yok' ? 400 : r.hata === 'dokunulmaz' ? 403 : r.hata === 'yetki' ? 500 : 200;
+      if (kod !== 200) return res.status(kod).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  }
+  router.post('/admin/uye', (req, res) => adminSarmala(req, res, require('./aksiyon').adminUye));
+  router.post('/admin/premium-sure', (req, res) => adminSarmala(req, res, (c, govde) => require('./aksiyon').adminPremiumSure(govde)));
+  router.get('/admin/analitik', (req, res) => adminSarmala(req, res, require('./aksiyon').adminAnalitik));
+  router.get('/admin/sunucu-full/:id', (req, res) => adminSarmala(req, res, (c, g, p) => require('./aksiyon').adminSunucuFull(c, p.id)));
+  router.get('/admin/komutlar', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutlar));
+  router.post('/admin/komut-durum', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutDurum));
+  router.post('/admin/bakim', (req, res) => adminSarmala(req, res, (c, govde) => require('./aksiyon').adminBakim(govde)));
+  router.get('/admin/yedek', (req, res) => {
+    try { res.json(require('../src/db').db()); }
+    catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   router.get('/admin/saglik', (req, res) => {
     try {
       const d = require('../src/db').db();

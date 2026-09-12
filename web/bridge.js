@@ -330,6 +330,42 @@ function startKopru() {
   app.get('/api/admin/sunucular-detay', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucular-detay'));
   app.post('/api/admin/sunucu-ban', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucu-ban', 'POST'));
   app.post('/api/admin/sunucudan-cik', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucudan-cik', 'POST'));
+  async function adminIlet2(req, res, yol) {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI(yol)); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  }
+  async function adminIletPost(req, res, yol) {
+    if (!adminMi(req, res)) return;
+    try {
+      const r = await fetch(BOT() + yol, {
+        method: 'POST', body: JSON.stringify(req.body || {}),
+        headers: { 'x-bridge-secret': SIR(), 'Content-Type': 'application/json' },
+      });
+      const j = await r.json().catch(() => ({}));
+      res.status(r.status).json(j);
+    } catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  }
+  app.post('/api/admin/uye', (req, res) => adminIletPost(req, res, '/api/bot/admin/uye'));
+  app.post('/api/admin/premium-sure', (req, res) => adminIletPost(req, res, '/api/bot/admin/premium-sure'));
+  app.get('/api/admin/analitik', (req, res) => adminIlet2(req, res, '/api/bot/admin/analitik'));
+  app.get('/api/admin/sunucu-full/:id', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try { res.json(await botAPI(`/api/bot/admin/sunucu-full/${req.params.id}`)); }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+  app.get('/api/admin/komutlar', (req, res) => adminIlet2(req, res, '/api/bot/admin/komutlar'));
+  app.post('/api/admin/komut-durum', (req, res) => adminIletPost(req, res, '/api/bot/admin/komut-durum'));
+  app.post('/api/admin/bakim', (req, res) => adminIletPost(req, res, '/api/bot/admin/bakim'));
+  app.get('/api/admin/yedek', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try {
+      const j = await botAPI('/api/bot/admin/yedek');
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename="emoc-yedek.json"');
+      res.send(JSON.stringify(j));
+    } catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
   app.get('/api/admin/saglik', async (req, res) => {
     if (!adminMi(req, res)) return;
     try {

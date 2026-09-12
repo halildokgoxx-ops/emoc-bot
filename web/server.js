@@ -448,6 +448,28 @@ function startWeb(client) {
       });
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
+  // Admin toplu (aksiyon.js) — direkt mod
+  async function adminSarmala(req, res, fn) {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const r = await fn(client, req.body || {}, req.params || {});
+      const kod = !r ? 500 : r.hata === 'yok' || r.hata === 'bulunamadi' ? 404 : r.hata === 'uye-yok' || r.hata === 'islem' || r.hata === 'premium-yok' ? 400 : r.hata === 'dokunulmaz' ? 403 : r.hata === 'yetki' ? 500 : 200;
+      if (kod !== 200) return res.status(kod).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  }
+  app.post('/api/admin/uye', (req, res) => adminSarmala(req, res, require('./aksiyon').adminUye));
+  app.post('/api/admin/premium-sure', (req, res) => adminSarmala(req, res, (c, govde) => require('./aksiyon').adminPremiumSure(govde)));
+  app.get('/api/admin/analitik', (req, res) => adminSarmala(req, res, require('./aksiyon').adminAnalitik));
+  app.get('/api/admin/sunucu-full/:id', (req, res) => adminSarmala(req, res, (c, g, p) => require('./aksiyon').adminSunucuFull(c, p.id)));
+  app.get('/api/admin/komutlar', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutlar));
+  app.post('/api/admin/komut-durum', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutDurum));
+  app.post('/api/admin/bakim', (req, res) => adminSarmala(req, res, (c, govde) => require('./aksiyon').adminBakim(govde)));
+  app.get('/api/admin/yedek', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try { res.json(require('../src/db').db()); }
+    catch { res.status(500).json({ hata: 'hata' }); }
+  });
   app.get('/api/admin/oturumlar', (req, res) => {
     if (!adminKontrol(req, res)) return;
     try {

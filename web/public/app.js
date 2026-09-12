@@ -1,5 +1,5 @@
 /* Panel v6 */
-const PANEL_SURUM='v14';
+const PANEL_SURUM='v15';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
 let AKTIF='home',GREET='karsilama',ADMIN=false,PREMIUM_AKTIF=false;
 
@@ -618,7 +618,7 @@ function tarihYaz(ms){
   return d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
 }
 let ADMIN_SEKME='genel';
-const ADMIN_SEKMELER=[['genel','\u{1F4CA}','Genel'],['sunucular','\u{1F30D}','Sunucular'],['kodlar','\u{1F39F}\uFE0F','Premium Kodlar\u0131'],['duyuru','\u{1F4E2}','Duyurular']];
+const ADMIN_SEKMELER=[['genel','\u{1F4CA}','Genel'],['sunucular','\u{1F30D}','Sunucular'],['uyeler','\u{1F464}','\u00DCyeler'],['komutlar','\u2328\uFE0F','Komutlar'],['analitik','\u{1F4C8}','Analitik'],['kodlar','\u{1F39F}\uFE0F','Kodlar'],['duyuru','\u{1F4E2}','Duyurular'],['sistem','\u{1F6E0}\uFE0F','Sistem']];
 async function cizAdmin(c){
   c.innerHTML='<div class="page-h">\u{1F451} Admin Paneli</div><div class="page-s">Sadece bot sahipleri g\u00F6r\u00FCr</div>'
     +'<div class="greet-wrap"><div class="greet-side"><h3>\u{1F451} Y\u00F6netim</h3><p>Kategoriye g\u00F6re y\u00F6net.</p>'
@@ -628,6 +628,10 @@ async function cizAdmin(c){
   adSekmeYukle();
 }
 async function adSekmeYukle(){
+  if(ADMIN_SEKME==='uyeler')return adUyelerTab();
+  if(ADMIN_SEKME==='komutlar')return adKomutlarTab();
+  if(ADMIN_SEKME==='analitik')return adAnalitikTab();
+  if(ADMIN_SEKME==='sistem')return adSistemTab();
   if(ADMIN_SEKME==='sunucular')return adSunucular();
   if(ADMIN_SEKME==='kodlar')return adKodlarTab();
   if(ADMIN_SEKME==='duyuru')return adDuyuruTab();
@@ -804,6 +808,141 @@ async function adPanelDuyuruKaldir(){
     await api('/api/admin/duyuru-panel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({baslik:'',metin:''})});
     toast('Kaldırıldı!');adPanelMevcut();duyuruYukle();
   }catch{toast('Olmadı!')}
+}
+
+async function adUyeSunucuDoldur(selId){
+  try{
+    const j=await api('/api/admin/ozet');
+    const tum=[...(j.premium||[]),...(j.free||[])];
+    const sel=document.getElementById(selId);
+    if(sel)sel.innerHTML=tum.map(s=>'<option value="'+s.id+'">'+esc(s.ad)+'</option>').join('');
+  }catch{}
+}
+async function adUyelerTab(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>👤 Üye Bul & İşlem</h3><p>ID ile üye bul, uyar/sustur/at/yasakla.</p></div></div>'
+    +'<div class="row3"><div><label>Sunucu</label><select id="ad-u-sunucu"></select></div><div><label>Kullanıcı ID</label><input type="text" id="ad-u-id" placeholder="örn: 123..." maxlength="25"></div><div><label>&nbsp;</label><button class="btn pri sm" onclick="adUyeBul()">Bul</button></div></div>'
+    +'<div id="ad-u-sonuc" style="margin-top:12px"></div></div>';
+  adUyeSunucuDoldur('ad-u-sunucu');
+}
+async function adUyeBul(){
+  const gid=document.getElementById('ad-u-sunucu').value;
+  const uid=document.getElementById('ad-u-id').value.trim();
+  const kutu=document.getElementById('ad-u-sonuc');
+  if(!gid||!uid){toast('Sunucu + ID gerekli');return}
+  kutu.innerHTML='<div class="bos">Aranıyor...</div>';
+  try{
+    const j=await api('/api/admin/uye',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:gid,userId:uid,islem:'bilgi'})});
+    const u=j.uye;
+    kutu.innerHTML='<div class="kv-list">'
+      +'<div class="liste-satir"><span>👤 Üye</span><b>'+esc(u.tag)+(u.bot?' 🤖':'')+'</b></div>'
+      +'<div class="liste-satir"><span>🆔 ID</span><span style="font-size:12px">'+u.id+'</span></div>'
+      +'<div class="liste-satir"><span>📅 Katılma</span><b>'+tarihYaz(u.katilma)+'</b></div>'
+      +'<div class="liste-satir"><span>🎭 Roller</span><span style="font-size:12px">'+esc((u.roller||[]).join(', ')||'—')+'</span></div>'
+      +'<div class="liste-satir"><span>⚠️ Uyarı</span><b>'+(u.warns||[]).length+'</b></div>'
+      +'<div class="liste-satir"><span>📈 Seviye/XP/Mesaj</span><b>Sv.'+u.level+' • '+u.xp+' XP • '+u.mesaj+' mesaj</b></div>'
+      +'<div class="liste-satir"><span>⭐ İtibar/Para</span><b>'+u.rep+' rep • '+u.para+' coin</b></div></div>'
+      +((u.warns||[]).length?'<div class="hint">Son uyarılar: '+u.warns.slice(-3).map(w=>esc(w.reason||'')).join(' • ')+'</div>':'')
+      +'<div class="field"><label>Sebep / süre (dk, susturma için)</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="ad-u-sebep" placeholder="sebep" style="flex:2;min-width:140px"><input type="number" id="ad-u-sure" placeholder="dk" style="max-width:90px"></div></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
+      +'<button class="btn sm" onclick="adUyeIslem(\''+gid+'\',\''+uid+'\',\'uyar\')">Uyar</button>'
+      +'<button class="btn sm" onclick="adUyeIslem(\''+gid+'\',\''+uid+'\',\'sustur\')">Sustur</button>'
+      +'<button class="btn sm" onclick="adUyeIslem(\''+gid+'\',\''+uid+'\',\'at\')">At</button>'
+      +'<button class="btn sm" onclick="adUyeIslem(\''+gid+'\',\''+uid+'\',\'yasakla\')">Yasakla</button>'
+      +'<button class="btn btn-ghost sm" onclick="adUyeIslem(\''+gid+'\',\''+uid+'\',\'yasakkaldir\')">Yasağı Kaldır</button>'
+      +'<button class="btn btn-ghost sm" onclick="adUyeIslem(\''+gid+'\',\''+uid+'\',\'uyaritemizle\')">Uyarıları Temizle</button></div>';
+  }catch{ kutu.innerHTML='<div class="hata-kutu">Bulunamadı (ID/bot yetkisi kontrol et).</div>'; }
+}
+async function adUyeIslem(gid,uid,islem){
+  if((islem==='at'||islem==='yasakla')&&!confirm('Emin misin? ('+islem+')'))return;
+  const sebep=(document.getElementById('ad-u-sebep')||{}).value||'';
+  const sureDk=(document.getElementById('ad-u-sure')||{}).value||'10';
+  try{
+    const j=await api('/api/admin/uye',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:gid,userId:uid,islem,sebep,sureDk})});
+    if(j.hata==='dokunulmaz'){toast('⛔ Dokunulmaz (sahip/admin/bot)!');return}
+    toast('Tamam: '+islem+'!');
+    if(islem==='bilgi')return;
+    adUyeBul();
+  }catch{toast('Olmadı!')}
+}
+async function adKomutlarTab(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>⌨️ Komut Aç/Kapa</h3><p>Kapalı komutlar prefix + slash dahil çalışmaz.</p></div><button class="btn sm" onclick="adKomutlarTab()">Yenile</button></div><div class="field"><label>Ara</label><input type="text" id="ad-k-ara" placeholder="komut adı..." oninput="adKomutFiltre(this.value)"></div><div id="ad-k-liste"><div class="bos">Yükleniyor...</div></div></div>';
+  try{
+    const j=await api('/api/admin/komutlar');
+    const l=j.komutlar||[];
+    document.getElementById('ad-k-liste').innerHTML=l.map(k=>'<div class="liste-satir ad-k-satir" data-ad="'+k.ad+'"><span> <b>/'+k.ad+'</b> <span style="color:var(--mut2);font-size:11px">'+esc(k.kategori)+'</span></span><label class="tgl sm"><input type="checkbox"'+(k.kapali?'':' checked')+' onchange="adKomutDegistir(\''+k.ad+'\',this.checked)"><span class="ray"></span></label></div>').join('');
+  }catch{ document.getElementById('ad-k-liste').innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'; }
+}
+function adKomutFiltre(v){
+  v=(v||'').toLowerCase();
+  document.querySelectorAll('.ad-k-satir').forEach(el=>{
+    el.style.display=(!v||el.dataset.ad.includes(v))?'':'none';
+  });
+}
+async function adKomutDegistir(ad,acik){
+  try{
+    await api('/api/admin/komut-durum',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({komut:ad,islem:acik?'ac':'kapat'})});
+    toast(acik?'Açıldı: /'+ad:'Kapatıldı: /'+ad);
+  }catch{toast('Olmadı!');adKomutlarTab()}
+}
+async function adAnalitikTab(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  kutu.innerHTML='<div class="panel"><div class="bos">Yükleniyor...</div></div>';
+  try{
+    const j=await api('/api/admin/analitik');
+    const bar=(liste,birim)=>liste.length?liste.map((x,i)=>{const mx=liste[0].d||1;return '<div class="bar-satir"><span style="width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">&lt;@'+x.uid+'&gt;</span><span class="bar-dis"><span class="bar-ic" style="display:block;width:'+Math.max(4,Math.round(x.d/mx*100))+'%"></span></span><b>'+x.d+' '+birim+'</b></div>'}).join(''):'<div class="bos">Veri yok.</div>';
+    kutu.innerHTML='<div class="stat-grid">'
+      +statMini('💬',j.toplamMesaj,'Toplam Mesaj')
+      +statMini('🪙',j.toplamPara,'Toplam Coin')
+      +statMini('⚠️',j.toplamUyari,'Toplam Uyarı')
+      +'</div>'
+      +'<div class="grid2"><div class="panel"><div class="panel-top"><div><h3>💬 En Aktifler</h3></div></div>'+bar(j.topMesaj,'mesaj')+'</div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>🪙 En Zenginler</h3></div></div>'+bar(j.topPara,'coin')+'</div></div>'
+      +'<div class="grid2"><div class="panel"><div class="panel-top"><div><h3>📈 En Yüksek Seviye</h3></div></div>'+bar(j.topSeviye.map(x=>({uid:x.uid,d:Math.floor(x.d/100000)})),'sv')+'</div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>⭐ En İtibarlı</h3></div></div>'+bar(j.topRep,'rep')+'</div></div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>📚 Komut Kategorileri</h3></div></div>'+((j.kategoriler||[]).map(k=>{const mx=(j.kategoriler[0]||{sayi:1}).sayi;return '<div class="bar-satir"><span style="width:130px">'+esc(k.ad)+'</span><span class="bar-dis"><span class="bar-ic" style="display:block;width:'+Math.max(4,Math.round(k.sayi/mx*100))+'%"></span></span><b>'+k.sayi+'</b></div>'}).join('')||'<div class="bos">Yok.</div>')+'</div>';
+  }catch{ kutu.innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'; }
+}
+async function adSistemTab(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  let bakim=null;
+  try{ const s=await api('/api/admin/saglik'); bakim=s.bakim||null; }catch{}
+  kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>🛠️ Bakım Modu</h3><p>Açıkken kurucular hariç kimse komut kullanamaz.</p></div><label class="tgl"><input type="checkbox" id="ad-bakim"'+(bakim&&bakim.aktif?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Bakım mesajı</label><input type="text" id="ad-bakim-msj" maxlength="300" value="'+esc((bakim&&bakim.mesaj)||'')+'" placeholder="Birazdan dönüyoruz."></div>'
+    +'<div style="margin-top:12px"><button class="btn pri sm" onclick="adBakimKaydet()">Kaydet</button></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>💾 Veritabanı Yedeği</h3><p>Tüm ayarlar + kullanıcı verileri JSON olarak iner.</p></div><button class="btn sm" onclick="adYedekIndir()">İndir</button></div></div>';
+}
+async function adBakimKaydet(){
+  const aktif=document.getElementById('ad-bakim').checked;
+  const mesaj=document.getElementById('ad-bakim-msj').value;
+  try{
+    await api('/api/admin/bakim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({aktif,mesaj})});
+    toast(aktif?'Bakım açıldı!':'Bakım kapatıldı!');
+  }catch{toast('Olmadı!')}
+}
+function adYedekIndir(){ window.open('/api/admin/yedek','_blank'); }
+async function adPremiumSure(gid,islem){
+  const inp=document.getElementById('gun-'+gid);
+  const gun=parseInt((inp||{}).value,10)||30;
+  try{
+    const j=await api('/api/admin/premium-sure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:gid,islem,gun})});
+    toast((islem==='kisalt'?'Kısaltıldı':'Uzatıldı')+'! Yeni bitiş: '+tarihYaz(j.bitis));
+    adSekmeYukle();
+  }catch{toast('Olmadı! (premium yok?)')}
+}
+async function adSunucuDetay(gid){
+  document.getElementById('modal-root').innerHTML='<div class="pmodal-bg" onclick="if(event.target===this)modalKapat()"><div class="pmodal"><div class="modal-h"><span>Sunucu Detay\u0131</span><button onclick="modalKapat()">\u2715</button></div><div class="modal-b"><div id="ad-detay-ic"><div class="bos">Y\u00FCkleniyor...</div></div></div></div></div>';
+  try{
+    const j=await api('/api/admin/sunucu-full/'+gid);
+    document.getElementById('ad-detay-ic').innerHTML='<div class="kv-list">'
+      +'<div class="liste-satir"><span>\u{1F30D} Sunucu</span><b>'+esc(j.ad)+'</b></div>'
+      +'<div class="liste-satir"><span>\u{1F465} \u00DCye</span><b>'+j.uye+'</b></div>'
+      +'<div class="liste-satir"><span>\u{1F4AC} Yaz\u0131 / \u{1F50A} Ses / \u{1F4C1} Kategori</span><b>'+j.yazi+' / '+j.ses+' / '+j.kategori+'</b></div>'
+      +'<div class="liste-satir"><span>\u{1F600} Emoji / \u2728 Sticker / \u{1F680} Boost</span><b>'+j.emoji+' / '+j.sticker+' / '+j.boost+'</b></div>'
+      +'<div class="liste-satir"><span>\u{1F4C5} Kurulu\u015F</span><b>'+tarihYaz(j.kurulus)+'</b></div></div>'
+      +'<div class="hint">En kalabal\u0131k roller: '+(j.roller||[]).slice(0,10).map(r=>esc(r.ad)+' ('+r.uye+')').join(', ')+'</div>';
+  }catch{ document.getElementById('ad-detay-ic').innerHTML='<div class="hata-kutu">Y\u00FCklenemedi.</div>'; }
 }
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLocaleLowerCase('tr')==='k'){e.preventDefault();document.getElementById('ara')?.focus()}});
 baslat();

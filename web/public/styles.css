@@ -267,6 +267,16 @@ input[type=file]::file-selector-button{background:linear-gradient(135deg,#a08ffb
 .onizleme-mesaj b{color:#cfc2ff}
 .onizleme-mesaj p{margin-top:4px;line-height:1.6;word-break:break-word}
 
+/* admin istatistik + grafik */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:14px}
+.stat-mini{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:var(--r);padding:16px 12px;text-align:center;box-shadow:var(--sh-sm);transition:transform var(--tr),border-color var(--tr)}
+.stat-mini:hover{transform:translateY(-2px);border-color:rgba(139,124,246,.5)}
+.stat-mini b{font-size:22px;display:block;letter-spacing:-.01em}
+.stat-mini span{font-size:12px;color:var(--mut)}
+.bar-satir{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:12.5px}
+.bar-dis{flex:1;background:#141422;border:1px solid var(--line);border-radius:6px;height:12px;overflow:hidden}
+.bar-ic{height:100%;background:linear-gradient(90deg,#a08ffb,#6d28d9);border-radius:6px;transition:width .5s ease}
+.donut-wrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 /* logs */
 .log-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 28px}
 @media(max-width:900px){.log-grid{grid-template-columns:1fr 1fr}}

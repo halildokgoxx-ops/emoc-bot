@@ -462,6 +462,16 @@ client.on('messageCreate', async (message) => {
     if (cmd.botPerms && !message.guild.members.me.permissions.has(cmd.botPerms[0])) {
       return message.reply('❌ Benim yetkim yetmiyor! (Yönetici ver)');
     }
+    // Bakım modu + kapalı komut (admin paneli)
+    try {
+      const dd = require('./src/db').db();
+      if (dd.bakim && dd.bakim.aktif && !require('./src/premium').sahipMi(message.author.id)) {
+        return message.reply('🛠️ Bot şu an **bakımda!** ' + String(dd.bakim.mesaj || 'Birazdan dönüyoruz.')).catch(() => {});
+      }
+      if ((dd.kapaliKomutlar || []).includes(cmd.name.toLowerCase())) {
+        return message.reply('🔒 Bu komut yönetim tarafından kapatıldı!').catch(() => {});
+      }
+    } catch {}
 
     await cmd.run(message, args, client);
   } catch (e) {
@@ -1402,6 +1412,16 @@ client.on('interactionCreate', async (interaction) => {
   try {
     // 1) Slash komutlar
     if (interaction.isChatInputCommand()) {
+      try {
+        const dd = require('./src/db').db();
+        const PP = require('./src/premium');
+        if (dd.bakim && dd.bakim.aktif && !PP.sahipMi(interaction.user.id)) {
+          return interaction.reply({ content: '🛠️ Bot şu an **bakımda!** ' + String(dd.bakim.mesaj || 'Birazdan dönüyoruz.'), ephemeral: true }).catch(() => {});
+        }
+        if ((dd.kapaliKomutlar || []).includes(interaction.commandName.toLowerCase())) {
+          return interaction.reply({ content: '🔒 Bu komut yönetim tarafından kapatıldı!', ephemeral: true }).catch(() => {});
+        }
+      } catch {}
       return slash.handleSlash(interaction, client, slash.getSlashHarita());
     }
     // 2) Modallar (partner başvuru + ret sebebi)
