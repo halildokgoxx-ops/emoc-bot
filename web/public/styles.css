@@ -258,6 +258,9 @@ input[type=file]::file-selector-button{background:linear-gradient(135deg,#a08ffb
 .duyuru-ic b{color:#ffe9a8}
 .duyuru-ic p{color:#e8d9ac;margin-top:3px;line-height:1.55}
 .duyuru-ic button{margin-left:auto;background:none;border:0;color:var(--mut);cursor:pointer;font-size:15px;flex-shrink:0}
+.duyuru-ic.bakim{background:linear-gradient(90deg,rgba(255,90,110,.16),rgba(255,90,110,.05));border:1px solid rgba(255,90,110,.4)}
+.duyuru-ic.bakim b{color:#ffb3bc}
+.duyuru-ic.bakim p{color:#e8a3ad}
 /* sürüm rozeti */
 .side-ver{margin-top:14px;padding:10px 12px;font-size:11px;color:var(--mut2);text-align:center;border-top:1px solid var(--line)}
 /* embed önizleme */

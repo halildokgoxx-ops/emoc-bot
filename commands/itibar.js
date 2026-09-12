@@ -130,9 +130,11 @@ module.exports = [
   },
   {
     name: '-1', aliases: ['-rep', 'eksirep'], category: 'İtibar',
-    description: 'Etiketlediğin kullanıcıdan -1 itibar alır.',
+    description: 'Kaldırıldı — artık sadece itibar verilebilir.',
     usage: '!-1 @kullanıcı',
-    run: (m, a, c) => repVer(m, a, -1, c),
+    async run(message) {
+      return message.reply('❌ Eksi itibar **kaldırıldı!** Artık sadece `!1` ile itibar **verebilirsin**, alamazsın. ⭐');
+    },
   },
   {
     name: 'itibar', aliases: ['rep', 'sayginlik', 'saygınlık'], category: 'İtibar',
@@ -250,7 +252,7 @@ async function repRolKontrol(guild, uyeId, yeniPuan) {
 const itibarSlash = {
   data: {
     name: 'itibar',
-    description: '⭐ İtibar sistemi: bak, sıralama, ver, al, ayarlar',
+    description: '⭐ İtibar sistemi: bak, sıralama, ver, ayarlar',
     contexts: [0],
     options: [
       {
@@ -262,14 +264,6 @@ const itibarSlash = {
         type: 1, name: 'ver', description: '[Yetkili] İtibar ver (bekleme yok)',
         options: [
           { type: 6, name: 'kullanici', description: 'Kime?', required: true },
-          { type: 4, name: 'miktar', description: 'Kaç puan? (1-10)', required: false, min_value: 1, max_value: 10 },
-          { type: 3, name: 'sebep', description: 'Sebep', required: false },
-        ],
-      },
-      {
-        type: 1, name: 'al', description: '[Yetkili] İtibar al (bekleme yok)',
-        options: [
-          { type: 6, name: 'kullanici', description: 'Kimden?', required: true },
           { type: 4, name: 'miktar', description: 'Kaç puan? (1-10)', required: false, min_value: 1, max_value: 10 },
           { type: 3, name: 'sebep', description: 'Sebep', required: false },
         ],
@@ -310,10 +304,12 @@ const itibarSlash = {
     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
       return interaction.reply({ content: '❌ Sunucuyu Yönet yetkisi gerek!', ephemeral: true });
     }
-    if (alt === 'ver' || alt === 'al') {
+    if (alt === 'al') {
+      return interaction.reply({ content: '❌ Eksi itibar **kaldırıldı!** Artık sadece itibar **verilebilir**, alınamaz. ⭐', ephemeral: true });
+    }
+    if (alt === 'ver') {
       const u = interaction.options.getUser('kullanici');
-      const ham = Math.abs(interaction.options.getInteger('miktar') || 1);
-      const miktar = alt === 'ver' ? ham : -ham;
+      const miktar = Math.abs(interaction.options.getInteger('miktar') || 1);
       const sebep = interaction.options.getString('sebep') || 'Yetkili işlemi';
       if (!u || u.bot) return interaction.reply({ content: '❌ Geçerli bir kullanıcı seç!', ephemeral: true });
       const d = getUser(interaction.guild.id, u.id);
@@ -324,7 +320,7 @@ const itibarSlash = {
       let rolOdul = [];
       try { rolOdul = await repRolKontrol(interaction.guild, u.id, d.rep); } catch {}
       const yildiz = E(client, 'yildiz', '⭐');
-      return interaction.reply({ embeds: [ok(`${miktar > 0 ? `${yildiz} +` : '−'}${Math.abs(miktar)} itibar ${alt === 'ver' ? 'verildi' : 'alındı'}!\n👤 ${u} → yeni puan: **${d.rep}** ${repRozet(d.rep)}\n📝 ${sebep}${rolOdul.length ? `\n🎭 Rol ödülü: ${rolOdul.join(' ')}` : ''}`)] });
+      return interaction.reply({ embeds: [ok(`${yildiz} +${miktar} itibar verildi!\n👤 ${u} → yeni puan: **${d.rep}** ${repRozet(d.rep)}\n📝 ${sebep}${rolOdul.length ? `\n🎭 Rol ödülü: ${rolOdul.join(' ')}` : ''}`)] });
     }
     if (alt === 'sure-ayarla') {
       const dk = interaction.options.getInteger('dakika');

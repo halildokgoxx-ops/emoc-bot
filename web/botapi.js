@@ -349,8 +349,8 @@ function mountBotAPI(app, client) {
   router.get('/panel-duyuru', (req, res) => {
     try {
       const d = require('../src/db').db();
-      res.json({ duyuru: d.panelDuyuru || null });
-    } catch { res.json({ duyuru: null }); }
+      res.json({ duyuru: d.panelDuyuru || null, bakim: d.bakim || null });
+    } catch { res.json({ duyuru: null, bakim: null }); }
   });
   router.post('/panel-duyuru', (req, res) => {
     try {

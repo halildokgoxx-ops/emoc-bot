@@ -1,7 +1,7 @@
 /* Panel v6 */
-const PANEL_SURUM='v15';
+const PANEL_SURUM='v16';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
-let AKTIF='home',GREET='karsilama',ADMIN=false,PREMIUM_AKTIF=false;
+let AKTIF='home',GREET='karsilama',ADMIN=false,PREMIUM_AKTIF=false,BAKIM=null;
 
 const AM_LIST=[
   {k:'amReklam',ad:'Reklamları engelle',ac:'Reklam içeren mesajları siler'},
@@ -74,7 +74,7 @@ async function sunucuAc(id){
     SICON=null;
     const gg=GUILDS.find(x=>x.id===id);
     if(gg&&gg.ikon)SICON='https://cdn.discordapp.com/icons/'+id+'/'+gg.ikon+'.png?size=64';
-    AKTIF='home';GREET='karsilama';
+    AKTIF='home';GREET='karsilama';if(BAKIM)toast('🛠️ Bot bakımda: ayarlar şu an uygulanmayabilir!');
     renderAll();
   }catch{ document.getElementById('content').innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'; }
 }
@@ -607,11 +607,14 @@ async function duyuruYukle(){
     const j=await api('/api/duyuru');
     const bar=document.getElementById('duyuru-bar');
     if(!bar)return;
-    if(j&&j.duyuru&&j.duyuru.metin){
-      bar.innerHTML='<div class="duyuru-bar"><div class="duyuru-ic"><span style="font-size:18px">📢</span><span><b>'+esc(j.duyuru.baslik||'Duyuru')+'</b><p>'+esc(j.duyuru.metin)+'</p></span><button onclick="this.closest(\'#duyuru-bar\').innerHTML=\'\'">✕</button></div></div>';
-    } else bar.innerHTML='';
+    BAKIM=(j&&j.bakim&&j.bakim.aktif)?j.bakim:null;
+    let html='';
+    if(BAKIM)html+='<div class="duyuru-bar"><div class="duyuru-ic bakim"><span style="font-size:18px">🛠️</span><span><b>Bakımda</b><p>'+esc(BAKIM.mesaj||'Bot şu an bakımda, bazı işlevler çalışmayabilir.')+'</p></span></div></div>';
+    if(j&&j.duyuru&&j.duyuru.metin)html+='<div class="duyuru-bar"><div class="duyuru-ic"><span style="font-size:18px">📢</span><span><b>'+esc(j.duyuru.baslik||'Duyuru')+'</b><p>'+esc(j.duyuru.metin)+'</p></span><button onclick="duyuruKapat()">✕</button></div></div>';
+    bar.innerHTML=html;
   }catch{}
 }
+function duyuruKapat(){const bar=document.getElementById('duyuru-bar');if(bar)bar.innerHTML='';}
 function tarihYaz(ms){
   if(!ms)return '—';
   const d=new Date(ms);

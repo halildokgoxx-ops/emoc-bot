@@ -342,8 +342,9 @@ function startWeb(client) {
     const s = oturum(req);
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
     try {
-      res.json({ duyuru: require('../src/db').db().panelDuyuru || null });
-    } catch { res.json({ duyuru: null }); }
+      const d = require('../src/db').db();
+      res.json({ duyuru: d.panelDuyuru || null, bakim: d.bakim || null });
+    } catch { res.json({ duyuru: null, bakim: null }); }
   });
   app.post('/api/admin/duyuru-panel', (req, res) => {
     if (!adminKontrol(req, res)) return;
