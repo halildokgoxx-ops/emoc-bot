@@ -90,7 +90,7 @@ function startKopru() {
     let bot = null;
     try {
       const p = await botAPI('/api/bot/ping');
-      bot = { tag: p.bot, sunucu: p.sunucu };
+      bot = { tag: p.bot, sunucu: p.sunucu, surum: p.surum || 'bilinmiyor' };
     } catch (e) { bot = { hata: e.message }; }
     res.json({ ok: true, kopru: true, bot });
   });
@@ -330,6 +330,14 @@ function startKopru() {
   app.get('/api/admin/sunucular-detay', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucular-detay'));
   app.post('/api/admin/sunucu-ban', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucu-ban', 'POST'));
   app.post('/api/admin/sunucudan-cik', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucudan-cik', 'POST'));
+  app.get('/api/admin/saglik', async (req, res) => {
+    if (!adminMi(req, res)) return;
+    try {
+      const j = await botAPI('/api/bot/admin/saglik');
+      j.oturum = sessions.size;
+      res.json(j);
+    } catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
   app.get('/api/admin/oturumlar', (req, res) => {
     if (!adminMi(req, res)) return;
     try {

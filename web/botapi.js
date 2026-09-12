@@ -21,6 +21,7 @@ function mountBotAPI(app, client) {
     bot: client.user ? client.user.tag : '?',
     sunucu: client.guilds.cache.size,
     uptime: Math.floor(process.uptime()),
+    surum: '20260912-fix3',
   }));
 
   router.get('/guilds', (req, res) => {
@@ -418,6 +419,20 @@ function mountBotAPI(app, client) {
       if (!g) return res.status(404).json({ hata: 'yok' });
       g.leave().catch(() => {});
       res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  router.get('/admin/saglik', (req, res) => {
+    try {
+      const d = require('../src/db').db();
+      const mem = process.memoryUsage();
+      res.json({
+        uptime: Math.floor(process.uptime()),
+        bellekMB: Math.round(mem.heapUsed / 1048576),
+        kullancilar: Object.keys(d.users || {}).length,
+        sunucular: Object.keys(d.guilds || {}).length,
+        vitrin: (d.vitrin || []).length,
+      });
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
