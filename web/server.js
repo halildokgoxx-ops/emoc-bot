@@ -39,7 +39,7 @@ setInterval(() => {
 const PREMIUM_AYARLAR = new Set([
   'yapiskan', 'seviyeHiz', 'girisDM', 'girisDMAt',
   'sesXP', 'sesXPDakika', 'sesXPMin', 'sesXPAfk',
-  'prefix', 'davetRolu', 'govDavet', 'govHesap',
+  'prefix', 'davetRolu', 'govDavet', 'govHesap', 'webhookOnayKanal',
 ]);
 // Webden değiştirilebilir ayar şeması: key -> tip
 const SEMA = {
@@ -429,6 +429,21 @@ function startWeb(client) {
       if (!g) return res.status(404).json({ hata: 'yok' });
       g.leave().catch(() => {});
       res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+  app.get('/api/admin/saglik', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const d = require('../src/db').db();
+      const mem = process.memoryUsage();
+      res.json({
+        uptime: Math.floor(process.uptime()),
+        bellekMB: Math.round(mem.heapUsed / 1048576),
+        kullancilar: Object.keys(d.users || {}).length,
+        sunucular: Object.keys(d.guilds || {}).length,
+        vitrin: (d.vitrin || []).length,
+        oturum: sessions.size,
+      });
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
   app.get('/api/admin/oturumlar', (req, res) => {

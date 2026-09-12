@@ -188,6 +188,14 @@ input[type=file]::file-selector-button{background:linear-gradient(135deg,#a08ffb
 /* premium şeffaf banner */
 .prem-banner{display:flex;align-items:center;gap:12px;border-radius:10px;padding:13px 16px;font-size:13px;margin-bottom:16px;color:#f3d68a;background:linear-gradient(90deg,rgba(232,193,90,.14),rgba(232,193,90,.04));border:1px solid rgba(232,193,90,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 4px 16px rgba(232,193,90,.08)}
 .prem-banner b{color:#ffe9a8}
+/* premium içerikli özellik kilit ekranı */
+.prem-lock-wrap{position:relative;overflow:hidden;min-height:340px}
+.prem-blur{filter:blur(8px);opacity:.45;pointer-events:none;user-select:none}
+.prem-lock{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;background:rgba(14,14,24,.5);padding:24px;border-radius:var(--r)}
+.prem-lock-ic{font-size:46px;filter:drop-shadow(0 8px 22px rgba(232,193,90,.5));animation:oyuzen 3s ease-in-out infinite}
+@keyframes oyuzen{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.prem-lock b{font-size:18px;letter-spacing:-.01em}
+.prem-lock p{color:var(--mut);font-size:13px;max-width:360px;line-height:1.6}
 /* premium şeffaf kilit */
 .panel.kilitli{position:relative;overflow:hidden}
 .kilit{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:rgba(18,18,30,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-radius:var(--r)}

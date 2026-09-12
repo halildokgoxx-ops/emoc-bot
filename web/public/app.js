@@ -1,7 +1,7 @@
 /* Panel v6 */
 const PANEL_SURUM='v11';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
-let AKTIF='home',GREET='karsilama',ADMIN=false;
+let AKTIF='home',GREET='karsilama',ADMIN=false,PREMIUM_AKTIF=false;
 
 const AM_LIST=[
   {k:'amReklam',ad:'Reklamları engelle',ac:'Reklam içeren mesajları siler'},
@@ -69,7 +69,7 @@ async function sunucuAc(id){
   document.getElementById('content').innerHTML='<div class="yukleniyor">Ayarlar yükleniyor...</div>';
   try{
     const j=await api('/api/guild/'+id);
-    SID=id;SNAME=j.ad;KANALLAR=j.kanallar||[];ROLLER=j.roller||[];FORM=Object.assign({},j.ayarlar||{});
+    SID=id;SNAME=j.ad;KANALLAR=j.kanallar||[];ROLLER=j.roller||[];FORM=Object.assign({},j.ayarlar||{});PREMIUM_AKTIF=!!j.prem;
     const ic=j.ad?j.ad[0].toUpperCase():'?';
     SICON=null;
     const gg=GUILDS.find(x=>x.id===id);
@@ -83,7 +83,7 @@ const NAV=[
   {sec:null,items:[['home','🏠','Kontrol Paneli']]},
   {sec:null,items:[['ayarlar','⚙️','Ayarlar'],['premium','⭐','Premium'],['gomulu','📝','Gömülü Mesajlar']]},
   {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi'],['medya','🎨','Medya Yükle']]},
-  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡️','Hesap Filtresi','👑'],['govRol','🎭','Rol Limitlemeleri'],['govBot','🤖','Bot Filtresi'],['govYasak','⛔','Yasaklama Limiti'],['govAtma','🚪','Atma Limiti'],['govKanal','📁','Kanal Limitlemeleri'],['govWebhook','🪝','Anti-Webhook'],['govEmoji','😎','Emoji Limitleri']]},
+  {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡️','Hesap Filtresi','👑'],['govRol','🎭','Rol Limitlemeleri'],['govBot','🤖','Bot Filtresi'],['govYasak','⛔','Yasaklama Limiti'],['govAtma','🚪','Atma Limiti'],['govKanal','📁','Kanal Limitlemeleri'],['govWebhook','🪝','Anti-Webhook','👑'],['govEmoji','😎','Emoji Limitleri']]},
 ];
 const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',admin:'Admin Paneli',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
 
@@ -179,8 +179,8 @@ function renderContentIc(){
 }
 
 function cizHome(c){
-  const kart=(id,icon,ad,ac,yeni)=>{
-    return '<button class="mod-card" onclick="git(\''+id+'\')"><span class="mi">'+icon+'</span><span><b>'+ad+(yeni?' <span class="yeni-tag">YENİ</span>':'')+'</b><p>'+ac+'</p></span></button>';
+  const kart=(id,icon,ad,ac,yeni,tac)=>{
+    return '<button class="mod-card" onclick="git(\''+id+'\')"><span class="mi">'+icon+'</span><span><b>'+ad+(yeni?' <span class="yeni-tag">YENİ</span>':'')+(tac?' <span class="tac">👑</span>':'')+'</b><p>'+ac+'</p></span></button>';
   };
   c.innerHTML='<div class="page-h">Kontrol Paneli</div><div class="page-s">Kontrol paneline hoş geldiniz</div>'
     +'<div class="sec-h">Sunucu Yönetimi</div><div class="kart-grid">'
@@ -194,15 +194,15 @@ function cizHome(c){
     +kart('etiket','🏷️','Sunucu Etiketi','Üyeler sunucu etiketinizi aldığında otomatik rol verin')
     +kart('medya','🎨','Medya Yükle','Toplu emoji ve sticker yükleyin.')
     +'</div><div class="sec-h">Güvenlik</div><div class="kart-grid">'
-    +kart('govDavet','🔗','Davet Koruması','Sunucuya izinsiz davet paylaşımlarını engelleyin.')
-    +kart('govHesap','🛡','Hesap Filtresi','Yeni ve şüpheli hesapları otomatik filtreleyin.')
+    +kart('govDavet','🔗','Davet Koruması','Sunucuya izinsiz davet paylaşımlarını engelleyin.',false,true)
+    +kart('govHesap','🛡️','Hesap Filtresi','Yeni ve şüpheli hesapları otomatik filtreleyin.',false,true)
     +kart('govRol','🎭','Rol Limitlemeleri','Rol verme ve alma işlemlerini sınırlayın.')
     +kart('govBot','🤖','Bot Filtresi','Onaylanmamış bot girişlerini engelleyin.')
     +kart('govYasak','⛔','Yasaklama Limiti','Toplu yasaklamaları sınırlayın.')
     +kart('govAtma','🚪','Atma Limiti','Toplu atmaları sınırlayın.')
     +kart('govKanal','#??','Kanal Limitlemeleri','Kanal açma ve silme işlemlerini sınırlayın.')
-    +kart('govWebhook','🪝','Anti-Webhook','İzinsiz webhookları otomatik silin',true)
-    +kart('govEmoji','😎','Emoji Limitleri','Emoji spamını ve izinsiz emoji eklemeyi sınırlayın',true)
+    +kart('govWebhook','🪝','Anti-Webhook','İzinsiz webhookları onaya düşürür veya siler',false,true)
+    +kart('govEmoji','😎','Emoji Limitleri','Emoji spamını ve izinsiz emoji eklemeyi sınırlar',false)
     +'</div>';
 }
 
@@ -547,6 +547,7 @@ async function erTepkiTumu(){
 
 /* etiket */
 async function cizEtiket(c){
+  if(!PREMIUM_AKTIF){ c.innerHTML='<div class="page-h">Sunucu Etiketi 👑</div><div class="page-s">Etiket alan üyelere otomatik rol</div><div class="panel prem-lock-wrap"><div class="prem-lock"><div class="prem-lock-ic">👑</div><b>Premium İçerikli Özellik</b><p>Etiket rolü premium sunuculara özel. Bu sunucuda premium yok.</p><button class="btn pri sm" onclick="git(\'premium\')">👑 Premium Bilgi</button></div><div class="prem-blur"><div class="panel-top"><div><h3>Sunucu Etiketi</h3><p>Etiket + rol ayarla, gerisini bot halleder.</p></div></div></div></div>'; return; }
   c.innerHTML='<div class="page-h">Sunucu Etiketi</div><div class="page-s">Üyeler sunucu etiketinizi aldığında otomatik rol verilir</div>'
     +'<div class="panel"><div class="row3"><div><label>Etiket</label><input type="text" id="et-tag" maxlength="20" placeholder="örn: ★"></div><div><label>Rol</label><select id="et-rol">'+secenek('rol','','Seçin')+'</select></div><div><label>&nbsp;</label><button class="btn pri" onclick="etKaydet()">Kaydet</button></div></div><div id="et-durum" style="margin-top:12px;color:var(--mut);font-size:13px">Yükleniyor...</div><div class="hint">Etiketi alan üyeler otomatik algılanır, rolü olmayanlara eklenir, etiketi çıkarandan alınır.</div></div>'+saveBar();
   try{
@@ -629,7 +630,7 @@ function cizGovIc(c,id){
     govWebhook:'İzinsiz webhookları onaya düşürür veya siler. 👑',
     govEmoji:'Yetkisiz emoji ve sticker eklemelerini kaldırır.'
   }[id]||'';
-  const premKilit=(id==='govDavet'||id==='govHesap')&&!PREMIUM_AKTIF;
+  const premKilit=(id==='govDavet'||id==='govHesap'||id==='govWebhook')&&!PREMIUM_AKTIF;
   let limitHtml='';
   if(GOV_LIMIT[id]){
     const [sK,dK,birim]=GOV_LIMIT[id];
@@ -642,12 +643,13 @@ function cizGovIc(c,id){
   if(id==='govDavet')ekstra='<div class="field"><label>Muaf roller (davet paylaşabilir)</label>'+rolChips('davetMuaf')+'<div class="hint">Seçili roller + yönetici/mesaj yönetimi olanlar etkilenmez.</div></div>';
   if(id==='govWebhook')ekstra='<div class="field"><label>Onay kanalı (premium)</label><select data-k="webhookOnayKanal">'+secenek('yazi',FORM.webhookOnayKanal,'Seçilmezse direkt silinir')+'</select><div class="hint">Biri izinsiz webhook açarsa webhook silinir, isteği onaya düşer: kim istedi etiketlenir, ID görünür, Onayla/Reddet butonu gelir.</div></div>';
   if(id==='govHesap')ekstra='<div class="field"><label>Minimum hesap yaşı (gün)</label><input type="number" data-k="govHesapGun" value="'+(FORM.govHesapGun??7)+'" min="1" max="30"'+(premKilit?' disabled':'')+'><div class="hint">Hesabı bundan yeni olan üyeler sunucuya alınmaz.</div></div>';
-  const premBanner=premKilit?'<div class="prem-banner">👑<span><b>Premium Koruması</b> — bu ayar premium sunucularda çalışır, ayarları yine de inceleyebilirsin.</span></div>':'';
-  c.innerHTML='<div class="page-h">'+ad+(premKilit?' 👑':'')+'</div><div class="page-s">'+acik+'</div>'
-    +'<div class="panel">'+premBanner+'<div class="panel-top"><div><h3>'+ad+'</h3><p>'+acik+'</p></div><label class="tgl"><input type="checkbox" data-k="'+id+'"'+(FORM[id]?' checked':'')+(premKilit?' disabled':'')+'><span class="ray"></span></label></div>'
+  const govde='<div class="panel-top"><div><h3>'+ad+'</h3><p>'+acik+'</p></div><label class="tgl"><input type="checkbox" data-k="'+id+'"'+(FORM[id]?' checked':'')+'><span class="ray"></span></label></div>'
     +limitHtml+ekstra
-    +'<div class="warn yel">⚠ Bu koruma tetiklendiğinde olay güvenlik kanalına kaydedilir.</div>'
-    +'<div class="field"><label>Güvenlik kanalı</label><select data-k="guvenlikKanal">'+secenek('yazi',FORM.guvenlikKanal,'Bir kanal seçin')+'</select></div></div>'+saveBar();
+    +'<div class="warn yel">\u26A0 Bu koruma tetiklendi\u011Finde olay g\u00FCvenlik kanal\u0131na kaydedilir.</div>'
+    +'<div class="field"><label>G\u00FCvenlik kanal\u0131</label><select data-k="guvenlikKanal">'+secenek('yazi',FORM.guvenlikKanal,'Bir kanal se\u00E7in')+'</select></div>';
+  const kilitEkrani=premKilit?'<div class="prem-lock"><div class="prem-lock-ic">\u{1F451}</div><b>Premium \u0130\u00E7erikli \u00D6zellik</b><p>Bu \u00F6zellik premium sunuculara \u00F6zel. Bu sunucuda premium yok.</p><button class="btn pri sm" onclick="git(\'premium\')">\u{1F451} Premium Bilgi</button></div>':'';
+  c.innerHTML='<div class="page-h">'+ad+(premKilit?' \u{1F451}':'')+'</div><div class="page-s">'+acik+'</div>'
+    +(premKilit?'<div class="panel prem-lock-wrap">'+kilitEkrani+'<div class="prem-blur">'+govde+'</div></div>':'<div class="panel">'+govde+'</div>'+saveBar());
 }
 
 async function duyuruYukle(){
@@ -681,24 +683,49 @@ async function adSekmeYukle(){
   if(ADMIN_SEKME==='duyuru')return adDuyuruTab();
   return adGenel();
 }
+function statMini(icon,deger,ad){
+  return '<div class="stat-mini"><b>'+icon+' '+deger+'</b><span>'+ad+'</span></div>';
+}
 async function adGenel(){
   const kutu=document.getElementById('ad-icerik');if(!kutu)return;
   try{
     const j=await api('/api/admin/ozet');
+    let saglik=null;
+    try{ saglik=await api('/api/admin/saglik'); }catch{}
+    const tum=[...(j.premium||[]),...(j.free||[])].sort((a,b)=>b.uye-a.uye);
+    const top=tum.slice(0,8);
+    const maxUye=top.length?Math.max(1,top[0].uye):1;
+    const toplam=(j.premiumSayi||0)+(j.freeSayi||0);
+    const C=(2*Math.PI*30).toFixed(1);
+    const premFrac=toplam?(j.premiumSayi/toplam):0;
     let otHtml='<div class="bos">Y\u00FCklenemedi.</div>';
     try{
       const o=await api('/api/admin/oturumlar');
       const l=o.oturumlar||[];
       otHtml=l.length?l.map(s=>'<div class="liste-satir"><span>\u{1F464} <b>'+esc(s.username)+'</b> <span style="color:var(--mut2);font-size:11px">'+s.id+'</span></span><span style="font-size:12px;color:var(--mut)">biti\u015F: '+tarihYaz(s.bitis)+'</span></div>').join(''):'<div class="bos">Aktif web oturumu yok.</div>';
     }catch{}
-    kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>\u{1F4CA} Genel</h3><p>Bot durumu.</p></div><button class="btn sm" onclick="adSekmeYukle()">Yenile</button></div>'
-      +'<div class="kv-list">'
-      +'<div class="liste-satir"><span>\u{1F30D} Sunucu</span><b>'+j.sunucu+'</b></div>'
-      +'<div class="liste-satir"><span>\u{1F465} Toplam \u00FCye</span><b>'+j.uye+'</b></div>'
-      +'<div class="liste-satir"><span>\u{1F451} Premium</span><b>'+j.premiumSayi+'</b></div>'
-      +'<div class="liste-satir"><span>\u{1F193} Free</span><b>'+j.freeSayi+'</b></div>'
-      +'<div class="liste-satir"><span>\u23F1\uFE0F \u00C7al\u0131\u015Fma</span><b>'+Math.floor((j.uptime||0)/3600)+' sa</b></div></div></div>'
-      +'<div class="panel"><div class="panel-top"><div><h3>\u{1F464} Web Oturumlar\u0131 ('+(function(){try{return ''}catch{return ''}})()+')</h3><p>Siteye giri\u015F yapm\u0131\u015F hesaplar (ID ile).</p></div></div>'+otHtml+'</div>';
+    kutu.innerHTML='<div class="stat-grid">'
+      +statMini('\u{1F30D}',j.sunucu,'Sunucu')
+      +statMini('\u{1F465}',j.uye,'Toplam \u00DCye')
+      +statMini('\u{1F451}',j.premiumSayi,'Premium')
+      +statMini('\u{1F193}',j.freeSayi,'Free')
+      +'</div>'
+      +'<div class="grid2">'
+      +'<div class="panel"><div class="panel-top"><div><h3>\u{1F451} Premium Da\u011F\u0131l\u0131m\u0131</h3></div></div><div class="donut-wrap">'
+      +'<svg width="110" height="110" viewBox="0 0 110 110"><defs><linearGradient id="pgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a08ffb"/><stop offset="1" stop-color="#6d28d9"/></linearGradient></defs><circle cx="55" cy="55" r="30" fill="none" stroke="#2c2c44" stroke-width="14"/><circle cx="55" cy="55" r="30" fill="none" stroke="url(#pgrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="'+(2*Math.PI*30*premFrac).toFixed(1)+' '+C+'" transform="rotate(-90 55 55)"/><text x="55" y="61" text-anchor="middle" fill="#fff" font-size="16" font-weight="800">'+Math.round(premFrac*100)+'%</text></svg>'
+      +'<div><div style="font-size:13px">\u{1F451} Premium: <b>'+j.premiumSayi+'</b></div><div style="font-size:13px;color:var(--mut)">\u{1F193} Free: <b>'+j.freeSayi+'</b></div></div>'
+      +'</div></div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>\u2764\uFE0F Sa\u011Fl\u0131k</h3></div><button class="btn sm" onclick="adSekmeYukle()">Yenile</button></div>'
+      +(saglik?'<div class="kv-list">'
+        +'<div class="liste-satir"><span>\u23F1\uFE0F \u00C7al\u0131\u015Fma</span><b>'+Math.floor((saglik.uptime||0)/3600)+' sa</b></div>'
+        +'<div class="liste-satir"><span>\u{1F9E0} Bellek</span><b>'+saglik.bellekMB+' MB</b></div>'
+        +'<div class="liste-satir"><span>\u{1F464} Kay\u0131tl\u0131 kullan\u0131c\u0131</span><b>'+saglik.kullancilar+'</b></div>'
+        +'<div class="liste-satir"><span>\u{1F4AC} Web oturumu</span><b>'+(saglik.oturum==null?'?':saglik.oturum)+'</b></div></div>'
+       :'<div class="bos">Al\u0131namad\u0131.</div>')+'</div>'
+      +'</div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>\u{1F4CA} \u00DCye Da\u011F\u0131l\u0131m\u0131 (en kalabal\u0131k 8)</h3></div></div>'
+      +(top.length?top.map(s=>'<div class="bar-satir"><span style="width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(s.ad)+'</span><span class="bar-dis"><span class="bar-ic" style="display:block;width:'+Math.max(4,Math.round(s.uye/maxUye*100))+'%"></span></span><b>'+s.uye+'</b></div>').join(''):'<div class="bos">Yok.</div>')+'</div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>\u{1F464} Web Oturumlar\u0131</h3><p>Siteye giri\u015F yapm\u0131\u015F hesaplar (ID ile).</p></div></div>'+otHtml+'</div>';
   }catch{ kutu.innerHTML='<div class="hata-kutu">Y\u00FCklenemedi (yetki/bot ba\u011Flant\u0131s\u0131).</div>'; }
 }
 async function adSunucular(){
