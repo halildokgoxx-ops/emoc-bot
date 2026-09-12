@@ -1,5 +1,5 @@
 /* Panel v6 */
-const PANEL_SURUM='v13';
+const PANEL_SURUM='v14';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
 let AKTIF='home',GREET='karsilama',ADMIN=false,PREMIUM_AKTIF=false;
 
@@ -82,7 +82,7 @@ async function sunucuAc(id){
 const NAV=[
   {sec:null,items:[['home','🏠','Kontrol Paneli']]},
   {sec:null,items:[['ayarlar','⚙️','Ayarlar'],['premium','⭐','Premium'],['gomulu','📝','Gömülü Mesajlar']]},
-  {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi'],['medya','🎨','Medya Yükle']]},
+  {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi','👑'],['medya','🎨','Medya Yükle']]},
   {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡️','Hesap Filtresi','👑'],['govRol','🎭','Rol Limitlemeleri'],['govBot','🤖','Bot Filtresi'],['govYasak','⛔','Yasaklama Limiti'],['govAtma','🚪','Atma Limiti'],['govKanal','📁','Kanal Limitlemeleri'],['govWebhook','🪝','Anti-Webhook','👑'],['govEmoji','😎','Emoji Limitleri']]},
 ];
 const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',admin:'Admin Paneli',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
@@ -191,7 +191,7 @@ function cizHome(c){
     +kart('denetim','📋','Denetim Kaydı','Sunucunuzda olanların kaydını tutar')
     +kart('otocevap','🤖','Otomatik Cevap','Mesaj tetiklemelerini yönetin')
     +kart('emojirol','😀','Emoji Rol','Üyelerin mesajlara tepki vererek rol almasını sağlar')
-    +kart('etiket','🏷️','Sunucu Etiketi','Üyeler sunucu etiketinizi aldığında otomatik rol verin')
+    +kart('etiket','🏷️','Sunucu Etiketi','Üyeler sunucu etiketinizi aldığında otomatik rol verin',false,true)
     +kart('medya','🎨','Medya Yükle','Toplu emoji ve sticker yükleyin.')
     +'</div><div class="sec-h">Güvenlik</div><div class="kart-grid">'
     +kart('govDavet','🔗','Davet Koruması','Sunucuya izinsiz davet paylaşımlarını engelleyin.',false,true)
