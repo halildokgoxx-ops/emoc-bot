@@ -1186,6 +1186,37 @@ async function tepkiEsles(guild, reaction, user) {
 client.on('messageReactionAdd', async (reaction, user) => {
   const r = await tepkiEsles(reaction.message.guild, reaction, user).catch(() => null);
   if (r) await r.uye.roles.add(r.rol, 'Emoji rol').catch(() => {});
+  // ⭐ Starboard (premium): eşik yıldızı alan mesajı panoya taşı
+  try {
+    const guild = reaction.message.guild;
+    if (!guild || user.bot) return;
+    const sb = getGuild(guild.id).starboard;
+    if (!sb || !sb.kanal || reaction.emoji.name !== '⭐') return;
+    if (!premiumMu(guild.id)) return;
+    if (reaction.partial) await reaction.fetch().catch(() => null);
+    const msg = reaction.message.partial ? await reaction.message.fetch().catch(() => null) : reaction.message;
+    if (!msg || (msg.author && msg.author.bot)) return;
+    if ((reaction.count || 0) < (sb.esik || 3)) return;
+    if (!sb.gonderilen) sb.gonderilen = {};
+    if (sb.gonderilen[msg.id]) return;
+    const pano = guild.channels.cache.get(sb.kanal);
+    if (!pano || !pano.isTextBased()) return;
+    const resim = [...msg.attachments.values()].find((a) => (a.contentType || '').startsWith('image/'));
+    const m = await pano.send({
+      embeds: [new EmbedBuilder().setColor(config.colors.gold)
+        .setAuthor({ name: msg.author.tag, iconURL: msg.author.displayAvatarURL({ size: 64 }) })
+        .setDescription(String(msg.content || '*[medya]*').slice(0, 2000))
+        .setImage(resim ? resim.url : null)
+        .addFields({ name: '🔗 Kaynak', value: `[Mesaja git](${msg.url})` })
+        .setFooter({ text: `⭐ ${reaction.count} • #${msg.channel.name}` }).setTimestamp()],
+    }).catch(() => null);
+    if (m) {
+      sb.gonderilen[msg.id] = m.id;
+      const keys = Object.keys(sb.gonderilen);
+      if (keys.length > 200) keys.slice(0, keys.length - 200).forEach((k) => delete sb.gonderilen[k]);
+      save();
+    }
+  } catch {}
 });
 client.on('messageReactionRemove', async (reaction, user) => {
   const r = await tepkiEsles(reaction.message.guild, reaction, user).catch(() => null);
@@ -1214,6 +1245,51 @@ async function emojiRolTepkiKoy(guild, onlyIndex = -1) {
   } catch {}
   return sonuc;
 }
+
+// ---- Sunucu geçmiş takibi (admin paneli için: eklenme/çıkarılma/kim ekledi) ----
+function gecmisKaydet(gid, ad, alan, veri) {
+  try {
+    const dd = require('./src/db');
+    const d = dd.db();
+    if (!d.sunucuGecmis) d.sunucuGecmis = {};
+    if (!d.sunucuGecmis[gid]) d.sunucuGecmis[gid] = { ad: ad || gid, eklenme: [], cikarma: [], ekleyenler: [] };
+    const k = d.sunucuGecmis[gid];
+    if (ad) k.ad = ad;
+    if (alan === 'eklenme') {
+      k.eklenme.push({ tarih: Date.now() });
+      if (k.eklenme.length > 50) k.eklenme = k.eklenme.slice(-50);
+      if (veri && veri.ekleyen) {
+        k.ekleyenler.push({ ...veri.ekleyen, tarih: Date.now() });
+        if (k.ekleyenler.length > 20) k.ekleyenler = k.ekleyenler.slice(-20);
+      }
+    } else if (alan === 'cikarma') {
+      k.cikarma.push({ tarih: Date.now() });
+      if (k.cikarma.length > 50) k.cikarma = k.cikarma.slice(-50);
+    }
+    dd.save();
+  } catch {}
+}
+client.on('guildCreate', async (guild) => {
+  try {
+    try {
+      const dy = require('./src/db').db();
+      if (dy.yasakSunucular && dy.yasakSunucular[guild.id]) {
+        await guild.leave().catch(() => {});
+        return;
+      }
+    } catch {}
+    let ekleyen = null;
+    try {
+      const logs = await guild.fetchAuditLogs({ type: AuditLogEvent.BotAdd, limit: 3 });
+      const e = logs.entries.find((x) => x.target && x.target.id === client.user.id && Date.now() - x.createdTimestamp < 120000);
+      if (e && e.executor) ekleyen = { id: e.executor.id, tag: e.executor.tag };
+    } catch {}
+    gecmisKaydet(guild.id, guild.name, 'eklenme', { ekleyen });
+  } catch {}
+});
+client.on('guildDelete', async (guild) => {
+  try { gecmisKaydet(guild.id, guild.name, 'cikarma'); } catch {}
+});
 
 client.on('interactionCreate', async (interaction) => {
   try {

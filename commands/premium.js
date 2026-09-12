@@ -19,7 +19,10 @@ const AVANTAJLAR =
   '🏰 **/sunucu kur** — tek tıkla dehşet sunucu\n' +
   '🎉 **Çekiliş PRO** — 30 gün süre, 1000 katılımcı (free: 7 gün/200)\n' +
   '✦ **EmocAI PRO** — 100/gün hak + komutsuz sohbet kanalı (`/premium ai-kanal`)!\n' +
-  '🎁 Günlük x2 • 🚀 XP x2 • ⭐ Profil mührü';
+  '🎁 Günlük x2 • 🚀 XP x2 • ⭐ Profil mührü\n' +
+  '⭐ **/starboard** — yıldız panosu: beğenilen mesajlar özel kanala!\n' +
+  '🎭 **/toplu-rol** — herkese/botlara tek tıkla toplu rol ver-al!\n' +
+  '🔥 **/aktif-rol** — aktif üyelere (mesaj sayısına göre) otomatik rol!';
 
 // Free yazarsa premium hatası veren kapı
 function premKontrol(interaction) {
@@ -650,6 +653,116 @@ const premiumKomutlar = [
       else g.davetRolleri.push({ sayi: s, rolId: rol.id });
       save();
       return interaction.reply({ embeds: [ok(`📨 **${s}** davet eden artık otomatik **${rol}** alacak!`)] });
+    },
+  },
+  {
+    data: {
+      name: 'starboard', description: '⭐ Yıldız panosu: beğenilen mesajları kanala taşı!',
+      contexts: [0],
+      options: [
+        { type: 3, name: 'islem', description: 'İşlem', required: true, choices: [{ name: 'Aç', value: 'ac' }, { name: 'Kapat', value: 'kapat' }, { name: 'Durum', value: 'durum' }] },
+        { type: 7, name: 'kanal', description: 'Pano kanalı', required: false },
+        { type: 4, name: 'esik', description: 'Kaç yıldız gerekli? (varsayılan 3)', required: false, min_value: 1, max_value: 25 },
+      ],
+    },
+    async execute(interaction) {
+      if (!premKontrol(interaction)) return;
+      const islem = interaction.options.getString('islem');
+      const g = getGuild(interaction.guild.id);
+      if (islem === 'durum') {
+        const sb = g.starboard;
+        return interaction.reply({ content: sb && sb.kanal ? `⭐ Starboard **AÇIK** → <#${sb.kanal}> • eşik: **${sb.esik || 3}** ⭐` : '⭐ Starboard kapalı.', ephemeral: true });
+      }
+      if (islem === 'kapat') {
+        setGuild(interaction.guild.id, { starboard: null });
+        save();
+        return interaction.reply({ embeds: [ok('⭐ Starboard kapatıldı.')] });
+      }
+      const kanal = interaction.options.getChannel('kanal');
+      const esik = interaction.options.getInteger('esik') || 3;
+      if (!kanal || !kanal.isTextBased()) return interaction.reply({ content: '❌ Bir yazı kanalı seç!', ephemeral: true });
+      setGuild(interaction.guild.id, { starboard: { kanal: kanal.id, esik, gonderilen: (g.starboard && g.starboard.gonderilen) || {} } });
+      save();
+      return interaction.reply({ embeds: [ok(`⭐ Starboard açıldı! ${esik} ⭐ alan mesajlar ${kanal} kanalına taşınacak.`)] });
+    },
+  },
+  {
+    data: {
+      name: 'toplu-rol', description: '🎭 Herkese/botlara tek tıkla toplu rol ver-al!',
+      contexts: [0],
+      options: [
+        { type: 3, name: 'islem', description: 'İşlem', required: true, choices: [{ name: 'Rol Ver', value: 'ver' }, { name: 'Rol Al', value: 'al' }] },
+        { type: 8, name: 'rol', description: 'Rol', required: true },
+        { type: 3, name: 'hedef', description: 'Kimlere?', required: true, choices: [{ name: 'Herkes', value: 'herkes' }, { name: 'Sadece Kullanıcılar', value: 'kullanici' }, { name: 'Sadece Botlar', value: 'bot' }] },
+      ],
+    },
+    async execute(interaction, client) {
+      if (!premKontrol(interaction)) return;
+      const rol = interaction.options.getRole('rol');
+      const islem = interaction.options.getString('islem');
+      const hedef = interaction.options.getString('hedef');
+      if (!rol || rol.managed) return interaction.reply({ content: '❌ Geçerli bir rol seç!', ephemeral: true });
+      if (rol.position >= interaction.guild.members.me.roles.highest.position) return interaction.reply({ content: '❌ Bu rol benden üstte!', ephemeral: true });
+      await interaction.deferReply({ ephemeral: true });
+      try {
+        const uyeler = await interaction.guild.members.fetch();
+        let okSayi = 0, atla = 0;
+        for (const [, u] of uyeler) {
+          if (u.user.bot && hedef === 'kullanici') continue;
+          if (!u.user.bot && hedef === 'bot') continue;
+          if (u.id === client.user.id) continue;
+          try {
+            if (islem === 'ver') { if (!u.roles.cache.has(rol.id)) { await u.roles.add(rol, 'Toplu rol (premium)'); okSayi++; } }
+            else { if (u.roles.cache.has(rol.id)) { await u.roles.remove(rol, 'Toplu rol (premium)'); okSayi++; } }
+          } catch { atla++; }
+        }
+        return interaction.editReply({ content: `🎭 Toplu rol **tamam!** ${islem === 'ver' ? 'Verilen' : 'Alınan'}: **${okSayi}** üye${atla ? ` • atlanan: ${atla}` : ''}` });
+      } catch {
+        return interaction.editReply({ content: '❌ Üyeler alınamadı!' });
+      }
+    },
+  },
+  {
+    data: {
+      name: 'aktif-rol', description: '🔥 Aktif üyelere mesaj sayısına göre otomatik rol!',
+      contexts: [0],
+      options: [
+        { type: 3, name: 'islem', description: 'İşlem', required: true, choices: [{ name: 'Rol Ver', value: 'ver' }, { name: 'Liste', value: 'liste' }] },
+        { type: 8, name: 'rol', description: 'Rol', required: false },
+        { type: 4, name: 'minmesaj', description: 'En az kaç mesaj? (varsayılan 100)', required: false, min_value: 1, max_value: 100000 },
+      ],
+    },
+    async execute(interaction, client) {
+      if (!premKontrol(interaction)) return;
+      const islem = interaction.options.getString('islem');
+      const minMesaj = interaction.options.getInteger('minmesaj') || 100;
+      const d = require('../src/db').db();
+      const gid = interaction.guild.id;
+      const uygun = [];
+      for (const [key, v] of Object.entries(d.users)) {
+        if (!key.startsWith(gid + '_')) continue;
+        if ((v.mesaj || 0) >= minMesaj) uygun.push({ uid: key.split('_')[1], mesaj: v.mesaj });
+      }
+      uygun.sort((a, b) => b.mesaj - a.mesaj);
+      if (islem === 'liste') {
+        const satir = uygun.slice(0, 15).map((x, i) => `\`${i + 1}.\` <@${x.uid}> — **${x.mesaj}** mesaj`).join('\n') || 'Kimse barajı geçememiş!';
+        return interaction.reply({ content: `🔥 **${minMesaj}+ mesajı olanlar (${uygun.length} kişi):**\n${satir}`.slice(0, 1800), ephemeral: true });
+      }
+      const rol = interaction.options.getRole('rol');
+      if (!rol || rol.managed) return interaction.reply({ content: '❌ Geçerli bir rol seç!', ephemeral: true });
+      if (rol.position >= interaction.guild.members.me.roles.highest.position) return interaction.reply({ content: '❌ Bu rol benden üstte!', ephemeral: true });
+      if (!uygun.length) return interaction.reply({ content: '❌ Barajı geçen üye yok!', ephemeral: true });
+      await interaction.deferReply({ ephemeral: true });
+      let okSayi = 0, atla = 0;
+      for (const x of uygun.slice(0, 500)) {
+        try {
+          const u = await interaction.guild.members.fetch(x.uid).catch(() => null);
+          if (!u || u.user.bot || u.roles.cache.has(rol.id)) continue;
+          await u.roles.add(rol, 'Aktif rol (premium)');
+          okSayi++;
+        } catch { atla++; }
+      }
+      return interaction.editReply({ content: `🔥 Aktif rol dağıtıldı! **${okSayi}** üyeye ${rol} verildi${atla ? ` • atlanan: ${atla}` : ''}` });
     },
   },
 ];

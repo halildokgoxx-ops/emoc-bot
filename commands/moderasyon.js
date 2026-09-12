@@ -72,7 +72,7 @@ module.exports = [
     },
   },
   {
-    name: 'uyar', aliases: ['warn'], category: 'Moderasyon', description: 'Kullanıcıyı uyarır (kayıtlı). 3 uyarıda oto-timeout!', usage: '!uyar @kullanıcı <sebep>',
+    name: 'uyar', aliases: ['warn', 'uyarı'], category: 'Moderasyon', description: 'Kullanıcıyı uyarır (kayıtlı). 3 uyarıda oto-timeout!', usage: '!uyar @kullanıcı <sebep>',
     perms: [PermissionFlagsBits.ModerateMembers],
     async run(message, args) {
       const h = await kisiBulAsync(message, args, 0);
@@ -91,7 +91,7 @@ module.exports = [
     },
   },
   {
-    name: 'uyarilar', aliases: ['warnings', 'uyarılar'], category: 'Moderasyon', description: 'Uyarıları listeler.', usage: '!uyarılar [@kullanıcı]',
+    name: 'uyarilar', aliases: ['warnings', 'uyarılar', 'uyarı-listesi', 'uyarilistesi'], category: 'Moderasyon', description: 'Uyarıları listeler.', usage: '!uyarılar [@kullanıcı]',
     perms: [PermissionFlagsBits.ModerateMembers],
     async run(message, args) {
       const h = (await kisiBulAsync(message, args, 0)) || message.member;
@@ -102,7 +102,7 @@ module.exports = [
     },
   },
   {
-    name: 'uyari-sil', aliases: ['unwarn'], category: 'Moderasyon', description: 'Uyarı siler. !uyarı-sil @k <sayı|hepsi>', usage: '!uyarı-sil @kullanıcı <sayı|hepsi>',
+    name: 'uyari-sil', aliases: ['unwarn', 'uyarı-kaldır', 'uyar-kaldır', 'uyarı-sil'], category: 'Moderasyon', description: 'Uyarı siler. !uyarı-sil @k <sayı|hepsi>', usage: '!uyarı-sil @kullanıcı <sayı|hepsi>',
     perms: [PermissionFlagsBits.ModerateMembers],
     async run(message, args) {
       const h = await kisiBulAsync(message, args, 0);

@@ -318,6 +318,29 @@ function startKopru() {
     catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   });
 
+  async function adminIlet(req, res, yol, yontem) {
+    if (!adminMi(req, res)) return;
+    try {
+      const init = yontem === 'POST'
+        ? { method: 'POST', body: JSON.stringify(req.body || {}) }
+        : undefined;
+      res.json(await botAPI(yol, init));
+    } catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  }
+  app.get('/api/admin/sunucular-detay', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucular-detay'));
+  app.post('/api/admin/sunucu-ban', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucu-ban', 'POST'));
+  app.post('/api/admin/sunucudan-cik', (req, res) => adminIlet(req, res, '/api/bot/admin/sunucudan-cik', 'POST'));
+  app.get('/api/admin/oturumlar', (req, res) => {
+    if (!adminMi(req, res)) return;
+    try {
+      const liste = [...sessions.entries()].map(([k, v]) => ({
+        anahtar: String(k).slice(0, 8) + '…',
+        id: v.user.id, username: v.user.username, bitis: v.exp,
+      })).sort((a, b) => b.bitis - a.bitis).slice(0, 100);
+      res.json({ oturumlar: liste, sayi: sessions.size });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.post('/api/embed-gonder', (req, res) => aksiyonIlet(req, res, '/api/bot/embed-gonder'));
   app.post('/api/medya-yukle', (req, res) => aksiyonIlet(req, res, '/api/bot/medya-yukle'));
   app.post('/api/emojirol-tepki', (req, res) => aksiyonIlet(req, res, '/api/bot/emojirol-tepki'));

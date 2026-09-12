@@ -1,5 +1,5 @@
 /* Panel v6 */
-const PANEL_SURUM='v6';
+const PANEL_SURUM='v8';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
 let AKTIF='home',GREET='karsilama',ADMIN=false;
 
@@ -18,6 +18,7 @@ const AM_LIST=[
   {k:'amFoto',ad:'Fotoğraf spamı',ac:'Varsayılan olarak bir dakika içinde 5 fotoğraf gönderildiğinde mesajı siler',adet:true,varsayilan:5},
 ];
 
+window.addEventListener('error',function(e){try{toast('Hata: '+String((e&&e.message)||'bilinmiyor').slice(0,120))}catch(_){}});
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('goster');clearTimeout(t._z);t._z=setTimeout(()=>t.classList.remove('goster'),2400)}
 async function api(y,init){const r=await fetch(y,init);if(r.status===401){location.href='/login';throw new Error('giris')}return r.json()}
 function avatarURL(u){return u&&u.avatar?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=64`:'https://cdn.discordapp.com/embed/avatars/0.png'}
@@ -142,6 +143,11 @@ function chipRol(key,id,el){
 
 /* ---------- içerik ---------- */
 function renderContent(){
+  const c=document.getElementById('content');
+  try{ return renderContentIc(c); }
+  catch(err){ c.innerHTML='<div class="hata-kutu">Sayfa acilamadi.</div>'; }
+}
+function renderContentIc(){
   const c=document.getElementById('content');
   if(AKTIF==='home')return cizHome(c);
   if(AKTIF==='ayarlar')return cizAyarlar(c);
@@ -596,6 +602,10 @@ function cizDenetimMasasi(c){
 }
 const GOV_LIMIT={govRol:['govRolSayi','govRolDakika','rol işlemi'],govYasak:['govYasakSayi','govYasakDakika','yasaklama'],govAtma:['govAtmaSayi','govAtmaDakika','atma'],govKanal:['govKanalSayi','govKanalDakika','kanal işlemi']};
 function cizGov(c,id){
+  try{ return cizGovIc(c,id); }
+  catch(err){ const c2=document.getElementById('content'); c2.innerHTML='<div class="hata-kutu">Guvenlik sayfasi acilamadi.</div>'+saveBar(); }
+}
+function cizGovIc(c,id){
   const ad=NAV_AD[id]||'Güvenlik';
   const acik={
     govDavet:'İzinsiz davet paylaşımlarını engeller.',
@@ -643,36 +653,97 @@ function tarihYaz(ms){
   const d=new Date(ms);
   return d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
 }
+let ADMIN_SEKME='genel';
+const ADMIN_SEKMELER=[['genel','\u{1F4CA}','Genel'],['sunucular','\u{1F30D}','Sunucular'],['kodlar','\u{1F39F}\uFE0F','Premium Kodlar\u0131'],['duyuru','\u{1F4E2}','Duyurular']];
 async function cizAdmin(c){
-  c.innerHTML='<div class="page-h">👑 Admin Paneli</div><div class="page-s">Sadece bot sahipleri görür</div>'
-    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">📊 Genel</h3><div id="ad-genel"><div class="bos">Yükleniyor...</div></div></div>'
-    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">🌍 Sunucular ve Premium</h3><div id="ad-sunucu"><div class="bos">Yükleniyor...</div></div></div>'
-    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">🎟️ Premium Kodları</h3><div class="row3"><div><label>Süre (örn: 30d, 1y)</label><input type="text" id="ad-kodsure" placeholder="30d"></div><div><label>&nbsp;</label><button class="btn pri sm" onclick="adKodUret()">Üret</button></div></div><div id="ad-kodlar" style="margin-top:10px"><div class="bos">Yükleniyor...</div></div></div>'
-    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">📢 Discord Duyuru</h3><div class="field"><label>Sunucu</label><select id="ad-dsunucu"></select></div><div class="field"><label>Kanal</label><select id="ad-dkanal"><option>Önce sunucu seç</option></select></div><div class="field"><label>Mesaj</label><textarea id="ad-dmesaj" rows="3" placeholder="Duyuru metni"></textarea></div><div class="field" style="display:flex;gap:10px;align-items:center"><label class="tgl sm"><input type="checkbox" id="ad-dhepsi"><span class="ray"></span></label><span style="font-size:13px">@everyone ile gönder</span><button class="btn pri sm" style="margin-left:auto" onclick="adDuyuru()">Gönder</button></div></div>'
-    +'<div class="panel"><h3 style="font-size:14px;margin-bottom:10px">📣 Panel Duyurusu (sadece web içi)</h3><div id="ad-pmevcut"></div><div class="field"><label>Başlık</label><input type="text" id="ad-pbaslik" maxlength="100" placeholder="Duyuru"></div><div class="field"><label>Metin</label><textarea id="ad-pmetin" rows="3" maxlength="1000" placeholder="Panelde banner olarak görünür"></textarea></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn pri sm" onclick="adPanelDuyuru()">Yayınla</button><button class="btn sm" onclick="adPanelDuyuruKaldir()">Kaldır</button></div></div>';
+  c.innerHTML='<div class="page-h">\u{1F451} Admin Paneli</div><div class="page-s">Sadece bot sahipleri g\u00F6r\u00FCr</div>'
+    +'<div class="greet-wrap"><div class="greet-side"><h3>\u{1F451} Y\u00F6netim</h3><p>Kategoriye g\u00F6re y\u00F6net.</p>'
+    +ADMIN_SEKMELER.map(s=>'<button class="g-opt'+(ADMIN_SEKME===s[0]?' secil':'')+'" onclick="ADMIN_SEKME=\''+s[0]+'\';renderContent()"><div class="t"><span class="mi">'+s[1]+'</span>'+s[2]+'</div></button>').join('')
+    +'<button class="g-opt" onclick="SID?git(\'home\'):(serverList(),renderMisafir())"><div class="t"><span class="mi">\u21A9</span>Panele D\u00F6n</div></button>'
+    +'</div><div id="ad-icerik"><div class="panel"><div class="bos">Y\u00FCkleniyor...</div></div></div></div>';
+  adSekmeYukle();
+}
+async function adSekmeYukle(){
+  if(ADMIN_SEKME==='sunucular')return adSunucular();
+  if(ADMIN_SEKME==='kodlar')return adKodlarTab();
+  if(ADMIN_SEKME==='duyuru')return adDuyuruTab();
+  return adGenel();
+}
+async function adGenel(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
   try{
     const j=await api('/api/admin/ozet');
-    const g=document.getElementById('ad-genel');
-    if(g)g.innerHTML='<div class="kv-list">'
-      +'<div class="liste-satir"><span>🌍 Sunucu</span><b>'+j.sunucu+'</b></div>'
-      +'<div class="liste-satir"><span>👥 Toplam üye</span><b>'+j.uye+'</b></div>'
-      +'<div class="liste-satir"><span>👑 Premium</span><b>'+j.premiumSayi+'</b></div>'
-      +'<div class="liste-satir"><span>🆓 Free</span><b>'+j.freeSayi+'</b></div>'
-      +'<div class="liste-satir"><span>⏱️ Çalışma</span><b>'+Math.floor((j.uptime||0)/3600)+' sa</b></div></div>';
-    const satir=(s,prem)=>'<div class="liste-satir"><span>🌍 <b>'+esc(s.ad)+'</b> <span style="color:var(--mut)">👥 '+s.uye+(prem?' • 👑 '+tarihYaz(s.bitis):' • free')+'</span></span><span style="display:flex;gap:6px;align-items:center"><input type="number" id="gun-'+s.id+'" placeholder="gün" min="1" max="36500" style="max-width:80px"><button class="btn sm" onclick="adPremium(\''+s.id+'\',true)">Ver</button><button class="btn btn-ghost sm" onclick="adPremium(\''+s.id+'\',false)">Kapat</button></span></div>';
-    const sk=document.getElementById('ad-sunucu');
-    if(sk)sk.innerHTML='<div class="log-sec">👑 Premium ('+(j.premium||[]).length+')</div>'+((j.premium||[]).map(s=>satir(s,true)).join('')||'<div class="bos">Yok</div>')
-      +'<div class="log-sec">🆓 Free ('+(j.free||[]).length+')</div>'+((j.free||[]).map(s=>satir(s,false)).join('')||'<div class="bos">Yok</div>');
+    let otHtml='<div class="bos">Y\u00FCklenemedi.</div>';
+    try{
+      const o=await api('/api/admin/oturumlar');
+      const l=o.oturumlar||[];
+      otHtml=l.length?l.map(s=>'<div class="liste-satir"><span>\u{1F464} <b>'+esc(s.username)+'</b> <span style="color:var(--mut2);font-size:11px">'+s.id+'</span></span><span style="font-size:12px;color:var(--mut)">biti\u015F: '+tarihYaz(s.bitis)+'</span></div>').join(''):'<div class="bos">Aktif web oturumu yok.</div>';
+    }catch{}
+    kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>\u{1F4CA} Genel</h3><p>Bot durumu.</p></div><button class="btn sm" onclick="adSekmeYukle()">Yenile</button></div>'
+      +'<div class="kv-list">'
+      +'<div class="liste-satir"><span>\u{1F30D} Sunucu</span><b>'+j.sunucu+'</b></div>'
+      +'<div class="liste-satir"><span>\u{1F465} Toplam \u00FCye</span><b>'+j.uye+'</b></div>'
+      +'<div class="liste-satir"><span>\u{1F451} Premium</span><b>'+j.premiumSayi+'</b></div>'
+      +'<div class="liste-satir"><span>\u{1F193} Free</span><b>'+j.freeSayi+'</b></div>'
+      +'<div class="liste-satir"><span>\u23F1\uFE0F \u00C7al\u0131\u015Fma</span><b>'+Math.floor((j.uptime||0)/3600)+' sa</b></div></div></div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>\u{1F464} Web Oturumlar\u0131 ('+(function(){try{return ''}catch{return ''}})()+')</h3><p>Siteye giri\u015F yapm\u0131\u015F hesaplar (ID ile).</p></div></div>'+otHtml+'</div>';
+  }catch{ kutu.innerHTML='<div class="hata-kutu">Y\u00FCklenemedi (yetki/bot ba\u011Flant\u0131s\u0131).</div>'; }
+}
+async function adSunucular(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  try{
+    const j=await api('/api/admin/sunucular-detay');
+    const l=j.sunucular||[];
+    kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>\u{1F30D} Sunucular ('+l.length+')</h3><p>Eklenme, premium, ban ve ge\u00E7mi\u015F detaylar\u0131.</p></div><button class="btn sm" onclick="adSekmeYukle()">Yenile</button></div>'
+    +l.map(s=>'<div class="liste-satir" style="align-items:flex-start"><span style="display:flex;gap:10px;align-items:center">'
+      +(s.ikon?'<img src="'+s.ikon+'" style="width:36px;height:36px;border-radius:50%">':'<span style="width:36px;height:36px;font-size:14px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#3a3a5c;font-weight:800">'+esc((s.ad||'?')[0])+'</span>')
+      +'<span><b>'+esc(s.ad)+'</b> <span style="color:var(--mut2);font-size:11px">'+s.id+'</span><br>'
+      +'<span style="font-size:12px;color:var(--mut)">\u{1F465} '+s.uye+(s.prem?' \u2022 \u{1F451} '+tarihYaz(s.bitis):' \u2022 free')+(s.yasak?' \u2022 \u26D4 BANLI ('+esc(s.yasak.sebep||'')+')':'')+'</span><br>'
+      +'<span style="font-size:12px;color:var(--mut)">\u{1F4E5} '+s.eklenmeSayisi+'x eklendi'+(s.ilkEklenme?' \u2022 ilk: '+tarihYaz(s.ilkEklenme):'')+(s.sonCikarma?' \u2022 son \u00E7\u0131k\u0131\u015F: '+tarihYaz(s.sonCikarma):'')+'</span>'
+      +((s.ekleyenler||[]).length?'<br><span style="font-size:12px;color:var(--mut)">\u{1F464} Ekleyen: '+s.ekleyenler.map(e=>esc(e.tag||e.id)).join(', ')+'</span>':'')
+      +'</span></span><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="number" id="gun-'+s.id+'" placeholder="g\u00FCn" min="1" max="36500" style="max-width:76px">'
+      +'<button class="btn sm" onclick="adPremium(\''+s.id+'\',true)">Ver</button>'
+      +'<button class="btn btn-ghost sm" onclick="adPremium(\''+s.id+'\',false)">\u0130ptal</button>'
+      +(s.yasak?'<button class="btn btn-ghost sm" onclick="adSunucuBan(\''+s.id+'\',\'unban\')">Unban</button>':'<button class="btn btn-ghost sm" onclick="adSunucuBan(\''+s.id+'\',\'ban\')">Banla</button>')
+      +'<button class="btn btn-ghost sm" onclick="adSunucudanCik(\''+s.id+'\')">\u00C7\u0131kar</button></span></div>').join('')+'</div>';
+  }catch{ kutu.innerHTML='<div class="hata-kutu">Y\u00FCklenemedi.</div>'; }
+}
+async function adSunucuBan(gid,islem){
+  let sebep='';
+  if(islem==='ban'){ sebep=prompt('Ban sebebi?')||''; if(sebep===null)return; }
+  try{
+    await api('/api/admin/sunucu-ban',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:gid,islem,sebep})});
+    toast(islem==='ban'?'⛔ Sunucu banlandı!':'Unban yapıldı!');adSekmeYukle();
+  }catch{toast('Olmadı!')}
+}
+async function adSunucudanCik(gid){
+  if(!confirm('Bot bu sunucudan çıkarılsın mı?'))return;
+  try{
+    await api('/api/admin/sunucudan-cik',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:gid})});
+    toast('Çıkıldı!');adSekmeYukle();
+  }catch{toast('Olmadı!')}
+}
+async function adKodlarTab(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>\u{1F39F}\uFE0F Premium Kodlar\u0131</h3><p>\u00DCret, listele, sil.</p></div></div>'
+    +'<div class="row3"><div><label>S\u00FCree (\u00F6rn: 30d, 1y)</label><input type="text" id="ad-kodsure" placeholder="30d"></div><div><label>&nbsp;</label><button class="btn pri sm" onclick="adKodUret()">\u00DCret</button></div></div><div id="ad-kodlar" style="margin-top:10px"></div></div>';
+  adKodListe();
+}
+async function adDuyuruTab(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>\u{1F4E2} Discord Duyuru</h3><p>Kanala mesaj g\u00F6nder.</p></div></div>'
+    +'<div class="field"><label>Sunucu</label><select id="ad-dsunucu"></select></div><div class="field"><label>Kanal</label><select id="ad-dkanal"><option>\u00D6nce sunucu se\u00E7</option></select></div><div class="field"><label>Mesaj</label><textarea id="ad-dmesaj" rows="3" placeholder="Duyuru metni"></textarea></div><div class="field" style="display:flex;gap:10px;align-items:center"><label class="tgl sm"><input type="checkbox" id="ad-dhepsi"><span class="ray"></span></label><span style="font-size:13px">@everyone ile g\u00F6nder</span><button class="btn pri sm" style="margin-left:auto" onclick="adDuyuru()">G\u00F6nder</button></div></div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>\u{1F4E3} Panel Duyurusu (sadece web i\u00E7i)</h3><p>Panelde banner olarak g\u00F6r\u00FCn\u00FCr.</p></div></div><div id="ad-pmevcut"></div><div class="field"><label>Ba\u015Fl\u0131k</label><input type="text" id="ad-pbaslik" maxlength="100" placeholder="Duyuru"></div><div class="field"><label>Metin</label><textarea id="ad-pmetin" rows="3" maxlength="1000"></textarea></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn pri sm" onclick="adPanelDuyuru()">Yay\u0131nla</button><button class="btn sm" onclick="adPanelDuyuruKaldir()">Kald\u0131r</button></div></div>';
+  try{
+    const j=await api('/api/admin/ozet');
     const ds=document.getElementById('ad-dsunucu');
     if(ds){
       const tum=[...(j.premium||[]),...(j.free||[])];
       ds.innerHTML=tum.map(s=>'<option value="'+s.id+'">'+esc(s.ad)+'</option>').join('');
       ds.onchange=adKanalDoldur;adKanalDoldur();
     }
-    adKodListe();adPanelMevcut();
-  }catch{
-    c.innerHTML='<div class="hata-kutu">Yüklenemedi (yetki/bot bağlantısı).</div>';
-  }
+  }catch{}
+  adPanelMevcut();
 }
 async function adPremium(gid,ac){
   const gun=parseInt((document.getElementById('gun-'+gid)||{}).value,10)||30;

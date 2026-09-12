@@ -77,7 +77,7 @@ const SEMA = {
   govAtmaSayi: 'sayi:1:50', govAtmaDakika: 'sayi:1:60',
   govRolSayi: 'sayi:1:50', govRolDakika: 'sayi:1:60',
   govHesapGun: 'sayi:1:30', davetMuaf: 'muaf',
-  prefix: 'yazi:5',
+  prefix: 'yazi:5', starboard: 'json',
 };
 
 async function discordAPI(token, yol, init = {}) {
@@ -366,6 +366,73 @@ function startWeb(client) {
         return res.json({ ok: true });
       }
       res.status(404).json({ hata: 'bulunamadi' });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
+  // Detaylı sunucu listesi + ban/çıkar + web oturumları (sadece kurucular)
+  function sunucuDetayListe() {
+    const d = require('../src/db').db();
+    return [...client.guilds.cache.values()].map((g) => {
+      let prem = null;
+      try {
+        const b = require('../src/premium').premiumBilgi(g.id);
+        if (b) prem = b;
+      } catch {}
+      const gec = (d.sunucuGecmis || {})[g.id] || {};
+      const yasak = (d.yasakSunucular || {})[g.id] || null;
+      return {
+        id: g.id, ad: g.name, uye: g.memberCount || 0,
+        ikon: (() => { try { return g.iconURL({ size: 64 }); } catch { return null; } })(),
+        prem: !!prem, bitis: prem ? prem.bitis : null,
+        yasak: yasak ? { sebep: yasak.sebep || '', tarih: yasak.tarih || null } : null,
+        eklenmeSayisi: (gec.eklenme || []).length,
+        ilkEklenme: (gec.eklenme || [])[0] ? gec.eklenme[0].tarih : null,
+        sonEklenme: (gec.eklenme || []).length ? gec.eklenme[gec.eklenme.length - 1].tarih : null,
+        cikarmaSayisi: (gec.cikarma || []).length,
+        sonCikarma: (gec.cikarma || []).length ? gec.cikarma[gec.cikarma.length - 1].tarih : null,
+        ekleyenler: (gec.ekleyenler || []).slice(-5),
+      };
+    });
+  }
+  app.get('/api/admin/sunucular-detay', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try { res.json({ sunucular: sunucuDetayListe() }); }
+    catch { res.status(500).json({ hata: 'hata' }); }
+  });
+  app.post('/api/admin/sunucu-ban', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const { guildId, islem, sebep } = req.body || {};
+      const d = require('../src/db').db();
+      if (!d.yasakSunucular) d.yasakSunucular = {};
+      if (islem === 'unban') delete d.yasakSunucular[guildId];
+      else d.yasakSunucular[guildId] = { sebep: String(sebep || 'Belirtilmedi').slice(0, 200), tarih: Date.now() };
+      require('../src/db').save();
+      if (islem !== 'unban') {
+        const g = client.guilds.cache.get(guildId);
+        if (g) g.leave().catch(() => {});
+      }
+      res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+  app.post('/api/admin/sunucudan-cik', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const { guildId } = req.body || {};
+      const g = client.guilds.cache.get(guildId);
+      if (!g) return res.status(404).json({ hata: 'yok' });
+      g.leave().catch(() => {});
+      res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+  app.get('/api/admin/oturumlar', (req, res) => {
+    if (!adminKontrol(req, res)) return;
+    try {
+      const liste = [...sessions.entries()].map(([k, v]) => ({
+        anahtar: String(k).slice(0, 8) + '…',
+        id: v.user.id, username: v.user.username, bitis: v.exp,
+      })).sort((a, b) => b.bitis - a.bitis).slice(0, 100);
+      res.json({ oturumlar: liste, sayi: sessions.size });
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 

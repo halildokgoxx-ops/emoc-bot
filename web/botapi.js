@@ -350,6 +350,59 @@ function mountBotAPI(app, client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
+  // Detaylı sunucu listesi + ban/çıkar (admin paneli)
+  router.get('/admin/sunucular-detay', (req, res) => {
+    try {
+      const d = require('../src/db').db();
+      const sunucular = [...client.guilds.cache.values()].map((g) => {
+        let prem = null;
+        try {
+          const b = require('../src/premium').premiumBilgi(g.id);
+          if (b) prem = b;
+        } catch {}
+        const gec = (d.sunucuGecmis || {})[g.id] || {};
+        const yasak = (d.yasakSunucular || {})[g.id] || null;
+        return {
+          id: g.id, ad: g.name, uye: g.memberCount || 0,
+          ikon: (() => { try { return g.iconURL({ size: 64 }); } catch { return null; } })(),
+          prem: !!prem, bitis: prem ? prem.bitis : null,
+          yasak: yasak ? { sebep: yasak.sebep || '', tarih: yasak.tarih || null } : null,
+          eklenmeSayisi: (gec.eklenme || []).length,
+          ilkEklenme: (gec.eklenme || [])[0] ? gec.eklenme[0].tarih : null,
+          sonEklenme: (gec.eklenme || []).length ? gec.eklenme[gec.eklenme.length - 1].tarih : null,
+          cikarmaSayisi: (gec.cikarma || []).length,
+          sonCikarma: (gec.cikarma || []).length ? gec.cikarma[gec.cikarma.length - 1].tarih : null,
+          ekleyenler: (gec.ekleyenler || []).slice(-5),
+        };
+      });
+      res.json({ sunucular });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+  router.post('/admin/sunucu-ban', (req, res) => {
+    try {
+      const { guildId, islem, sebep } = req.body || {};
+      const d = require('../src/db').db();
+      if (!d.yasakSunucular) d.yasakSunucular = {};
+      if (islem === 'unban') delete d.yasakSunucular[guildId];
+      else d.yasakSunucular[guildId] = { sebep: String(sebep || 'Belirtilmedi').slice(0, 200), tarih: Date.now() };
+      require('../src/db').save();
+      if (islem !== 'unban') {
+        const g = client.guilds.cache.get(guildId);
+        if (g) g.leave().catch(() => {});
+      }
+      res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+  router.post('/admin/sunucudan-cik', (req, res) => {
+    try {
+      const { guildId } = req.body || {};
+      const g = client.guilds.cache.get(guildId);
+      if (!g) return res.status(404).json({ hata: 'yok' });
+      g.leave().catch(() => {});
+      res.json({ ok: true });
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.use('/api/bot', express.json({ limit: '12mb' }), router);
 }
 
