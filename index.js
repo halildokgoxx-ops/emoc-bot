@@ -984,25 +984,64 @@ client.on('voiceStateUpdate', async (e, y) => {
   } catch {}
 });
 
+// ---- Sunucu etiketi: tam otomatik (birincil sunucu etiketi + eski kullanıcı-adı etiketi) ----
+async function etiketKontrol(guild, userId) {
+  try {
+    const g = getGuild(guild.id);
+    if (!g.etiketAktif || !g.etiketRol) return;
+    if (!premiumMu(guild.id)) return;
+    const rol = guild.roles.cache.get(String(g.etiketRol).replace(/\D/g, ''));
+    if (!rol || rol.managed) return;
+    if (rol.position >= guild.members.me.roles.highest.position) return;
+    const uye = await guild.members.fetch(userId).catch(() => null);
+    if (!uye || uye.user.bot) return;
+    let varMi = false;
+    // 1) Discord birincil sunucu (profil) etiketi — isim girmeden otomatik
+    try {
+      const tam = await guild.client.users.fetch(userId).catch(() => null);
+      const pg = tam && tam.primaryGuild;
+      if (pg && pg.identityEnabled !== false && String(pg.identityGuildId || '') === String(guild.id)) varMi = true;
+    } catch {}
+    // 2) Eski yöntem: kullanıcı adında geçen etiket (uyumluluk)
+    try {
+      const ts = getGuild(guild.id).tagSistemi;
+      if (ts && ts.tag && uye.user.username.toLocaleLowerCase('tr').includes(String(ts.tag).toLocaleLowerCase('tr'))) varMi = true;
+    } catch {}
+    if (varMi && !uye.roles.cache.has(rol.id)) await uye.roles.add(rol, 'Sunucu etiketi').catch(() => {});
+    else if (!varMi && uye.roles.cache.has(rol.id)) await uye.roles.remove(rol, 'Sunucu etiketi').catch(() => {});
+  } catch {}
+}
 // ---- Slash + Buton + Menü + Modal ----
 client.on('userUpdate', async (eski, yeni) => {
   try {
-    if (!eski || eski.username === yeni.username) return;
-    const yeniAd = yeni.username.toLocaleLowerCase('tr');
+    if (!eski) return;
+    const adDegisti = eski.username !== yeni.username;
     for (const [, guild] of client.guilds.cache) {
       try {
-        const ts = getGuild(guild.id).tagSistemi;
-        if (!ts || !ts.tag || !ts.rolId) continue;
-        const uye = await guild.members.fetch(yeni.id).catch(() => null);
-        if (!uye || uye.user.bot) continue;
-        const rol = guild.roles.cache.get(ts.rolId);
-        if (!rol) continue;
-        const varMi = yeniAd.includes(String(ts.tag).toLocaleLowerCase('tr'));
-        if (varMi && !uye.roles.cache.has(rol.id)) await uye.roles.add(rol).catch(() => {});
-        else if (!varMi && uye.roles.cache.has(rol.id)) await uye.roles.remove(rol).catch(() => {});
+        // Eski kullanıcı-adı etiketi
+        if (adDegisti) {
+          const yeniAd = String(yeni.username || '').toLocaleLowerCase('tr');
+          const ts = getGuild(guild.id).tagSistemi;
+          if (ts && ts.tag && ts.rolId) {
+            const uye = await guild.members.fetch(yeni.id).catch(() => null);
+            if (uye && !uye.user.bot) {
+              const rol = guild.roles.cache.get(ts.rolId);
+              if (rol) {
+                const varMi = yeniAd.includes(String(ts.tag).toLocaleLowerCase('tr'));
+                if (varMi && !uye.roles.cache.has(rol.id)) await uye.roles.add(rol).catch(() => {});
+                else if (!varMi && uye.roles.cache.has(rol.id)) await uye.roles.remove(rol).catch(() => {});
+              }
+            }
+          }
+        }
+        // Yeni tam otomatik etiket kontrolü
+        await etiketKontrol(guild, yeni.id);
       } catch {}
     }
   } catch {}
+});
+client.on('guildMemberUpdate', async (eski, yeni) => {
+  try { await etiketKontrol(yeni.guild, yeni.id); } catch {}
 });
 // ---- Güvenlik logu (güvenlik kanalı → yoksa log kanalı) ----
 async function guvenlikLog(guild, baslik, aciklama) {

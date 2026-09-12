@@ -1,5 +1,5 @@
 /* Panel v6 */
-const PANEL_SURUM='v12';
+const PANEL_SURUM='v13';
 let SID=null,SNAME='',SICON=null,KANALLAR=[],ROLLER=[],FORM={},ME=null,GUILDS=[];
 let AKTIF='home',GREET='karsilama',ADMIN=false,PREMIUM_AKTIF=false;
 
@@ -187,7 +187,7 @@ function cizHome(c){
     +kart('seviye','📊','Seviye Sistemi','Mesaj ve ses etkinliğini seviyeler, sıralamalar ve rollerle ödüllendirin.')
     +kart('karsilama','👋','Karşılama & Veda','Bir üye katıldığında veya ayrıldığında olacakları yönetin')
     +kart('otomod','🛡️','Otomatik Moderasyon','Sunucu moderasyonunu otomatikleştirir',true)
-    +kart('denetimMasasi','🎛️','Denetim Masası','Topluluk moderasyonunu güvenilir üyelerle yönetin')
+    +kart('denetimMasasi','🎛️','Denetim Masası','Güvenilir üye rollerini belirle: bu rollerdekiler denetim kaydını görür, hızlı işlem menüsünü kullanır')
     +kart('denetim','📋','Denetim Kaydı','Sunucunuzda olanların kaydını tutar')
     +kart('otocevap','🤖','Otomatik Cevap','Mesaj tetiklemelerini yönetin')
     +kart('emojirol','😀','Emoji Rol','Üyelerin mesajlara tepki vererek rol almasını sağlar')
@@ -547,67 +547,17 @@ async function erTepkiTumu(){
 
 /* etiket */
 async function cizEtiket(c){
-  if(!PREMIUM_AKTIF){ c.innerHTML='<div class="page-h">Sunucu Etiketi 👑</div><div class="page-s">Etiket alan üyelere otomatik rol</div><div class="panel prem-lock-wrap"><div class="prem-lock"><div class="prem-lock-ic">👑</div><b>Premium İçerikli Özellik</b><p>Etiket rolü premium sunuculara özel. Bu sunucuda premium yok.</p><button class="btn pri sm" onclick="git(\'premium\')">👑 Premium Bilgi</button></div><div class="prem-blur"><div class="panel-top"><div><h3>Sunucu Etiketi</h3><p>Etiket + rol ayarla, gerisini bot halleder.</p></div></div></div></div>'; return; }
-  c.innerHTML='<div class="page-h">Sunucu Etiketi</div><div class="page-s">Üyeler sunucu etiketinizi aldığında otomatik rol verilir</div>'
-    +'<div class="panel"><div class="row3"><div><label>Etiket</label><input type="text" id="et-tag" maxlength="20" placeholder="örn: ★"></div><div><label>Rol</label><select id="et-rol">'+secenek('rol','','Seçin')+'</select></div><div><label>&nbsp;</label><button class="btn pri" onclick="etKaydet()">Kaydet</button></div></div><div id="et-durum" style="margin-top:12px;color:var(--mut);font-size:13px">Yükleniyor...</div><div class="hint">Etiketi alan üyeler otomatik algılanır, rolü olmayanlara eklenir, etiketi çıkarandan alınır.</div></div>'+saveBar();
-  try{
-    const j=await api('/api/liste/'+SID);
-    document.getElementById('et-durum').innerHTML=j.tagSistemi?('Aktif: <b>'+esc(j.tagSistemi.tag)+'</b> → '+esc(rolAd(j.tagSistemi.rolId))+' <button class="btn sm" onclick="etKapat()">Kapat</button>'):'Kapalı.';
-    if(j.tagSistemi){document.getElementById('et-tag').value=j.tagSistemi.tag||''}
-  }catch{}
+  if(!PREMIUM_AKTIF){ c.innerHTML='<div class="page-h">Sunucu Etiketi \u{1F451}</div><div class="page-s">Etiket alan \u00FCyelere otomatik rol</div><div class="panel prem-lock-wrap"><div class="prem-lock"><div class="prem-lock-ic">\u{1F451}</div><b>Premium \u0130\u00E7erikli \u00D6zellik</b><p>Etiket rol\u00FC premium sunuculara \u00F6zel. Bu sunucuda premium yok.</p><button class="btn pri sm" onclick="git(\'premium\')">\u{1F451} Premium Bilgi</button></div><div class="prem-blur"><div class="panel-top"><div><h3>Sunucu Etiketi</h3><p>A\u00E7, rol se\u00E7, gerisini bot halleder.</p></div></div></div></div>'; return; }
+  c.innerHTML='<div class="page-h">Sunucu Etiketi</div><div class="page-s">\u00DCye bu sunucunun etiketini al\u0131nca otomatik rol verilir, \u00E7\u0131kar\u0131nca al\u0131n\u0131r. \u0130sim girmen gerekmez.</div>'
+    +'<div class="panel"><div class="panel-top"><div><h3>Etiket Rol\u00FC</h3><p>Kapal\u0131yken hi\u00E7bir \u015Fey yap\u0131lmaz. A\u00E7\u0131kken tam otomatik \u00E7al\u0131\u015F\u0131r.</p></div><label class="tgl"><input type="checkbox" data-k="etiketAktif"'+(FORM.etiketAktif?' checked':'')+'><span class="ray"></span></label></div>'
+    +'<div class="field"><label>Verilecek rol</label><select data-k="etiketRol">'+secenek('rol',FORM.etiketRol,'Rol se\u00E7in')+'</select></div>'
+    +'<div class="hint">\u2714 \u00DCye sunucu etiketini profiline ekleyince rol otomatik verilir, etiketi kald\u0131r\u0131nca geri al\u0131n\u0131r. Ekstra ayar yok.</div></div>'+saveBar();
 }
-async function etKaydet(){
-  const t=document.getElementById('et-tag').value,r=document.getElementById('et-rol').value;
-  if(!t.trim()||!r){toast('Etiket ve rol gerekli');return}
-  await api('/api/liste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,liste:'tagSistemi',tag:t,rolId:r})});
-  toast('Kaydedildi');renderContent();
-}
-async function etKapat(){
-  await api('/api/liste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,liste:'tagSistemi',islem:'kapat'})});
-  toast('Kapatıldı');renderContent();
-}
-
-/* medya toplu yükleme */
-function cizMedya(c){
-  c.innerHTML='<div class="page-h">Medya Yükle</div><div class="page-s">Emojileri ve stickerları toplu yükleyin — bot tek tek ekler</div>'
-    +'<div class="panel"><div class="panel-top"><div><h3>😀 Emoji Yükle</h3><p>PNG, JPG veya GIF (en fazla 256KB, en fazla 10 dosya).</p></div></div>'
-    +'<div class="field"><label>Emoji dosyaları</label><input type="file" id="md-emoji" accept=".png,.jpg,.jpeg,.gif" multiple></div>'
-    +'<div style="margin-top:12px"><button class="btn pri sm" onclick="medyaYukle(\'emoji\')">Yükle</button></div><div id="md-emoji-sonuc" style="margin-top:10px"></div></div>'
-    +'<div class="panel"><div class="panel-top"><div><h3>✨ Sticker Yükle</h3><p>PNG (en fazla 500KB, en fazla 10 dosya).</p></div></div>'
-    +'<div class="field"><label>Sticker dosyaları</label><input type="file" id="md-sticker" accept=".png" multiple></div>'
-    +'<div style="margin-top:12px"><button class="btn pri sm" onclick="medyaYukle(\'sticker\')">Yükle</button></div><div id="md-sticker-sonuc" style="margin-top:10px"></div></div>';
-}
-function dosyaOku(f){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=()=>res({ad:f.name.replace(/\.[^.]+$/,''),data:String(r.result)});
-    r.onerror=rej;r.readAsDataURL(f);
-  });
-}
-async function medyaYukle(tip){
-  const inp=document.getElementById(tip==='emoji'?'md-emoji':'md-sticker');
-  const kutu=document.getElementById(tip==='emoji'?'md-emoji-sonuc':'md-sticker-sonuc');
-  const files=[...(inp.files||[])].slice(0,10);
-  if(!files.length){toast('Dosya seç');return}
-  kutu.innerHTML='<div class="bos">Okunuyor...</div>';
-  try{
-    const dosyalar=[];
-    for(const f of files)dosyalar.push(await dosyaOku(f));
-    kutu.innerHTML='<div class="bos">Yükleniyor...</div>';
-    const j=await api('/api/medya-yukle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,tip,dosyalar})});
-    const s=j.sonuc||[];
-    const ok=s.filter(x=>x.ok).length;
-    kutu.innerHTML=s.map(x=>'<div class="liste-satir"><span>'+(x.ok?'✅':'❌')+' <b>'+esc(x.ad)+'</b></span><span style="color:var(--mut);font-size:12px">'+(x.ok?'eklendi':(x.hata==='boyut'?'dosya çok büyük':'oluşturulamadı'))+'</span></div>').join('')
-      +'<div class="hint">'+ok+'/'+s.length+' eklendi.</div>';
-    toast(ok+'/'+s.length+' eklendi!');
-  }catch{kutu.innerHTML='';toast('Yüklenemedi!')}
-}
-
 function cizPremium(c){
   c.innerHTML='<div class="page-h">Premium</div><div class="page-s">Premium özellikler ve durum</div><div class="panel"><h3 style="font-size:14px">👑 Premium</h3><p style="color:var(--mut);font-size:13px;margin-top:6px">Premium kodun varsa bota <code>/premium aktifleştir</code> yazarak açabilirsin. Ses XP, davet rolleri ve gelişmiş karşılama gibi özellikler premium sunucularda çalışır.</p></div>';
 }
 function cizDenetimMasasi(c){
-  c.innerHTML='<div class="page-h">Denetim Masası</div><div class="page-s">Topluluk moderasyonunu güvenilir üyelerle yönetin</div>'
+  c.innerHTML='<div class="page-h">Denetim Masası</div><div class="page-s">Güvenilir ekip rollerini seç: bu rollerdekiler denetim kaydını görür ve hızlı işlem menüsünü kullanır</div>'
     +'<div class="panel"><div class="warn yel">⚠ Buraya eklediğiniz roller denetim kaydı ve hızlı işlem menüsüne erişir.</div><div class="field"><label>Güvenilir roller</label>'+rolChips('moderatorRol')+'</div>'
     +'<div class="field"><label>Bildirim kanalı</label><select data-k="logKanal">'+secenek('yazi',FORM.logKanal,'Bir kanal seçin')+'</select></div>'
     +'<div class="field"><label>Not</label><input type="text" data-k="denetimNot" value="'+esc(FORM.denetimNot||'')+'" placeholder="örn: 3 uyarıda sustur"></div></div>'+saveBar();

@@ -40,6 +40,7 @@ const PREMIUM_AYARLAR = new Set([
   'yapiskan', 'seviyeHiz', 'girisDM', 'girisDMAt',
   'sesXP', 'sesXPDakika', 'sesXPMin', 'sesXPAfk',
   'prefix', 'davetRolu', 'govDavet', 'govHesap', 'webhookOnayKanal',
+  'etiketAktif', 'etiketRol',
 ]);
 // Webden değiştirilebilir ayar şeması: key -> tip
 const SEMA = {
@@ -84,6 +85,7 @@ const SEMA = {
   govRolSayi: 'sayi:1:50', govRolDakika: 'sayi:1:60',
   govHesapGun: 'sayi:1:30', davetMuaf: 'muaf',
   prefix: 'yazi:5', starboard: 'json', webhookOnayKanal: 'kanal',
+  etiketAktif: 'bool', etiketRol: 'rol',
 };
 
 async function discordAPI(token, yol, init = {}) {
