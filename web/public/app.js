@@ -196,6 +196,8 @@ function cizAyarlar(c){
     +'<div style="margin-top:10px">'+rolChips('moderatorRol')+'</div></div></div>'
     +'<div class="panel"><div class="page-h" style="font-size:16px">Güvenlik kanalı</div><div class="warn yel">⚠ Güvenlik sistemlerinin kaydı bu kanala gönderilir.</div>'
     +'<div class="field"><label>Güvenlik kanalı</label><select data-k="guvenlikKanal">'+secenek('yazi',FORM.guvenlikKanal,'Bir kanal seçin')+'</select></div></div>'
+    +'<div class="panel"><div class="page-h" style="font-size:16px">Bot Ön Eki 👑</div><div class="warn yel">👑 Özel ön ek premium sunucularda çalışır. Boş bırakırsan varsayılan ön ek kullanılır.</div>'
+    +'<div class="field"><label>Ön ek (en fazla 5 karakter, örn: ! veya r\')</label><input type="text" data-k="prefix" maxlength="5" placeholder="!" value="'+esc(FORM.prefix||'')+'" style="max-width:140px"></div></div>'
     +saveBar();
 }
 function tektenCokluya(sel,key){

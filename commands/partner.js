@@ -45,8 +45,13 @@ async function maybePartnerPrompt(message) {
     if (!message.guild || message.author.bot) return;
     const g = pv2Ayar(message.guild.id);
     if (!g.partnerChat || message.channel.id !== g.partnerChat) return;
-    // Komutları ve buton etkileşimlerini sayma
-    if (message.content.startsWith(config.prefix)) return;
+    // Komutları ve buton etkileşimlerini sayma (sunucu özel ön eki dahil)
+    let _pref = config.prefix;
+    try {
+      const _o = String(getGuild(message.guild.id).prefix || '').trim();
+      if (_o && require('../src/premium').premiumMu(message.guild.id)) _pref = _o.slice(0, 5);
+    } catch {}
+    if (message.content.startsWith(_pref)) return;
     const icerik = message.content.toLocaleLowerCase('tr');
     if (!CHAT_ANAHTAR.some(k => icerik.includes(k))) return;
     const son = chatCooldown.get(message.author.id) || 0;

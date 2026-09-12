@@ -69,6 +69,14 @@ function ihlalKaydet(gid, uid) {
   ihlalMap.set(key, k);
   return k.sayi;
 }
+// ---- Sunucu özel ön eki (premium) ----
+function sunucuPrefix(gid) {
+  try {
+    const ozel = String(getGuild(gid).prefix || '').trim();
+    if (ozel && premiumMu(gid)) return ozel.slice(0, 5);
+  } catch {}
+  return config.prefix;
+}
 async function otoCeza(message, sebep) {
   try {
     await message.member.timeout(10 * 60_000, 'Üst üste kural ihlali: ' + sebep).catch(() => {});
@@ -187,7 +195,7 @@ client.on('messageCreate', async (message) => {
     if (!message.guild || message.author.bot) return;
     // --- Partner chat tetikleyici (butonlu başvuru daveti) ---
     try { require('./commands/partner').maybePartnerPrompt(message); } catch {}
-    const prefix = config.prefix;
+    const prefix = sunucuPrefix(message.guild.id);
     const g = getGuild(message.guild.id);
     const u = getUser(message.guild.id, message.author.id);
 

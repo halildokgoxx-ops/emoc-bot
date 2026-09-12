@@ -26,9 +26,18 @@ const KATEGORI_ORNEK = {
 
 const HELP_GIFLER = ['happy', 'dance', 'wink', 'smile', 'yeet', 'blush'];
 
-async function yardimEmbed(client, kategori = null) {
+function loncaPrefix(gid) {
+  try {
+    const { getGuild } = require('../src/db');
+    const ozel = String(getGuild(gid).prefix || '').trim();
+    if (ozel && require('../src/premium').premiumMu(gid)) return ozel.slice(0, 5);
+  } catch {}
+  return config.prefix;
+}
+async function yardimEmbed(client, kategori = null, oneEk = null) {
   const cmdler = [...client.commands.values()];
   const gif = await animeGif(HELP_GIFLER[Math.floor(Math.random() * HELP_GIFLER.length)]).catch(() => null);
+  const pref = oneEk || config.prefix;
   if (!kategori) {
     const e = new EmbedBuilder()
       .setColor(config.colors.main)
@@ -36,12 +45,12 @@ async function yardimEmbed(client, kategori = null) {
       .setThumbnail(client.user.displayAvatarURL({ size: 256 }))
       .setDescription(
         `Selam! Ben **her şeyi yapan public bot** 🤖\n` +
-        `Slash: \`/\` • Prefix: \`${config.prefix}\` • Toplam **${cmdler.length} komut**\n\n` +
+        `Slash: \`/\` • Prefix: \`${pref}\` • Toplam **${cmdler.length} komut**\n\n` +
         Object.keys(KATEGORI_EMOJI).map(k => {
           const sayi = cmdler.filter(c => c.category === k).length;
           return `${KATEGORI_EMOJI[k]} **${k}** — \`${sayi} komut\``;
         }).join('\n') +
-        `\n\n👇 Menüden kategori seç, komutları + **örnekleri** gör.\n⭐ Hızlı başla: \`!1 @kullanıcı\` ile itibar ver!`
+        `\n\n👇 Menüden kategori seç, komutları + **örnekleri** gör.\n⭐ Hızlı başla: \`${pref}1 @kullanıcı\` ile itibar ver!`
       )
       .addFields(
         { name: '⭐ Popüler', value: '`/profil` `/itibar-top` `/duello` `/sicil` `/hava` `/qr`', inline: false },
@@ -93,15 +102,16 @@ module.exports = [
     usage: '!yardım [kategori]',
     async run(message, args, client) {
       const kat = args[0] ? Object.keys(KATEGORI_EMOJI).find(k => k.toLocaleLowerCase('tr') === args.join(' ').toLocaleLowerCase('tr')) : null;
+      const pref = message.guild ? loncaPrefix(message.guild.id) : config.prefix;
       if (kat) {
-        return message.reply({ embeds: [await yardimEmbed(client, kat)], components: yardimRow(client, kat) });
+        return message.reply({ embeds: [await yardimEmbed(client, kat, pref)], components: yardimRow(client, kat) });
       }
-      const msg = await message.reply({ embeds: [await yardimEmbed(client)], components: yardimRow(client) });
+      const msg = await message.reply({ embeds: [await yardimEmbed(client, null, pref)], components: yardimRow(client) });
       const coll = msg.createMessageComponentCollector({ time: 120_000 });
       coll.on('collect', async (i) => {
         try {
           if (i.user.id !== message.author.id) return await i.reply({ content: 'Bu menü sana ait değil!', ephemeral: true }).catch(() => {});
-          await i.update({ embeds: [await yardimEmbed(client, i.values[0])], components: yardimRow(client, i.values[0]) });
+          await i.update({ embeds: [await yardimEmbed(client, i.values[0], pref)], components: yardimRow(client, i.values[0]) });
         } catch {}
       });
       coll.on('end', () => msg.edit({ components: [] }).catch(() => {}));
