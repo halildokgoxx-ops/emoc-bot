@@ -1,8 +1,43 @@
-const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
 const { db, getGuild, setGuild, getUser, save } = require('../src/db');
 const { ok, err, repRozet, kisiBulAsync } = require('../src/embeds');
 const { gunlukSeed, seedRandom, rastgele } = require('../src/utils');
 const config = require('../config');
+
+// ---- 🤫 İtiraf seçim akışı (kanala yazınca / !itiraf ile) ----
+// Yazarın mesajı silinir, sadece seçim butonları kalır (içerik görünmez).
+// 👤 Hesabımla = kimlikli embed • 🕵️ Gizli = "Gizli Kullanıcı" webhook'u.
+const bekleyenItiraf = new Map(); // token -> { yazi, userId, guildId, kanalId, bitis }
+
+async function itirafSecimSor(kanal, user, yazi) {
+  const token = Math.random().toString(36).slice(2, 10);
+  bekleyenItiraf.set(token, {
+    yazi: String(yazi).slice(0, 1500),
+    userId: user.id, guildId: kanal.guild.id, kanalId: kanal.id,
+    bitis: Date.now() + 5 * 60_000,
+  });
+  if (bekleyenItiraf.size > 200) bekleyenItiraf.delete(bekleyenItiraf.keys().next().value);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`itiraf_acik_${token}`).setLabel('👤 Hesabım gözüksün').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId(`itiraf_gizli_${token}`).setLabel('🕵️ Gizli kalsın').setStyle(ButtonStyle.Secondary),
+  );
+  const m = await kanal.send({ content: `${user} 🤫 İtirafın alındı! Nasıl paylaşayım? (5dk)`, components: [row] }).catch(() => null);
+  if (m) setTimeout(() => m.delete().catch(() => {}), 120_000);
+  return m;
+}
+
+async function itirafGizliGonder(kanal, yazi) {
+  try {
+    const whlar = await kanal.fetchWebhooks().catch(() => null);
+    let wh = whlar ? whlar.find((w) => w.name === 'Gizli Kullanıcı') : null;
+    if (!wh) wh = await kanal.createWebhook({ name: 'Gizli Kullanıcı', reason: 'İtiraf gizlilik' }).catch(() => null);
+    if (wh) {
+      await wh.send({ content: String(yazi).slice(0, 2000), username: 'Gizli Kullanıcı' }).catch(() => null);
+      return true;
+    }
+  } catch {}
+  return false;
+}
 
 module.exports = [
   {
@@ -65,15 +100,16 @@ module.exports = [
   },
   {
     name: 'itiraf', aliases: [], category: 'Özel',
-    description: 'Anonim itiraf gönderirsin. (Kanal: !itiraf-ayarla #kanal)', usage: '!itiraf <yazı>',
+    description: 'İtiraf gönderirsin — kanala yaz veya komutla (hesaplı/gizli seçimli).', usage: '!itiraf <yazı>',
     async run(message, args) {
       const g = getGuild(message.guild.id);
       if (!g.itirafKanal) return message.reply({ embeds: [err('İtiraf kanalı ayarlı değil! Yetkili: `!itiraf-ayarla #kanal`')] });
-      const yazi = args.join(' ');
-      if (!yazi) return message.reply({ embeds: [err('`!itiraf sevdiğim çocuğa açılamıyorum...`')] });
+      const yazi = args.join(' ').trim().slice(0, 1500);
+      if (!yazi) return message.reply({ embeds: [err('`!itiraf sevdiğim çocuğa açılamıyorum...`\n💡 İtiraf kanalına direkt yazarsan hesaplı/gizli seçimi çıkar!')] });
       await message.delete().catch(() => {});
       const k = message.guild.channels.cache.get(g.itirafKanal);
-      if (k) k.send({ embeds: [new EmbedBuilder().setColor(0x2b2d31).setTitle('🤫 Anonim İtiraf').setDescription(yazi).setFooter({ text: 'Kim olduğu bilinmiyor...' }).setTimestamp()] });
+      if (!k) return;
+      await itirafSecimSor(k, message.author, yazi);
     },
   },
   {
@@ -170,4 +206,45 @@ module.exports = [
       return message.reply({ embeds: [ok(`${hangisi === 'haftalik' ? '🏆 Haftalık' : '🎯 Günlük'} görev **${acik ? '🟢 açıldı' : '🔴 kapatıldı'}!`)] });
     },
   },
+  // ---- İNTERNAL: itiraf seçim butonları (index.js çağırır) ----
+  {
+    name: '__itiraf_internal__', aliases: [], category: 'Sistem', description: 'internal', usage: '',
+    async run() {},
+    async button(interaction, client) {
+      const m = interaction.customId.match(/^itiraf_(acik|gizli)_([a-z0-9]+)$/);
+      if (!m) return interaction.reply({ content: '❌ Bilinmeyen işlem!', ephemeral: true }).catch(() => {});
+      const [, tur, token] = m;
+      const kayit = bekleyenItiraf.get(token);
+      if (!kayit || kayit.bitis < Date.now()) {
+        bekleyenItiraf.delete(token);
+        return interaction.reply({ content: '❌ Süre dolmuş! İtirafını tekrar yaz.', ephemeral: true }).catch(() => {});
+      }
+      if (interaction.user.id !== kayit.userId) {
+        return interaction.reply({ content: '❌ Bu seçim sana ait değil!', ephemeral: true }).catch(() => {});
+      }
+      bekleyenItiraf.delete(token);
+      const kanal = interaction.guild.channels.cache.get(kayit.kanalId);
+      if (!kanal || !kanal.isTextBased()) {
+        return interaction.reply({ content: '❌ Kanal bulunamadı!', ephemeral: true }).catch(() => {});
+      }
+      if (tur === 'acik') {
+        const uye = interaction.member?.user || interaction.user;
+        await kanal.send({
+          embeds: [new EmbedBuilder().setColor(0x5865F2).setTitle('🗣️ İtiraf')
+            .setAuthor({ name: uye.tag, iconURL: uye.displayAvatarURL({ size: 64 }) })
+            .setDescription(kayit.yazi).setTimestamp()],
+        }).catch(() => {});
+        await interaction.reply({ content: '👤 Hesabınla paylaşıldı!', ephemeral: true }).catch(() => {});
+      } else {
+        const oldu = await itirafGizliGonder(kanal, kayit.yazi);
+        if (!oldu) {
+          await kanal.send({ embeds: [new EmbedBuilder().setColor(0x2b2d31).setTitle('🤫 Anonim İtiraf').setDescription(kayit.yazi).setFooter({ text: 'Kim olduğu bilinmiyor...' }).setTimestamp()] }).catch(() => {});
+        }
+        await interaction.reply({ content: '🕵️ Gizli paylaşıldı! Kimse bilmeyecek...', ephemeral: true }).catch(() => {});
+      }
+      await interaction.message.delete().catch(() => {});
+    },
+  },
 ];
+
+module.exports.itirafSecimSor = itirafSecimSor;

@@ -316,6 +316,18 @@ client.on('messageCreate', async (message) => {
       u.afk = null; save();
       message.reply(`👋 Tekrar hoşgeldin ${message.author}! AFK modundan çıktın.`).then(m => setTimeout(() => m.delete().catch(() => {}), 5000)).catch(() => {});
     }
+    // --- 🤫 İtiraf kanalı: yazanı sil, hesaplı/gizli seçim sor ---
+    try {
+      const ggI = getGuild(message.guild.id);
+      if (ggI.itirafKanal && message.channel.id === ggI.itirafKanal && !message.content.startsWith(prefix)) {
+        const yazi = String(message.content || '').trim().slice(0, 1500);
+        if (yazi) {
+          await message.delete().catch(() => {});
+          await require('./commands/ozel').itirafSecimSor(message.channel, message.author, yazi);
+        }
+        return;
+      }
+    } catch {}
     // --- Ticket aktivite damgası (oto-kapatma sayacı) ---
     try {
       const tk0 = g.ticket;
@@ -1850,6 +1862,11 @@ client.on('interactionCreate', async (interaction) => {
       if (interaction.customId.startsWith('ticket_')) {
         const arr = require('./commands/ticket');
         const internal = arr.find(c => c.name === '__ticket_internal__');
+        if (internal?.button) return internal.button(interaction, client);
+      }
+      if (interaction.customId.startsWith('itiraf_')) {
+        const arr = require('./commands/ozel');
+        const internal = arr.find(c => c.name === '__itiraf_internal__');
         if (internal?.button) return internal.button(interaction, client);
       }
     }

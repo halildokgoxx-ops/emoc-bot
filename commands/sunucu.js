@@ -102,7 +102,7 @@ const KATEGORILER = [
     ad: '▬▬ ● sɪᴢɪɴ ● ▬▬', kanallar: [
       { ad: '🌹・geceye-söz-bırak', tip: 'yazi' },
       { ad: '🤯・anı-anlatma', tip: 'yazi' },
-      { ad: '😳・itiraflar', tip: 'yazi' },
+      { ad: '😳・itiraflar', tip: 'yazi', isaret: 'itiraf' },
       { ad: '📝・hobiler', tip: 'yazi' },
       { ad: '🎂・doğum-günleri', tip: 'yazi' },
     ],
@@ -180,7 +180,7 @@ const KONULAR = {
   '🔔・itibar-bildirim': '⭐ İtibar hakkı yenilenenler burada etiketlenir.',
   '🌹・geceye-söz-bırak': '🌙 Geceye bir söz bırak...',
   '🤯・anı-anlatma': '📖 Unutamadığın anını anlat!',
-  '😳・itiraflar': '🤫 Anonim itiraflar: !itiraf <yazın>',
+  '😳・itiraflar': '🤫 İtirafını buraya yaz, bot siler + hesaplı/gizli seçimi sorar!',
   '📝・hobiler': '🎨 Hobilerini paylaş, ekibini bul!',
   '🎂・doğum-günleri': '🎂 Doğum günün mü? Kutlayalım!',
   '🎫・destek': '🎫 Destek için menüden konu seç, odan açılsın!',
@@ -466,6 +466,7 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
     partnerYetkiliKanal: isaret.partnerOnay?.id || null,
     partnerYetkiliRol: rolMap['★ Partner Sorumlusu']?.id || null,
     partnerText: VARSAYILAN_PARTNER_TEXT,
+    itirafKanal: isaret.itiraf?.id || null,
     gununSorusuKanal: isaret.gununSorusu?.id || null,
     gununSorusuSon: Date.now(),
     seviyeRoller: [
@@ -631,7 +632,7 @@ const sunucuSlash = {
           baslik: '🛠️ /sunucu kur — Önizleme',
           aciklama: `**${KATEGORILER.length + 1} kategori • ${kanalSayi} kanal • ${rolSayi} rol** kurulur.\nAnime/Manga topluluk template'i + bot bağlantılı + 🌍 emojili şehir ses kanalları (limitsiz>90>...>5>4>3>2 merdiveni) + 🎓 oryantasyon!`,
           alanlar: [
-            { name: '🤖 Otomatik Bağlananlar', value: '🎭 Oto-rol → Üye\n📋 Log → loglar\n👋 HG/Çıkış → gelenler/gidenler\n🎯 Sayaç (1000) → sayaç\n🔔 İtibar bildirim → itibar-bildirim\n🤝 Partner (kanal+chat+onay+rol+yazı)\n🎫 Ticket paneli → destek\n🎓 Oryantasyon (yaş + oyun + cinsiyet + ilgi)\n🎮 Oyunlar oto-başlar (sayı + kelime motoru)\n💎 Booster rolü + özel izinler\n🥷 Alt hesap koruması (3g kick / 7g gözlem)\n💬 Günün sorusu → genel-sohbet\n🚀 Sv.5/10/20 + 🏅 25/50/100 İtibar rolleri\n👑 Owner rolü → sahip + kurucular', inline: false },
+            { name: '🤖 Otomatik Bağlananlar', value: '🎭 Oto-rol → Üye\n📋 Log → loglar\n👋 HG/Çıkış → gelenler/gidenler\n🎯 Sayaç (1000) → sayaç\n🔔 İtibar bildirim → itibar-bildirim\n🤝 Partner (kanal+chat+onay+rol+yazı)\n🎫 Ticket paneli → destek\n🤫 İtiraf kanalı → itiraflar (hesaplı/gizli butonlu)\n🎓 Oryantasyon (yaş + oyun + cinsiyet + ilgi)\n🎮 Oyunlar oto-başlar (sayı + kelime motoru)\n💎 Booster rolü + özel izinler\n🥷 Alt hesap koruması (3g kick / 7g gözlem)\n💬 Günün sorusu → genel-sohbet\n🚀 Sv.5/10/20 + 🏅 25/50/100 İtibar rolleri\n👑 Owner rolü → sahip + kurucular', inline: false },
             { name: '⚠️ Dikkat', value: 'Mevcut **TÜM kanallar ve roller silinir!** (bot rolleri hariç)\nSadece **sunucu sahibi** kurabilir.\n🎓 Oryantasyon için sunucuda **Topluluk** açık olmalı, değilse kurulum sonunda uyarı verir.', inline: false },
           ],
           altbilgi: 'Kurmak için: /sunucu kur',
@@ -720,7 +721,7 @@ async function handleSunucuButton(interaction, client) {
       baslik: '🎉 SUNUCUN HAZIR!',
       aciklama: `**${sure} saniyede** her şey kuruldu! ${E(client, 'parti', '🎉')}\n👑 **Taçlı sahip + kurucular:** ${(tacAlanlar || []).map((u) => `${u}`).join(' ') || '*sunucuda bulunamadı*'}`,
       alanlar: [
-            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 emojili şehir ses kanalı (limitsiz>90>...>5>4>3>2)\n🎮 Oyun kanalları oto-başlatıldı (sayı + kelime)', inline: false },
+            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n🤫 İtiraf kanalı (hesaplı/gizli) • 💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 emojili şehir ses kanalı (limitsiz>90>...>5>4>3>2)\n🎮 Oyun kanalları oto-başlatıldı (sayı + kelime)', inline: false },
         { name: '🎓 Oryantasyon', value: oryantasyon?.ok ? `✅ Kuruldu (${oryantasyon.soru} soru: yaş + oyun + cinsiyet + ilgi)! Yeni gelenler soruları cevaplayıp rol kapar.` : `⚠️ Atlandı (${oryantasyon?.hata || 'bilinmiyor'}) — yönetim sohbetine retry butonu bıraktım!`, inline: false },
         { name: '🚀 Sonraki Adımlar', value: '`/ticket-kur #destek @Destek` → destek paneli\n`/vitrin-ekle ...` → sunucunu tanıt\n`/partner ayarla` → yazını özelleştir', inline: false },
       ],

@@ -185,6 +185,14 @@ T('gorev motoru', (() => {
 })());
 T('gorev komutlari', cmds.has('gorev-ayarla') && cmds.has('gunluk-gorev') && r.payload.some((p) => p.name === 'gorev-ayarla'));
 T('oryantasyon', typeof require('./commands/sunucu').oryantasyonKur === 'function' && !(require('./commands/sunucu').sunucuSlash?.data?.options || []).some((o) => o.name === 'oryantasyon'));
+T('itiraf akisi', (() => {
+  try {
+    const O = require('./commands/ozel');
+    const internal = O.find((c) => c.name === '__itiraf_internal__');
+    return typeof O.itirafSecimSor === 'function' && !!internal && typeof internal.button === 'function' &&
+      O.some((c) => c.name === 'itiraf') && O.some((c) => c.name === 'itiraf-ayarla');
+  } catch { return false; }
+})());
 T('oyun motoru', (() => {
   try {
     const O = require('./src/oyun');
