@@ -192,7 +192,26 @@ module.exports = [
         embeds: [kart(message.client, {
           renk: RENK.altin, baslik: '👑 Premium Komutlar',
           aciklama: 'Hepsi **slash** ile çalışır, free yazarsa premium hatası verir:\n\n' + AVANTAJLAR,
-          altbilgi: 'Kodun varsa: /premium aktiflestir',
+          altbilgi: 'Kodun varsa: /premium aktiflestir • İlk kez: /premium dene (7 gün bedava!)',
+        })],
+      });
+    },
+  },
+  {
+    name: 'premium-dene', aliases: ['premiumdene', 'premium-d trial', 'predene'], category: 'Premium',
+    description: '7 günlük deneme premiumu (sunucu başına 1 kez, Yönetici).',
+    usage: '!premium-dene',
+    perms: [PermissionFlagsBits.ManageGuild],
+    async run(message, args, client) {
+      if (!message.guild) return;
+      const s = P.denemeKullan(message.guild.id, message.author.id);
+      if (s.hata) return message.reply({ embeds: [err(s.hata)] });
+      return message.channel.send({
+        embeds: [kart(client || message.client, {
+          renk: RENK.altin,
+          baslik: '🎁 DENEME PREMIUM AKTİF! (7 gün)',
+          aciklama: `**${message.guild.name}** 7 gün boyunca PREMIUM! (<t:${Math.floor(s.bitis / 1000)}:R> bitiyor)\nBeğenirsen kod alıp uzatabilirsin! 💎`,
+          alanlar: [{ name: '✨ Açılan Avantajlar', value: AVANTAJLAR }],
         })],
       });
     },
@@ -210,6 +229,7 @@ const premiumSlash = {
         options: [{ type: 3, name: 'kod', description: 'EMOC-XXXX-XXXX', required: true }],
       },
       { type: 1, name: 'bilgi', description: 'Bu sunucunun premium durumu + avantajlar' },
+      { type: 1, name: 'dene', description: `🎁 ${P.DENEME_GUN} günlük deneme premiumu (sunucu başına 1 kez)` },
       {
         type: 1, name: 'ai-kanal', description: '👑 Komutsuz EmocAI sohbet kanalı!',
         options: [
@@ -221,6 +241,20 @@ const premiumSlash = {
   },
   async execute(interaction, client) {
     const alt = interaction.options.getSubcommand();
+    if (alt === 'dene') {
+      if (!interaction.memberPermissions || !interaction.memberPermissions.has(PermissionFlagsBits.ManageGuild)) {
+        return interaction.reply({ content: '❌ Sunucuyu Yönet yetkisi gerek!', ephemeral: true });
+      }
+      const s = P.denemeKullan(interaction.guild.id, interaction.user.id);
+      if (s.hata) return interaction.reply({ content: `❌ ${s.hata}`, ephemeral: true });
+      return interaction.reply({
+        embeds: [kart(client, {
+          renk: RENK.altin,
+          baslik: `🎁 DENEME PREMIUM AKTİF! (${P.DENEME_GUN} gün)`,
+          aciklama: `**${interaction.guild.name}** ${P.DENEME_GUN} gün boyunca PREMIUM! (<t:${Math.floor(s.bitis / 1000)}:R> bitiyor) 💎\n\n${AVANTAJLAR}`,
+        })],
+      });
+    }
     if (alt === 'aktiflestir') {
       const s = P.kodKullan(interaction.options.getString('kod'), interaction.guild.id, interaction.user.id);
       if (s.hata) return interaction.reply({ content: `❌ ${s.hata}`, ephemeral: true });
@@ -249,13 +283,20 @@ const premiumSlash = {
       setGuild(interaction.guild.id, { aiKanal: kanal.id });
       return interaction.reply({ embeds: [ok(`✦ ${kanal} artık **EmocAI sohbet kanalı**!\nKomutsuz yaz, EmocAI cevaplasın! (Premium: 100/gün) 💬`)] });
     }
+    const denemeDurum = (() => {
+      try {
+        if (b) return null;
+        const h = P.denemeHakki(interaction.guild.id);
+        return h.ok ? `🎁 \`/premium dene\` ile **${P.DENEME_GUN} gün bedava** deneyebilirsin (sunucu başına 1 kez)!` : null;
+      } catch { return null; }
+    })();
     return interaction.reply({
       embeds: [kart(client, {
         renk: b ? RENK.altin : RENK.ana,
         baslik: b ? '👑 PREMIUM AKTİF' : '👑 Premium Bilgi',
         aciklama: b
           ? `Bitiş: <t:${Math.floor(b.bitis / 1000)}:F> (<t:${Math.floor(b.bitis / 1000)}:R>)`
-          : 'Bu sunucuda premium yok. Kodun varsa `/premium aktiflestir` yaz!',
+          : 'Bu sunucuda premium yok. Kodun varsa `/premium aktiflestir` yaz!' + (denemeDurum ? '\n\n' + denemeDurum : ''),
         alanlar: [{ name: '✨ Premium Avantajları', value: AVANTAJLAR }],
       })],
       ephemeral: true,

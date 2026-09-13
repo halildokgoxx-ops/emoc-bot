@@ -27,12 +27,15 @@ function ticketAyar(gid) {
   if (!g.ticket.acik) g.ticket.acik = {};
   // Eski string kayıtları objeye çevir
   for (const [uid, v] of Object.entries(g.ticket.acik)) {
-    if (typeof v === 'string') g.ticket.acik[uid] = { kanal: v, konu: 'genel', aciliyet: 'normal', devralan: null, durum: 'acik', acilma: Date.now() };
+    if (typeof v === 'string') g.ticket.acik[uid] = { kanal: v, konu: 'genel', aciliyet: 'normal', devralan: null, durum: 'acik', acilma: Date.now(), sonAktivite: Date.now() };
+    else if (v && typeof v === 'object' && !v.sonAktivite) v.sonAktivite = v.acilma || Date.now();
   }
   // Web panel (flat) -> nested senkron: web kazanır
   let degisti = false;
   if (g.ticketDestekRol && g.ticketDestekRol !== g.ticket.destekRol) { g.ticket.destekRol = g.ticketDestekRol; degisti = true; }
   if (g.ticketKategori && g.ticketKategori !== g.ticket.kategori) { g.ticket.kategori = g.ticketKategori; degisti = true; }
+  const oto = Math.max(0, Math.min(30, parseInt(g.ticketOtoKapat, 10) || 0));
+  if ((g.ticket.otoKapat || 0) !== oto) { g.ticket.otoKapat = oto; degisti = true; }
   if (degisti) { try { _save(); } catch {} }
   return g.ticket;
 }
@@ -137,15 +140,69 @@ async function ticketKapatAkis(guild, kanal, { sahipId, kapatan, sebep }) {
   const bulunan = acikBul(t, kanal.id);
   const kayit = bulunan ? bulunan.kayit : {};
   const gercekSahip = sahipId || (bulunan ? bulunan.uid : null);
+  const devralanId = (kayit && kayit.devralan) || null;
   const { metin, sayi } = await transcriptTopla(kanal);
   await transcriptGonder(guild, {
     sahipId: gercekSahip, kapatan, sebep, kanalAdi: kanal.name,
     konu: kayit.konu || '?', aciliyet: kayit.aciliyet || 'normal',
-    devralanId: kayit.devralan || null, mesajSayisi: sayi, metin,
+    devralanId, mesajSayisi: sayi, metin,
   });
   if (gercekSahip && t.acik[gercekSahip]) { delete t.acik[gercekSahip]; save(); }
+  // ⭐ Puanlama DM'i (sahibine, tek oy)
+  if (gercekSahip) {
+    try {
+      const ts = Date.now();
+      const staff = devralanId || 'yok';
+      const row = new ActionRowBuilder().addComponents(
+        [1, 2, 3, 4, 5].map((y) => new ButtonBuilder()
+          .setCustomId(`ticket_puan_${y}_${guild.id}_${staff}_${gercekSahip}_${ts}`)
+          .setLabel(`${y}⭐`).setStyle(y >= 4 ? ButtonStyle.Success : y === 3 ? ButtonStyle.Primary : ButtonStyle.Secondary))
+      );
+      const uye = await guild.client.users.fetch(gercekSahip).catch(() => null);
+      await uye?.send({
+        content: `🎫 **${guild.name}** — ticketın kapandı! Destek ekibini puanlar mısın? (tek oy)\n📂 Konu: **${kayit.konu || '?'}**${devralanId ? ` • 🙋 İlgilenen: <@${devralanId}>` : ''}`,
+        components: [row],
+      }).catch(() => {});
+    } catch {}
+  }
   await kanal.send('🔒 Kapanıyor... konuşma kaydı loga aktarıldı. **5 saniye**...').catch(() => {});
   setTimeout(() => kanal.delete('Ticket kapatıldı').catch(() => {}), 5000);
+}
+
+// ⭐ Puan kaydı + istatistik
+function puanVer({ gid, staffId, sahipId, ts, yildiz }) {
+  const { db, save: _save } = require('../src/db');
+  const d = db();
+  if (!d.ticketOy) d.ticketOy = {};
+  if (!d.ticketPuan) d.ticketPuan = [];
+  const key = `${gid}_${sahipId}_${ts}`;
+  if (d.ticketOy[key]) return { hata: 'Bu ticketa zaten oy verdin!' };
+  d.ticketOy[key] = 1;
+  d.ticketPuan.push({ gid: String(gid), staff: String(staffId), yildiz, ts: Date.now() });
+  if (d.ticketPuan.length > 3000) d.ticketPuan = d.ticketPuan.slice(-3000);
+  const oyKeys = Object.keys(d.ticketOy);
+  if (oyKeys.length > 4000) for (const k of oyKeys.slice(0, oyKeys.length - 4000)) delete d.ticketOy[k];
+  _save();
+  return { ok: true };
+}
+
+function puanIstatistik(gid) {
+  const { db } = require('../src/db');
+  const d = db();
+  const liste = (d.ticketPuan || []).filter((p) => String(p.gid) === String(gid));
+  if (!liste.length) return null;
+  const ort = liste.reduce((a, p) => a + p.yildiz, 0) / liste.length;
+  const per = {};
+  for (const p of liste) {
+    if (!p.staff || p.staff === 'yok') continue;
+    if (!per[p.staff]) per[p.staff] = { toplam: 0, sayi: 0 };
+    per[p.staff].toplam += p.yildiz;
+    per[p.staff].sayi++;
+  }
+  const sira = Object.entries(per)
+    .map(([id, v]) => ({ id, ort: v.toplam / v.sayi, sayi: v.sayi }))
+    .sort((a, b) => b.ort - a.ort || b.sayi - a.sayi).slice(0, 10);
+  return { sayi: liste.length, ort, sira };
 }
 
 module.exports = [
@@ -330,6 +387,27 @@ module.exports = [
       return message.reply({ embeds: [ok(`${h} ticketdan çıkarıldı.`)] });
     },
   },
+  {
+    name: 'ticket-istatistik', aliases: ['t-istatistik', 'ticket-stats'], category: 'Genel',
+    description: 'Ticket puan istatistiği (ortalama + yetkili sıralaması).', usage: '!ticket-istatistik',
+    async run(message) {
+      const t = ticketAyar(message.guild.id);
+      if (!ekipMi(message.member, t)) return message.reply({ embeds: [err('Sadece destek ekibi görebilir!')] });
+      const st = puanIstatistik(message.guild.id);
+      if (!st) return message.reply({ embeds: [err('Henüz puan yok! Ticketlar kapanınca kullanıcılar DM ile 1-5 yıldız verir.')] });
+      const { EmbedBuilder: EB } = require('discord.js');
+      const e = new EB().setColor(config.colors.main).setTitle('⭐ Ticket Puan İstatistiği')
+        .setDescription(`📊 Oy sayısı: **${st.sayi}**\n⭐ Ortalama: **${st.ort.toFixed(2)}/5**`)
+        .setTimestamp();
+      if (st.sira.length) {
+        e.addFields({
+          name: '🙋 Yetkili Sıralaması', value: st.sira
+            .map((s, i) => `${['🥇', '🥈', '🥉'][i] || `${i + 1}.`} <@${s.id}> — **${s.ort.toFixed(2)}** (${s.sayi} oy)`).join('\n').slice(0, 1024),
+        });
+      }
+      return message.reply({ embeds: [e] });
+    },
+  },
   // ---- İNTERNAL: menü + buton + aciliyet (index.js çağırır) ----
   {
     name: '__ticket_internal__', aliases: [], category: 'Sistem', description: 'internal', usage: '',
@@ -379,7 +457,7 @@ module.exports = [
             ...(t.destekRol ? [{ id: t.destekRol, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] }] : []),
           ],
         });
-        t.acik[interaction.user.id] = { kanal: kanal.id, konu, aciliyet: seviye, devralan: null, durum: 'acik', acilma: Date.now() };
+        t.acik[interaction.user.id] = { kanal: kanal.id, konu, aciliyet: seviye, devralan: null, durum: 'acik', acilma: Date.now(), sonAktivite: Date.now() };
         save();
 
         const embed = new EmbedBuilder().setColor(ac.renk).setTitle(`🎫 ${isim}`)
@@ -392,6 +470,20 @@ module.exports = [
       }
     },
     async button(interaction, client) {
+      // ⭐ Puan oyu (DM'den gelir, kanal kontrolü yok)
+      if (interaction.customId.startsWith('ticket_puan_')) {
+        const parca = interaction.customId.split('_');
+        const yildiz = Math.max(1, Math.min(5, parseInt(parca[2], 10) || 0));
+        const gid = parca[3] || '';
+        const staff = parca[4] || 'yok';
+        const sahip = parca[5] || '';
+        const ts = parca[6] || '0';
+        if (!yildiz || !gid) return interaction.reply({ content: '❌ Geçersiz oy!', ephemeral: true }).catch(() => {});
+        if (interaction.user.id !== sahip) return interaction.reply({ content: '❌ Bu oy sana ait değil!', ephemeral: true }).catch(() => {});
+        const s = puanVer({ gid, staffId: staff, sahipId: sahip, ts, yildiz });
+        if (s.hata) return interaction.reply({ content: `❌ ${s.hata}`, ephemeral: true }).catch(() => {});
+        return interaction.update({ content: `⭐ Teşekkürler! **${yildiz}/5** verdin.${staff !== 'yok' ? ` (<@${staff}>)` : ''}`, components: [] }).catch(() => {});
+      }
       const t = ticketAyar(interaction.guild.id);
       const bulunan = acikBul(t, interaction.channel.id);
       if (!bulunan) return interaction.reply({ content: '❌ Bu kanal bir ticket değil!', ephemeral: true }).catch(() => {});
@@ -532,6 +624,7 @@ const ticketSlash = {
       { type: 1, name: 'beklet', description: '⏸️ Ticketı beklemeye al', options: [{ type: 3, name: 'sebep', description: 'Sebep', required: false }] },
       { type: 1, name: 'ac', description: '▶️ Beklemedeki ticketı geri aç' },
       { type: 1, name: 'oncelik', description: '⚡ Ticket önceliğini değiştir', options: [{ type: 3, name: 'seviye', description: 'Yeni öncelik', required: true, choices: [{ name: '🟢 Normal', value: 'normal' }, { name: '🟡 Acele', value: 'acele' }, { name: '🔴 Acil', value: 'acil' }] }] },
+      { type: 1, name: 'istatistik', description: '⭐ Ticket puan istatistiği (ekip)' },
       { type: 1, name: 'ekle', description: '➕ Ticketa kullanıcı ekle (👑 PREMIUM)', options: [{ type: 6, name: 'kullanici', description: 'Eklenecek kullanıcı', required: true }] },
       { type: 1, name: 'cikar', description: '➖ Tickettan kullanıcı çıkar', options: [{ type: 6, name: 'kullanici', description: 'Çıkarılacak kullanıcı', required: true }] },
     ],
@@ -615,6 +708,10 @@ const ticketSlash = {
         await bul('ticket-oncelik').run(sahte(), [seviye], client);
         return;
       }
+      if (alt === 'istatistik') {
+        await bul('ticket-istatistik').run(sahte(), [], client);
+        return;
+      }
       if (alt === 'ekle' || alt === 'cikar') {
         const k = interaction.options.getUser('kullanici');
         const cmd = bul(alt === 'ekle' ? 'ticket-ekle' : 'ticket-cikar');
@@ -636,3 +733,5 @@ const ticketSlash = {
 
 module.exports = _CMDS;
 module.exports.ticketSlash = ticketSlash;
+module.exports.ticketKapatAkis = ticketKapatAkis;
+module.exports.ticketAyar = ticketAyar;

@@ -183,6 +183,31 @@ client.once('clientReady', async () => {
   setInterval(() => {
     try { require('./commands/itibar').repBildirimTara(client); } catch {}
   }, 60_000);
+  // Ticket oto-kapatma taraması (10dk'da bir, X gün inaktif ticketları kapatır)
+  setInterval(async () => {
+    try {
+      const { db, save: _save } = require('./src/db');
+      const d = db();
+      for (const [gid, gg] of Object.entries(d.guilds || {})) {
+        const tk = gg.ticket;
+        if (!tk || !tk.otoKapat || !tk.acik) continue;
+        const guild = client.guilds.cache.get(gid);
+        if (!guild) continue;
+        for (const [uid, vv] of Object.entries(tk.acik)) {
+          const kay = (vv && typeof vv === 'object') ? vv : null;
+          if (!kay || !kay.sonAktivite) continue;
+          if (Date.now() - kay.sonAktivite < tk.otoKapat * 86400_000) continue;
+          const kanal = guild.channels.cache.get(kay.kanal);
+          if (!kanal) { delete tk.acik[uid]; _save(); continue; }
+          try {
+            await require('./commands/ticket').ticketKapatAkis(guild, kanal, {
+              sahipId: uid, kapatan: '⏰ Oto-kapatma', sebep: `${tk.otoKapat} gün inaktiflik`,
+            });
+          } catch {}
+        }
+      }
+    } catch {}
+  }, 10 * 60_000);
   client.user.setActivity(`/yardım • ${toplam} komut`, { type: 3 });
   setInterval(() => {
     const tipler = [`/yardım • ${toplam} komut`, `!1 ⭐ itibar ver!`, `🤝 /partner ile oto-partner!`, `${client.guilds.cache.size} sunucu • ${client.users.cache.size} kullanıcı`];
@@ -290,6 +315,16 @@ client.on('messageCreate', async (message) => {
       u.afk = null; save();
       message.reply(`👋 Tekrar hoşgeldin ${message.author}! AFK modundan çıktın.`).then(m => setTimeout(() => m.delete().catch(() => {}), 5000)).catch(() => {});
     }
+    // --- Ticket aktivite damgası (oto-kapatma sayacı) ---
+    try {
+      const tk0 = g.ticket;
+      if (tk0 && tk0.acik) {
+        for (const vv0 of Object.values(tk0.acik)) {
+          const kk0 = (vv0 && typeof vv0 === 'object') ? vv0 : null;
+          if (kk0 && kk0.kanal === message.channel.id) { kk0.sonAktivite = Date.now(); save(); break; }
+        }
+      }
+    } catch {}
     // --- AFK etiket bilgisi ---
     if (message.mentions.users.size) {
       for (const [id, usr] of message.mentions.users) {

@@ -86,7 +86,7 @@ const SEMA = {
   govHesapGun: 'sayi:1:30', davetMuaf: 'muaf',
   prefix: 'yazi:5', starboard: 'json', webhookOnayKanal: 'kanal',
   etiketAktif: 'bool', etiketRol: 'rol',
-  ticketDestekRol: 'rol', ticketKategori: 'yazi:25',
+  ticketDestekRol: 'rol', ticketKategori: 'yazi:25', ticketOtoKapat: 'sayi:0:30',
 };
 
 async function discordAPI(token, yol, init = {}) {

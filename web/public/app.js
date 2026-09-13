@@ -335,13 +335,15 @@ function cizDestek(c){
   +'<div class="field"><label>Destek rolü</label><select data-k="ticketDestekRol">'+secenek('rol',f.ticketDestekRol,'Seçilmedi')+'</select></div></div>'
   +'<div class="panel"><div class="panel-top"><div><h3>📁 Ticket kategori ID</h3><p>Ticket kanallarının açılacağı kategori. Boşsa bot 🎫-DESTEK kategorisini kullanır. Kategori ID\'sini Discord\'da sağ tık → ID Kopyala ile alın.</p></div></div>'
   +'<div class="field"><label>Kategori ID</label><input type="text" data-k="ticketKategori" placeholder="örn: 123456789012345678" value="'+esc(f.ticketKategori||'')+'" style="max-width:280px"></div></div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>⏰ Oto-kapatma</h3><p>Belirttiğin gün yazılmayan ticket bot tarafından otomatik kapatılır (konuşma kaydı loga + puan DM\'i gider). 0 = kapalı.</p></div></div>'
+  +'<div class="field"><label>Gün (0-30, 0=kapalı)</label><input type="number" data-k="ticketOtoKapat" value="'+(f.ticketOtoKapat??0)+'" style="max-width:140px"></div></div>'
   +'<div class="panel"><div class="panel-top"><div><h3>📢 Ticket panelini gönder</h3><p>Seçtiğin kanala menülü destek panelini anında gönderir (kategori + rol otomatik bağlanır).</p></div></div>'
   +'<div class="field"><label>Panel kanalı</label><select id="ticket-panel-kanal">'+secenek('yazi','','Seçin')+'</select></div>'
   +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri sm" onclick="ticketPanelKur()">📢 Paneli Gönder</button></div>'
   +'<div class="hint" style="margin-top:8px">Önce yukarıdan Destek rolünü seçip Kaydet yap, sonra panel kanalını seçip bu butona bas.</div></div>'
   +'<div class="panel"><div class="panel-top"><div><h3>⚙️ Komutlar</h3><p>Panel kurulumu ve ticket işlemleri — prefix ve slash ikisi de çalışır.</p></div></div>'
   +'<div class="field"><label>Kurulum</label><div class="hint">/ticket kur kanal:#destek rol:@Destek — veya — !ticket-kur #destek @Destek</div></div>'
-  +'<div class="field"><label>İşlemler</label><div class="hint">/ticket kapat/devral/devret/beklet/ac/oncelik/ekle👑/cikar — veya — !ticket-kapat !ticket-devral !ticket-devret !ticket-beklet !ticket-ac !ticket-oncelik !ticket-ekle👑 !ticket-cikar<br>Ticket içindeki butonlar: Devral • Beklet/Geri Aç • Kapat • 🔄 Devret • ⚡ Öncelik • ➕ Ekle👑<br>Konular: Genel, Şikayet, Partner, Öneri, Yetkili Alım, Özel + Aciliyet: Normal/Acele/Acil. Kapatınca konuşma kaydı .txt olarak loga gider.<br>👑 Ticketa kullanıcı ekleme PREMIUM sunuculara özeldir.</div></div></div>'
+  +'<div class="field"><label>İşlemler</label><div class="hint">/ticket kapat/devral/devret/beklet/ac/oncelik/istatistik/ekle👑/cikar — veya — !ticket-kapat !ticket-devral !ticket-devret !ticket-beklet !ticket-ac !ticket-oncelik !ticket-istatistik !ticket-ekle👑 !ticket-cikar<br>Ticket içindeki butonlar: Devral • Beklet/Geri Aç • Kapat • 🔄 Devret • ⚡ Öncelik • ➕ Ekle👑<br>Kapanınca kullanıcıya DM ile 1-5 yıldız puanı sorulur, sonuçlar !ticket-istatistik ile görülür.<br>Konular: Genel, Şikayet, Partner, Öneri, Yetkili Alım, Özel + Aciliyet: Normal/Acele/Acil. Kapatınca konuşma kaydı .txt olarak loga gider.<br>👑 Ticketa kullanıcı ekleme PREMIUM sunuculara özeldir.</div></div></div>'
   +saveBar();
 }
 async function ticketPanelKur(){

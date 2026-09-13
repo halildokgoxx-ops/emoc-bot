@@ -69,6 +69,25 @@ function premiumVer(gid, gun) {
   save();
 }
 
+// Deneme premiumu: sunucu başına 1 kez, 7 gün
+const DENEME_GUN = 7;
+function denemeHakki(gid) {
+  const p = premDB();
+  if (premiumMu(gid)) return { hata: 'Bu sunucuda zaten aktif premium var!' };
+  if (p.deneme && p.deneme[String(gid)]) return { hata: 'Bu sunucu deneme hakkını zaten kullandı!' };
+  return { ok: true };
+}
+function denemeKullan(gid, uid) {
+  const h = denemeHakki(gid);
+  if (h.hata) return h;
+  const p = premDB();
+  if (!p.deneme) p.deneme = {};
+  p.deneme[String(gid)] = { kullanan: String(uid), tarih: Date.now() };
+  p.sunucular[String(gid)] = { bitis: Date.now() + DENEME_GUN * 86400000, kod: 'DENEME' };
+  save();
+  return { ok: true, bitis: p.sunucular[String(gid)].bitis, gun: DENEME_GUN };
+}
+
 function premiumAl(gid) {
   delete premDB().sunucular[String(gid)];
   save();
@@ -91,4 +110,5 @@ function suresiDolmusTemizle() {
 module.exports = {
   SAHIPLER, sahipMi, premiumMu, premiumBilgi,
   kodUret, sureParse, kodKullan, premiumVer, premiumAl, suresiDolmusTemizle,
+  DENEME_GUN, denemeHakki, denemeKullan,
 };
