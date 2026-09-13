@@ -74,6 +74,26 @@ function davetKoduBul(text) {
   return m ? m[1] : null;
 }
 
+// Oto-cevap eşleşmesi: 'tam' (mesajın tamamı) | 'kelime' (ayrı kelime, varsayılan) | 'icerir' (eski davranış)
+// Örn: tetik "sa" + kelime modu → "masa" TETİKLENMEZ, "sa naber" tetiklenir.
+const OTO_MODLAR = ['tam', 'kelime', 'icerir'];
+function otoModNorm(mod) {
+  mod = String(mod || '').toLocaleLowerCase('tr');
+  return OTO_MODLAR.includes(mod) ? mod : 'kelime';
+}
+function otoEslesme(tetik, metin, mod) {
+  const t = String(tetik || '').toLocaleLowerCase('tr').trim();
+  const m = String(metin || '').toLocaleLowerCase('tr');
+  if (!t) return false;
+  const m2 = otoModNorm(mod);
+  if (m2 === 'tam') return m.trim() === t;
+  if (m2 === 'icerir') return m.includes(t);
+  const esc = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  try {
+    return new RegExp(`(^|[^a-zçğıöşü0-9_])${esc}($|[^a-zçğıöşü0-9_])`).test(m);
+  } catch { return m.includes(t); }
+}
+
 // Mesajdaki ilk resim/gif linkini ayıkla (panelden gif ekleme için)
 const RESIM_RE = /(https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(\?\S*)?)/i;
 function medyaAyikla(metin) {
@@ -82,4 +102,4 @@ function medyaAyikla(metin) {
   return { metin: String(metin).replace(m[0], '').trim(), resim: m[0] };
 }
 
-module.exports = { parseSure, sureYaz, rastgele, gunlukSeed, seedRandom, kufurMu, linkMu, dolandiriciMi, davetKoduBul, medyaAyikla };
+module.exports = { parseSure, sureYaz, rastgele, gunlukSeed, seedRandom, kufurMu, linkMu, dolandiriciMi, davetKoduBul, medyaAyikla, OTO_MODLAR, otoModNorm, otoEslesme };

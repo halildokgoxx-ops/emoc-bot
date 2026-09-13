@@ -605,10 +605,12 @@ function startWeb(client) {
         } else {
           const t = String(req.body.tetik || '').toLocaleLowerCase('tr').slice(0, 50);
           const c = String(req.body.cevap || '').slice(0, 500);
+          const mm = String(req.body.mod || 'kelime').toLocaleLowerCase('tr');
+          const mod = ['tam', 'kelime', 'icerir'].includes(mm) ? mm : 'kelime';
           if (!t || !c) return res.status(400).json({ hata: 'gecersiz' });
           if (g.otoCevap.length >= 20) return res.status(400).json({ hata: 'dolu' });
           const var1 = g.otoCevap.find((x) => x.tetik === t);
-          if (var1) var1.cevap = c; else g.otoCevap.push({ tetik: t, cevap: c });
+          if (var1) { var1.cevap = c; var1.mod = mod; } else g.otoCevap.push({ tetik: t, cevap: c, mod });
         }
       } else if (liste === 'tagSistemi') {
         if (islem === 'kapat') g.tagSistemi = null;

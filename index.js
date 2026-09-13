@@ -15,7 +15,7 @@ process.on('uncaughtException', (hata) => {
 const { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const config = require('./config');
 const { load, save, getGuild, getUser } = require('./src/db');
-const { kufurMu, linkMu, dolandiriciMi } = require('./src/utils');
+const { kufurMu, linkMu, dolandiriciMi, otoEslesme } = require('./src/utils');
 const { E } = require('./src/emo');
 const { premiumMu } = require('./src/premium');
 const slash = require('./src/slash');
@@ -604,8 +604,7 @@ client.on('messageCreate', async (message) => {
     try {
       const goc = getGuild(message.guild.id);
       if (goc.otoCevap && goc.otoCevap.length && !message.content.startsWith(prefix)) {
-        const txt = message.content.toLocaleLowerCase('tr');
-        const eslesme = goc.otoCevap.find((o) => o.tetik && txt.includes(o.tetik));
+        const eslesme = goc.otoCevap.find((o) => o.tetik && otoEslesme(o.tetik, message.content, o.mod));
         if (eslesme) {
           await message.reply(String(eslesme.cevap).slice(0, 1500)).catch(() => {});
           return;

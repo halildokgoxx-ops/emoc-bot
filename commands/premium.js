@@ -335,6 +335,7 @@ const premiumKomutlar = [
         { type: 3, name: 'islem', description: 'İşlem', required: true, choices: [{ name: 'Ekle', value: 'ekle' }, { name: 'Sil', value: 'sil' }, { name: 'Liste', value: 'liste' }] },
         { type: 3, name: 'tetik', description: 'Hangi yazıda? (örn: selam)', required: false },
         { type: 3, name: 'cevap', description: 'Bot ne yazsın?', required: false },
+        { type: 3, name: 'mod', description: 'Eşleşme: Kelime (önerilir) / Tam / İçerir', required: false, choices: [{ name: 'Kelime (ayrı yazılınca)', value: 'kelime' }, { name: 'Tam (mesajın tamamı)', value: 'tam' }, { name: 'İçerir (kelime içinde de)', value: 'icerir' }] },
       ],
     },
     async execute(interaction, client) {
@@ -344,7 +345,9 @@ const premiumKomutlar = [
       if (!Array.isArray(g.otoCevap)) g.otoCevap = [];
       if (islem === 'liste') {
         if (!g.otoCevap.length) return interaction.reply({ content: 'Liste boş! Örn: `/oto-cevap islem:Ekle tetik:selam cevap:Hoş geldin!`', ephemeral: true });
-        return interaction.reply({ embeds: [kart(client, { baslik: '🤖 Oto-Cevaplar', aciklama: g.otoCevap.map((o, i) => `\`${i + 1}.\` **${o.tetik}** → ${o.cevap}`.slice(0, 200)).join('\n').slice(0, 3500) })], ephemeral: true });
+        const { otoModNorm } = require('../src/utils');
+        const modAd = { tam: '🎯tam', kelime: '🔤kelime', icerir: '🔎içerir' };
+        return interaction.reply({ embeds: [kart(client, { baslik: '🤖 Oto-Cevaplar', aciklama: g.otoCevap.map((o, i) => `\`${i + 1}.\` **${o.tetik}** [${modAd[otoModNorm(o.mod)] || '🔤kelime'}] → ${o.cevap}`.slice(0, 200)).join('\n').slice(0, 3500) })], ephemeral: true });
       }
       if (islem === 'sil') {
         const tetik = (interaction.options.getString('tetik') || '').toLocaleLowerCase('tr');
@@ -356,13 +359,16 @@ const premiumKomutlar = [
       }
       const tetik = (interaction.options.getString('tetik') || '').toLocaleLowerCase('tr').slice(0, 50);
       const cevap = (interaction.options.getString('cevap') || '').slice(0, 500);
+      const { otoModNorm } = require('../src/utils');
+      const mod = otoModNorm(interaction.options.getString('mod'));
       if (!tetik || !cevap) return interaction.reply({ content: 'Tetik + cevap şart! Örn: tetik:`selam` cevap:`Hoş geldin!`', ephemeral: true });
       if (g.otoCevap.length >= 20) return interaction.reply({ content: 'En fazla 20 kayıt!', ephemeral: true });
       const var1 = g.otoCevap.find((o) => o.tetik === tetik);
-      if (var1) var1.cevap = cevap;
-      else g.otoCevap.push({ tetik, cevap });
+      if (var1) { var1.cevap = cevap; var1.mod = mod; }
+      else g.otoCevap.push({ tetik, cevap, mod });
       save();
-      return interaction.reply({ embeds: [ok(`🤖 Eklendi! **${tetik}** yazılınca:\n> ${cevap}`)] });
+      const modAcik = { tam: 'mesajın tamamı aynısı olunca', kelime: 'ayrı kelime olarak yazılınca', icerir: 'kelime içinde bile geçince' }[mod];
+      return interaction.reply({ embeds: [ok(`🤖 Eklendi! **${tetik}** ${modAcik}:\n> ${cevap}`)] });
     },
   },
   {

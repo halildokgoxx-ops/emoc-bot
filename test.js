@@ -60,6 +60,10 @@ T('linkMu -', u.linkMu('selam naber') === false);
 T('dolandiriciMi +', u.dolandiriciMi('bedava discord.gift/abc al') === true);
 T('dolandiriciMi -', u.dolandiriciMi('selam naber') === false);
 T('davetKoduBul', u.davetKoduBul('gel https://discord.gg/abc123 hadi') === 'abc123');
+T('oto kelime (sa/masa)', u.otoEslesme('sa', 'masa') === false && u.otoEslesme('sa', 'sa naber') === true && u.otoEslesme('sa', 'Sa') === true);
+T('oto tam', u.otoEslesme('sa', 'sa', 'tam') === true && u.otoEslesme('sa', 'sa naber', 'tam') === false);
+T('oto icerir', u.otoEslesme('sa', 'masa', 'icerir') === true);
+T('oto varsayilan kelime', u.otoEslesme('selam', 'iyi selamlar') === false && u.otoEslesme('iyi geceler', 'iyi geceler herkese') === true);
 T('rastgele aralık', (() => { const r = u.rastgele(5, 5); return r === 5; })());
 
 // ---------- 3. slash şeması ----------

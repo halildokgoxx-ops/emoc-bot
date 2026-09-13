@@ -568,18 +568,19 @@ function gomuluSil(i){domKaydet();FORM.gomuluMesajlar.splice(i,1);renderContent(
 
 /* oto cevap */
 async function cizOtoCevap(c){
-  c.innerHTML='<div class="page-h">Otomatik Cevap</div><div class="page-s">Mesaj tetiklemelerini yönetin</div><div class="panel"><div id="oc-liste"><div class="bos">Yükleniyor...</div></div>'
-    +'<div class="hr"></div><div class="row3"><div><label>Tetik kelime</label><input type="text" id="oc-tetik" maxlength="50"></div><div><label>Bot cevabı</label><input type="text" id="oc-cevap" maxlength="200"></div><div><label>&nbsp;</label><button class="btn pri" onclick="ocEkle()">Ekle</button></div></div></div>'+saveBar();
+  c.innerHTML='<div class="page-h">Otomatik Cevap</div><div class="page-s">Mesaj tetiklemelerini yönetin (Kelime = ayrı yazılınca, Tam = mesajın tamamı, İçerir = kelime içinde bile)</div><div class="panel"><div id="oc-liste"><div class="bos">Yükleniyor...</div></div>'
+    +'<div class="hr"></div><div class="row3"><div><label>Tetik kelime</label><input type="text" id="oc-tetik" maxlength="50"></div><div><label>Eşleşme</label><select id="oc-mod"><option value="kelime">🔤 Kelime (önerilir)</option><option value="tam">🎯 Tam mesaj</option><option value="icerir">🔎 İçerir</option></select></div><div><label>Bot cevabı</label><input type="text" id="oc-cevap" maxlength="200"></div></div><div style="margin-top:10px"><button class="btn pri" onclick="ocEkle()">Ekle</button></div></div>'+saveBar();
   try{
     const j=await api('/api/liste/'+SID);
     const l=j.otoCevap||[];
-    document.getElementById('oc-liste').innerHTML=l.length?l.map(x=>'<div class="liste-satir"><span><b>'+esc(x.tetik)+'</b> → '+esc(x.cevap.slice(0,80))+'</span><button class="btn sm" onclick="ocSil(\''+esc(x.tetik).replace(/'/g,"\\'")+'\')">Sil</button></div>').join(''):'<div class="bos">Kayıt yok.</div>';
+    const modRoz={tam:'🎯tam',kelime:'🔤kelime',icerir:'🔎içerir'};
+    document.getElementById('oc-liste').innerHTML=l.length?l.map(x=>'<div class="liste-satir"><span><b>'+esc(x.tetik)+'</b> <span style="color:var(--mut)">['+(modRoz[x.mod]||'🔤kelime')+']</span> → '+esc((x.cevap||'').slice(0,80))+'</span><button class="btn sm" onclick="ocSil(\''+esc(x.tetik).replace(/'/g,"\\'")+'\')">Sil</button></div>').join(''):'<div class="bos">Kayıt yok.</div>';
   }catch{document.getElementById('oc-liste').innerHTML='<div class="bos">Yüklenemedi.</div>'}
 }
 async function ocEkle(){
-  const t=document.getElementById('oc-tetik').value,cv=document.getElementById('oc-cevap').value;
+  const t=document.getElementById('oc-tetik').value,cv=document.getElementById('oc-cevap').value,md=document.getElementById('oc-mod').value;
   if(!t.trim()||!cv.trim()){toast('Eksik alan');return}
-  await api('/api/liste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,liste:'otoCevap',tetik:t,cevap:cv})});
+  await api('/api/liste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,liste:'otoCevap',tetik:t,cevap:cv,mod:md})});
   toast('Eklendi');renderContent();
 }
 async function ocSil(t){
