@@ -87,6 +87,9 @@ const SEMA = {
   prefix: 'yazi:5', starboard: 'json', webhookOnayKanal: 'kanal',
   etiketAktif: 'bool', etiketRol: 'rol',
   ticketDestekRol: 'rol', ticketKategori: 'yazi:25', ticketOtoKapat: 'sayi:0:30',
+  gorevAktif: 'bool', gorevKanal: 'kanal', gorevTur: 'yazi:10',
+  gorevGunlukMesaj: 'sayi:1:500', gorevGunlukOdul: 'sayi:0:100000',
+  gorevHaftalikAktif: 'bool', gorevHaftalikMesaj: 'sayi:1:5000', gorevHaftalikOdul: 'sayi:0:100000',
 };
 
 async function discordAPI(token, yol, init = {}) {

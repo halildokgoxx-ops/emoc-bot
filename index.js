@@ -369,22 +369,10 @@ client.on('messageCreate', async (message) => {
       } catch {}
       await seviyeMesajGonder(message.guild, message.author, u.level, odulRol, message.channel);
     }
-    // Günlük görev ilerleme (mesaj)
+    // Günlük/haftalık görev ilerleme (mesaj)
     try {
-      const { db } = require('./src/db');
-      const gun = new Date().toISOString().slice(0, 10);
-      const key = `${message.guild.id}_${message.author.id}_${gun}`;
-      const d = db();
-      if (!d.gorevler[key]) d.gorevler[key] = { ilerleme: 0, tamam: false };
-      const kay = d.gorevler[key];
-      if (!kay.tamam) {
-        kay.ilerleme = Math.min(20, (kay.ilerleme || 0) + 1);
-        if (kay.ilerleme >= 20) {
-          kay.tamam = true;
-          u.para = (u.para || 0) + 200;
-          message.reply('🎯 Günlük görev tamamlandı! **+200 coin** 🪙').catch(() => {});
-        }
-      }
+      await require('./src/gorev').gorevIlerle(client, message.guild, message.author.id, 1, 'mesaj',
+        (t) => message.reply(t).catch(() => {}));
     } catch {}
     save();
 
@@ -1670,6 +1658,25 @@ setInterval(async () => {
           } catch {}
         }
         save();
+      } catch {}
+    }
+    } catch {}
+  }, 60_000).unref?.();
+// ---- Görev ses takibi (60sn'de 1 puan, free dahil, restart-dayanıklı) ----
+setInterval(async () => {
+  try {
+    const G = require('./src/gorev');
+    for (const [, guild] of client.guilds.cache) {
+      try {
+        const ayar = G.gorevAyar(guild.id);
+        if (!ayar.aktif || (ayar.tur !== 'ses' && ayar.tur !== 'ikisi')) continue;
+        const afkId = guild.afkChannelId;
+        const odadakiler = [...guild.members.cache.values()].filter((m) =>
+          !m.user.bot && m.voice.channelId && m.voice.channelId !== afkId &&
+          !m.voice.mute && !m.voice.deaf && !m.voice.selfMute && !m.voice.selfDeaf);
+        for (const m of odadakiler) {
+          try { await G.gorevIlerle(client, guild, m.id, 1, 'ses', null); } catch {}
+        }
       } catch {}
     }
   } catch {}

@@ -118,21 +118,56 @@ module.exports = [
   },
   {
     name: 'gunluk-gorev', aliases: ['görev', 'gorev'], category: 'Özel',
-    description: 'Günlük görevini gösterir/yapar (para + itibar ödüllü). BENZERSİZ!', usage: '!günlük-görev',
+    description: 'Günlük/haftalık görev durumunu gösterir.', usage: '!günlük-görev',
     async run(message) {
-      const gun = new Date().toISOString().slice(0, 10);
-      const key = `${message.guild.id}_${message.author.id}_${gun}`;
-      const d = db();
-      const gorevler = [
-        { id: 'mesaj', ad: '💬 20 mesaj at', hedef: 20, odul: '200 coin' },
-        { id: 'rep', ad: '⭐ 1 kişiye itibar ver (!1)', hedef: 1, odul: '150 coin' },
-        { id: 'kader', ad: '🔮 !kader yaz', hedef: 1, odul: '100 coin' },
-      ];
-      const r = seedRandom(gunlukSeed(message.author.id))();
-      const gorev = gorevler[Math.floor(r * gorevler.length)];
-      const kayit = d.gorevler[key] || { ilerleme: 0, tamam: false };
-      if (kayit.tamam) return message.reply({ embeds: [ok('✅ Bugünkü görevini tamamladın! Yarın yeni görev.') ] });
-      return message.reply({ embeds: [new EmbedBuilder().setColor(config.colors.gold).setTitle(`🎯 Bugünkü Görevin: ${gorev.ad}`).setDescription(`İlerleme: **${kayit.ilerleme || 0}/${gorev.hedef}**\n🎁 Ödül: **${gorev.odul}**`).setTimestamp()] });
+      const { gorevDurum, TUR_AD } = require('../src/gorev');
+      const st = gorevDurum(message.guild.id, message.author.id);
+      if (!st.ayar.aktif) return message.reply({ embeds: [err('🎯 Görev sistemi bu sunucuda **kapalı!**')] });
+      const bar = (v, h) => {
+        const oran = h ? Math.min(1, v / h) : 0;
+        const d = Math.round(oran * 10);
+        return '█'.repeat(d) + '░'.repeat(10 - d);
+      };
+      const alanlar = [{
+        name: '🎯 Günlük Görev',
+        value: `${TUR_AD[st.ayar.tur]} • **${st.gunluk.ilerleme}/${st.ayar.gunlukHedef}** ${st.gunluk.tamam ? '✅' : ''}\n${bar(st.gunluk.ilerleme, st.ayar.gunlukHedef)}\n🎁 Ödül: **${st.ayar.gunlukOdul} coin**`,
+      }];
+      if (st.ayar.haftalikAktif) {
+        alanlar.push({
+          name: '🏆 Haftalık Görev',
+          value: `${TUR_AD[st.ayar.tur]} • **${st.haftalik.ilerleme}/${st.ayar.haftalikHedef}** ${st.haftalik.tamam ? '✅' : ''}\n${bar(st.haftalik.ilerleme, st.ayar.haftalikHedef)}\n🎁 Ödül: **${st.ayar.haftalikOdul} coin**`,
+        });
+      }
+      return message.reply({
+        embeds: [new EmbedBuilder().setColor(config.colors.gold).setTitle('🎯 Görevlerin')
+          .addFields(...alanlar).setFooter({ text: st.ayar.tur === 'ses' ? 'Seste durarak ilerler (1dk = 1 puan)' : st.ayar.tur === 'ikisi' ? 'Mesaj + ses ikisi de ilerletir' : 'Mesaj yazarak ilerler' }).setTimestamp()],
+      });
+    },
+  },
+  {
+    name: 'gorev-ayarla', aliases: ['gorevayarla', 'gorev-ac-kapa'], category: 'Genel',
+    description: 'Görev sistemini açar/kapatır (Yönetici). Detay ayarlar web panelden!', usage: '!gorev-ayarla <gunluk|haftalik> <ac|kapat>',
+    perms: [PermissionFlagsBits.ManageGuild],
+    slashArgs: (i) => {
+      const s = i.options.getString('sistem') || 'gunluk';
+      const is = i.options.getString('islem') || 'ac';
+      return [s, is];
+    },
+    slashOptions: [
+      { type: 'string', name: 'sistem', description: 'Hangi görev?', required: true, choices: [{ name: 'Günlük', value: 'gunluk' }, { name: 'Haftalık', value: 'haftalik' }] },
+      { type: 'string', name: 'islem', description: 'Aç/Kapat', required: true, choices: [{ name: 'Aç 🟢', value: 'ac' }, { name: 'Kapat 🔴', value: 'kapat' }] },
+    ],
+    async run(message, args) {
+      const sistem = String(args[0] || '').toLocaleLowerCase('tr');
+      const islem = String(args[1] || '').toLocaleLowerCase('tr');
+      const hangisi = sistem.startsWith('hafta') ? 'haftalik' : sistem.startsWith('gun') ? 'gunluk' : null;
+      if (!hangisi || !['ac', 'aç', 'kapat'].includes(islem)) {
+        return message.reply({ embeds: [err('Kullanım: `!gorev-ayarla <gunluk|haftalik> <ac|kapat>`\nÖrn: `!gorev-ayarla gunluk kapat`\n💡 Hedef/ödül/kanal/tür ayarları **web panelden** (Seviye Sistemi sayfası)!')] });
+      }
+      const acik = islem.startsWith('ac') || islem.startsWith('aç');
+      if (hangisi === 'haftalik') setGuild(message.guild.id, { gorevHaftalikAktif: acik });
+      else setGuild(message.guild.id, { gorevAktif: acik });
+      return message.reply({ embeds: [ok(`${hangisi === 'haftalik' ? '🏆 Haftalık' : '🎯 Günlük'} görev **${acik ? '🟢 açıldı' : '🔴 kapatıldı'}!`)] });
     },
   },
 ];

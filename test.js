@@ -174,6 +174,17 @@ T('sahip gizli komutlar', ['komut-ac', 'komut-kapat', 'komut-liste', 'restart'].
 T('sahip hardcode ID yok', (() => { const t = fs.readFileSync(path.join(__dirname, 'commands', 'sahip.js'), 'utf8'); return !/\d{15,22}/.test(t); })());
 T('kura free limit', (() => { const t = fs.readFileSync(path.join(__dirname, 'commands', 'faydali.js'), 'utf8'); return t.includes('premiumMu') && t.includes('Free kura'); })());
 T('web liste guard', (() => { const t = fs.readFileSync(path.join(__dirname, 'web', 'server.js'), 'utf8'); return t.includes('LISTE_LIMIT') && t.includes('premium-gerek'); })());
+T('gorev motoru', (() => {
+  try {
+    const G = require('./src/gorev');
+    const a = G.gorevAyar('0');
+    const hw = G.isoHafta(new Date(Date.UTC(2026, 8, 13)));
+    return a.aktif === true && a.tur === 'mesaj' && a.gunlukHedef === 20 && a.gunlukOdul === 200 &&
+      a.haftalikAktif === false && hw === '2026-W37' && G.gunAnahtar(new Date(Date.UTC(2026, 0, 5))) === '2026-01-05';
+  } catch { return false; }
+})());
+T('gorev komutlari', cmds.has('gorev-ayarla') && cmds.has('gunluk-gorev') && r.payload.some((p) => p.name === 'gorev-ayarla'));
+T('gorev SEMA', ['gorevAktif', 'gorevKanal', 'gorevTur', 'gorevGunlukMesaj', 'gorevGunlukOdul', 'gorevHaftalikAktif', 'gorevHaftalikMesaj', 'gorevHaftalikOdul'].every((k) => k in require('./web/server').SEMA));
 T('medya gif ayikla', (() => { const r = u.medyaAyikla('selam https://cdn.discord.com/a.gif oley'); return r.resim === 'https://cdn.discord.com/a.gif' && r.metin.includes('selam'); })());
 T('medya yok', (() => { const r = u.medyaAyikla('sadece yazi'); return r.resim === null; })());
 T('SEMA yeni alanlar', ['cikisMesaj', 'sayacMesaj', 'seviyeHiz', 'girisDM'].every((k) => k in require('./web/server').SEMA));
