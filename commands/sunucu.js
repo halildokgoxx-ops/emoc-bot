@@ -16,11 +16,18 @@ const ROLLER = [
   { ad: '👮 Moderatör', renk: '#00D4FF', hosit: true, mod: true },
   { ad: '🎫 Destek', renk: '#00E676', hosit: true },
   { ad: '★ Partner Sorumlusu', renk: '#EC4899', hosit: true },
+  { ad: '🔰 Deneme Yetkilisi', renk: '#57F287', hosit: true },
+  { ad: '🎙️ Ses Yetkilisi', renk: '#00D4FF', hosit: true },
+  { ad: '💬 Chat Yetkilisi', renk: '#8B5CF6', hosit: true },
+  { ad: '🎉 Etkinlik Yetkilisi', renk: '#FFC93C', hosit: true },
   { ad: '🎭 Üye', renk: '#8B5CF6', hosit: false },
+  { ad: '🌟 VIP Üye', renk: '#FFD700', hosit: true },
   { ad: '💎 Booster', renk: '#FF73FA', hosit: true },
   { ad: '18+', renk: '#2b2d31', hosit: false },
   { ad: '15-18', renk: '#2b2d31', hosit: false },
   { ad: '13-15', renk: '#2b2d31', hosit: false },
+  { ad: '♂️ Erkek', renk: '#00D4FF', hosit: false },
+  { ad: '♀️ Kadın', renk: '#FF69B4', hosit: false },
   { ad: 'Anime', renk: '#EC4899', hosit: false },
   { ad: 'Manga', renk: '#FFC93C', hosit: false },
   { ad: 'Oyun', renk: '#00E676', hosit: false },
@@ -35,6 +42,14 @@ const ROLLER = [
   { ad: 'Fortnite', renk: '#9D4EDD', hosit: false },
   { ad: 'PUBG', renk: '#E09F3E', hosit: false },
   { ad: 'Apex', renk: '#CD3333', hosit: false },
+  { ad: 'Roblox', renk: '#FF3B3B', hosit: false },
+  { ad: 'Brawl Stars', renk: '#FFB800', hosit: false },
+  { ad: 'Among Us', renk: '#6BD6E1', hosit: false },
+  { ad: 'Rocket League', renk: '#0055FF', hosit: false },
+  { ad: 'Overwatch', renk: '#F99E1A', hosit: false },
+  { ad: 'Fall Guys', renk: '#FF6EC7', hosit: false },
+  { ad: 'PUBG Mobile', renk: '#8B5CF6', hosit: false },
+  { ad: 'Free Fire', renk: '#FF7300', hosit: false },
   { ad: 'Kırmızı', renk: '#FF0000', hosit: false },
   { ad: 'Mavi', renk: '#0000FF', hosit: false },
   { ad: 'Yeşil', renk: '#00FF00', hosit: false },
@@ -59,7 +74,7 @@ const KATEGORILER = [
   {
     ad: '▬▬ ● Yetkili ve Yönetim ● ▬▬', gizli: ['mod'], kanallar: [
       { ad: '★・duyuru-yönetim', tip: 'yazi' },
-      { ad: 'yönetici-chat', tip: 'yazi' },
+      { ad: 'yönetici-chat', tip: 'yazi', isaret: 'yonetimChat' },
       { ad: 'yetkili-sohbet', tip: 'yazi' },
       { ad: '✅・partner-onay', tip: 'yazi', isaret: 'partnerOnay' },
     ],
@@ -109,9 +124,9 @@ const KATEGORILER = [
   },
   {
     ad: '▬▬ ● ᴇɢʟᴇɴᴄᴇ ● ▬▬', kanallar: [
-      { ad: '💬・kelime-türetme', tip: 'yazi' },
-      { ad: '🤷・tuttu-tutmadı', tip: 'yazi' },
-      { ad: '🔢・sayı-sayma', tip: 'yazi' },
+      { ad: '💬・kelime-türetme', tip: 'yazi', isaret: 'oyunKelime' },
+      { ad: '🤷・tuttu-tutmadı', tip: 'yazi', isaret: 'oyunTuttu' },
+      { ad: '🔢・sayı-sayma', tip: 'yazi', isaret: 'oyunSayi' },
     ],
   },
   {
@@ -255,28 +270,44 @@ async function oryantasyonKur(guild, rolMap, isaret) {
       return guild.roles.cache.get(id) ? id : null;
     } catch { return null; }
   };
+  const secenek = (baslik, emoji, rid) => rid ? { title: baslik, emoji, roles: [rid] } : { title: baslik, emoji };
   const prompts = [];
+  // 1) Yaş
   const yaslar = [['13-15', '🌱'], ['15-18', '🌿'], ['18+', '🌳']].filter(([a]) => rolId(a));
   if (yaslar.length >= 2) {
     prompts.push({
-      title: 'Yaş aralığın nedir?', singleSelect: true, required: false, inOnboarding: true,
-      options: yaslar.map(([a, e]) => ({ title: a, emoji: e, roles: [rolId(a)] })),
+      title: 'Kaç yaşındasın?', singleSelect: true, required: false, inOnboarding: true,
+      options: [...yaslar.map(([a, e]) => secenek(a, e, rolId(a))), secenek('Belirtmek istemiyorum', '🚫', null)],
     });
   }
+  // 2) Oyunlar
+  const oyunEmo = {
+    Valorant: '🔴', Minecraft: '⛏️', LoL: '⚔️', CS2: '💣', 'GTA V': '🚗', Fortnite: '🔨',
+    PUBG: '🪂', Apex: '🔺', Roblox: '🟥', 'Brawl Stars': '⭐', 'Among Us': '🚀',
+    'Rocket League': '🏎️', Overwatch: '🟠', 'Fall Guys': '🫘', 'PUBG Mobile': '📱', 'Free Fire': '🔥',
+  };
+  const oyunlar = Object.keys(oyunEmo).filter((a) => rolId(a));
+  if (oyunlar.length >= 2) {
+    prompts.push({
+      title: 'Hangi oyunları seversin?', singleSelect: false, required: false, inOnboarding: true,
+      options: oyunlar.map((a) => secenek(a, oyunEmo[a], rolId(a))),
+    });
+  }
+  // 3) Cinsiyet
+  const cinsiyetler = [['♂️ Erkek', '♂️'], ['♀️ Kadın', '♀️']].filter(([a]) => rolId(a));
+  if (cinsiyetler.length >= 1) {
+    prompts.push({
+      title: 'Cinsiyetin nedir?', singleSelect: true, required: false, inOnboarding: true,
+      options: [...cinsiyetler.map(([a, e]) => secenek(a, e, rolId(a))), secenek('Belirtmek istemiyorum', '🚫', null)],
+    });
+  }
+  // 4) İlgi alanları
   const hobiEmo = { Anime: '⛩️', Manga: '📚', Oyun: '🎮', Müzik: '🎧', Film: '🎬', Kitap: '📖' };
   const hobiler = Object.keys(hobiEmo).filter((a) => rolId(a));
   if (hobiler.length >= 2) {
     prompts.push({
-      title: 'İlgi alanların neler?', singleSelect: false, required: false, inOnboarding: true,
-      options: hobiler.map((a) => ({ title: a, emoji: hobiEmo[a], roles: [rolId(a)] })),
-    });
-  }
-  const oyunEmo = { Valorant: '🔴', Minecraft: '⛏️', LoL: '⚔️', CS2: '💣', 'GTA V': '🚗', Fortnite: '🔨', PUBG: '🪂', Apex: '🔺' };
-  const oyunlar = Object.keys(oyunEmo).filter((a) => rolId(a));
-  if (oyunlar.length >= 2) {
-    prompts.push({
-      title: 'Hangi oyunları oynuyorsun?', singleSelect: false, required: false, inOnboarding: true,
-      options: oyunlar.map((a) => ({ title: a, emoji: oyunEmo[a], roles: [rolId(a)] })),
+      title: 'İlgi alanların nelerdir?', singleSelect: false, required: false, inOnboarding: true,
+      options: hobiler.map((a) => secenek(a, hobiEmo[a], rolId(a))),
     });
   }
   if (!prompts.length) return { ok: false, hata: 'Eşleşen rol bulunamadı' };
@@ -504,6 +535,19 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
   let oryantasyon = { ok: false, hata: 'bilinmiyor' };
   try { oryantasyon = await oryantasyonKur(guild, rolMap, isaret); }
   catch (e) { oryantasyon = { ok: false, hata: String((e && e.message) || e).slice(0, 100) }; }
+  // Topluluk kapalıysa yönetim sohbetine retry butonu bırak
+  if (!oryantasyon.ok && isaret.yonetimChat) {
+    try {
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('sunucu_oryantasyon_kur').setLabel('🎓 Oryantasyonu Kur').setStyle(ButtonStyle.Primary)
+      );
+      await isaret.yonetimChat.send({
+        content: '🎓 **Oryantasyon kurulamadı** (sebep: ' + String(oryantasyon.hata || 'bilinmiyor').slice(0, 150) + ')\n' +
+          '👉 Sunucu Ayarları → **Topluluğu Etkinleştir** açıp aşağıdaki butona bas, sorular otomatik kurulsun!',
+        components: [row],
+      }).catch(() => {});
+    } catch {}
+  }
 
   // ---- 🎫 Otomatik ticket paneli (destek kanalı) ----
   try {
@@ -532,6 +576,25 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
     }
   } catch {}
 
+  // ---- 🎮 Oyun kanallarını oto-başlat (sayı + kelime motoru anında devrede!) ----
+  try {
+    const { db: _db, save: _save } = require('../src/db');
+    const _d = _db();
+    if (!_d.oyunlar) _d.oyunlar = {};
+    if (isaret.oyunSayi) {
+      _d.oyunlar[`${guild.id}_${isaret.oyunSayi.id}`] = { son: 0, sonKullanici: null, kelimeler: [] };
+      await isaret.oyunSayi.send('🔢 **SAYI SAYMA BAŞLADI!**\nSıranla **1** yazarak başla!\n⚠️ Sırayı bozanın mesajı silinir, sayaç sıfırlanır. Aynı kişi üst üste yazamaz! 🚀').catch(() => {});
+    }
+    if (isaret.oyunKelime) {
+      _d.oyunlar[`${guild.id}_${isaret.oyunKelime.id}`] = { son: 0, sonKullanici: null, kelimeler: ['araba'] };
+      await isaret.oyunKelime.send('🔤 **KELİME TÜRETME BAŞLADI!**\nSon harfle devam et, tekrar kelime yasak!\nÖrn: **araba** 👇 (son harf: A)').catch(() => {});
+    }
+    if (isaret.oyunTuttu) {
+      await isaret.oyunTuttu.send('🤷 **TUTTU-TUTMADI NASIL OYNANIR?**\n1️⃣ Biri bir tahmin yazar (örn: "yarın yağmur yağacak tuttu mu?")\n2️⃣ Sonraki kişi **TUTTU** ✅ veya **TUTMADI** ❌ yazar + yeni tahmin bırakır!\nİyi eğlenceler! 🎲').catch(() => {});
+    }
+    _save();
+  } catch {}
+
   // Açılış mesajları (düz yazı — embeds yok!)
   try {
     if (isaret.kurallar) {
@@ -556,36 +619,10 @@ const sunucuSlash = {
     options: [
       { type: 1, name: 'kur', description: '⚠️ HER ŞEYİ silip hazır topluluk sunucusu kurar (SADECE sahip)', options: [{ type: 4, name: 'ses-limit', description: 'Boşsa limit merdiveni (limitsiz>90>...>5>4>3>2), verirsen tüm şehirler aynı limit', required: false, min_value: 0, max_value: 99 }] },
       { type: 1, name: 'bilgi', description: 'Kurulumda neler olacağını önizle (silmez)' },
-      { type: 1, name: 'oryantasyon', description: '🎓 Oryantasyon sorularını kur/yenile (silmez, Yönetici)' },
     ],
   },
   async execute(interaction, client) {
     const alt = interaction.options.getSubcommand();
-    if (alt === 'oryantasyon') {
-      if (!interaction.memberPermissions || !interaction.memberPermissions.has(PermissionFlagsBits.ManageGuild)) {
-        return interaction.reply({ content: '❌ Sunucuyu Yönet yetkisi gerek!', ephemeral: true });
-      }
-      if (!require('../src/premium').premiumMu(interaction.guild.id)) {
-        return interaction.reply({ content: '👑 `/sunucu oryantasyon` **PREMIUM** özelliğidir! `/premium bilgi` bak! 💎', ephemeral: true });
-      }
-      await interaction.deferReply({ ephemeral: true }).catch(() => {});
-      try {
-        const rolMap = {};
-        for (const [, r] of interaction.guild.roles.cache) rolMap[r.name] = r;
-        const bul = (parca) => interaction.guild.channels.cache.find((k) => (k.name || '').includes(parca) && k.isTextBased() && !k.isThread() && !k.isVoiceBased()) || null;
-        const sonuc = await oryantasyonKur(interaction.guild, rolMap, {
-          kurallar: bul('kurallar'), duyuru: bul('duyuru'), gununSorusu: bul('genel-sohbet'),
-        });
-        if (sonuc.ok) {
-          await interaction.editReply({ content: `🎓 Oryantasyon kuruldu! **${sonuc.soru} soru** aktif (yaş + ilgi + oyun). Yeni gelenler soruları cevaplayıp rol kapar!` }).catch(() => {});
-        } else {
-          await interaction.editReply({ content: `⚠️ Oryantasyon kurulamadı: ${sonuc.hata}\nSunucu Ayarları → **Topluluğu Etkinleştir** açıp tekrar dene!` }).catch(() => {});
-        }
-      } catch (e) {
-        await interaction.editReply({ content: `❌ Hata: ${String((e && e.message) || e).slice(0, 200)}` }).catch(() => {});
-      }
-      return;
-    }
     if (alt === 'bilgi') {
       const rolSayi = ROLLER.length;
       const kanalSayi = KATEGORILER.reduce((a, k) => a + k.kanallar.length, 0) + SEHIR_SESLER.length;
@@ -594,7 +631,7 @@ const sunucuSlash = {
           baslik: '🛠️ /sunucu kur — Önizleme',
           aciklama: `**${KATEGORILER.length + 1} kategori • ${kanalSayi} kanal • ${rolSayi} rol** kurulur.\nAnime/Manga topluluk template'i + bot bağlantılı + 🌍 emojili şehir ses kanalları (limitsiz>90>...>5>4>3>2 merdiveni) + 🎓 oryantasyon!`,
           alanlar: [
-            { name: '🤖 Otomatik Bağlananlar', value: '🎭 Oto-rol → Üye\n📋 Log → loglar\n👋 HG/Çıkış → gelenler/gidenler\n🎯 Sayaç (1000) → sayaç\n🔔 İtibar bildirim → itibar-bildirim\n🤝 Partner (kanal+chat+onay+rol+yazı)\n🎫 Ticket paneli → destek\n🎓 Oryantasyon (yaş + ilgi + oyun soruları)\n💎 Booster rolü + özel izinler\n🥷 Alt hesap koruması (3g kick / 7g gözlem)\n💬 Günün sorusu → genel-sohbet\n🚀 Sv.5/10/20 + 🏅 25/50/100 İtibar rolleri\n👑 Owner rolü → sahip + kurucular', inline: false },
+            { name: '🤖 Otomatik Bağlananlar', value: '🎭 Oto-rol → Üye\n📋 Log → loglar\n👋 HG/Çıkış → gelenler/gidenler\n🎯 Sayaç (1000) → sayaç\n🔔 İtibar bildirim → itibar-bildirim\n🤝 Partner (kanal+chat+onay+rol+yazı)\n🎫 Ticket paneli → destek\n🎓 Oryantasyon (yaş + oyun + cinsiyet + ilgi)\n🎮 Oyunlar oto-başlar (sayı + kelime motoru)\n💎 Booster rolü + özel izinler\n🥷 Alt hesap koruması (3g kick / 7g gözlem)\n💬 Günün sorusu → genel-sohbet\n🚀 Sv.5/10/20 + 🏅 25/50/100 İtibar rolleri\n👑 Owner rolü → sahip + kurucular', inline: false },
             { name: '⚠️ Dikkat', value: 'Mevcut **TÜM kanallar ve roller silinir!** (bot rolleri hariç)\nSadece **sunucu sahibi** kurabilir.\n🎓 Oryantasyon için sunucuda **Topluluk** açık olmalı, değilse kurulum sonunda uyarı verir.', inline: false },
           ],
           altbilgi: 'Kurmak için: /sunucu kur',
@@ -626,7 +663,7 @@ const sunucuSlash = {
       embeds: [kart(client, {
         renk: RENK.hata,
         baslik: '☢️ SON UYARI!',
-        aciklama: '**TÜM kanallar ve TÜM roller kalıcı olarak silinecek!**\nGeri dönüş YOK!\n\nKurulacak: **15 kategori • 65+ kanal (26 emojili şehir ses kanalı, limit merdivenli) • 39 rol** + tüm bot ayarları otomatik.',
+        aciklama: `**TÜM kanallar ve TÜM roller kalıcı olarak silinecek!**\nGeri dönüş YOK!\n\nKurulacak: **15 kategori • 65+ kanal (26 emojili şehir ses kanalı, limit merdivenli) • ${ROLLER.length} rol** + tüm bot ayarları otomatik.`,
         altbilgi: '60 saniyen var — iyi düşün!',
       })],
       components: [row],
@@ -639,6 +676,32 @@ async function handleSunucuButton(interaction, client) {
   if (interaction.customId === 'sunucu_kur_iptal') {
     bekleyen.delete(interaction.guild.id);
     return interaction.update({ content: '😮‍💨 Vazgeçildi, hiçbir şey silinmedi.', embeds: [], components: [] }).catch(() => {});
+  }
+  // 🎓 Oryantasyon retry butonu (yönetim sohbeti)
+  if (interaction.customId === 'sunucu_oryantasyon_kur') {
+    if (!interaction.memberPermissions || !interaction.memberPermissions.has(PermissionFlagsBits.ManageGuild)) {
+      return interaction.reply({ content: '❌ Sunucuyu Yönet yetkisi gerek!', ephemeral: true }).catch(() => {});
+    }
+    await interaction.deferUpdate().catch(() => {});
+    try {
+      const rolMap = {};
+      for (const [, r] of interaction.guild.roles.cache) rolMap[r.name] = r;
+      const bul = (parca) => interaction.guild.channels.cache.find((k) => (k.name || '').includes(parca) && k.isTextBased() && !k.isThread() && !k.isVoiceBased()) || null;
+      const sonuc = await oryantasyonKur(interaction.guild, rolMap, {
+        kurallar: bul('kurallar'), duyuru: bul('duyuru'), gununSorusu: bul('genel-sohbet'),
+      });
+      if (sonuc.ok) {
+        await interaction.editReply({ content: `🎓 Oryantasyon kuruldu! **${sonuc.soru} soru** aktif (yaş + oyun + cinsiyet + ilgi)! 🎉`, components: [] }).catch(() => {});
+      } else {
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('sunucu_oryantasyon_kur').setLabel('🔁 Tekrar Dene').setStyle(ButtonStyle.Primary)
+        );
+        await interaction.editReply({ content: `⚠️ Hâlâ kurulamadı: ${sonuc.hata}\nTopluluğu açtığından emin olup tekrar bas!`, components: [row] }).catch(() => {});
+      }
+    } catch (e) {
+      await interaction.editReply({ content: `❌ Hata: ${String((e && e.message) || e).slice(0, 200)}` }).catch(() => {});
+    }
+    return;
   }
   // ONAY
   const kayit = bekleyen.get(interaction.guild.id);
@@ -657,8 +720,8 @@ async function handleSunucuButton(interaction, client) {
       baslik: '🎉 SUNUCUN HAZIR!',
       aciklama: `**${sure} saniyede** her şey kuruldu! ${E(client, 'parti', '🎉')}\n👑 **Taçlı sahip + kurucular:** ${(tacAlanlar || []).map((u) => `${u}`).join(' ') || '*sunucuda bulunamadı*'}`,
       alanlar: [
-            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 emojili şehir ses kanalı (limitsiz>90>...>5>4>3>2)', inline: false },
-        { name: '🎓 Oryantasyon', value: oryantasyon?.ok ? `✅ Kuruldu (${oryantasyon.soru} soru: yaş + ilgi + oyun)! Yeni gelenler soruları cevaplayıp rol kapar.` : `⚠️ Atlandı (${oryantasyon?.hata || 'bilinmiyor'}) — Sunucu Ayarları → **Topluluğu Etkinleştir** açıp \`/sunucu oryantasyon\` yaz!`, inline: false },
+            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 emojili şehir ses kanalı (limitsiz>90>...>5>4>3>2)\n🎮 Oyun kanalları oto-başlatıldı (sayı + kelime)', inline: false },
+        { name: '🎓 Oryantasyon', value: oryantasyon?.ok ? `✅ Kuruldu (${oryantasyon.soru} soru: yaş + oyun + cinsiyet + ilgi)! Yeni gelenler soruları cevaplayıp rol kapar.` : `⚠️ Atlandı (${oryantasyon?.hata || 'bilinmiyor'}) — yönetim sohbetine retry butonu bıraktım!`, inline: false },
         { name: '🚀 Sonraki Adımlar', value: '`/ticket-kur #destek @Destek` → destek paneli\n`/vitrin-ekle ...` → sunucunu tanıt\n`/partner ayarla` → yazını özelleştir', inline: false },
       ],
     });

@@ -184,7 +184,14 @@ T('gorev motoru', (() => {
   } catch { return false; }
 })());
 T('gorev komutlari', cmds.has('gorev-ayarla') && cmds.has('gunluk-gorev') && r.payload.some((p) => p.name === 'gorev-ayarla'));
-T('oryantasyon', typeof require('./commands/sunucu').oryantasyonKur === 'function' && (require('./commands/sunucu').sunucuSlash?.data?.options || []).some((o) => o.name === 'oryantasyon'));
+T('oryantasyon', typeof require('./commands/sunucu').oryantasyonKur === 'function' && !(require('./commands/sunucu').sunucuSlash?.data?.options || []).some((o) => o.name === 'oryantasyon'));
+T('oyun motoru', (() => {
+  try {
+    const O = require('./src/oyun');
+    return O.kelimeTemizle('  Merhaba! ') === 'merhaba' && O.sonHarf('Araba') === 'a' &&
+      typeof O.oyunSayi === 'function' && typeof O.oyunKelime === 'function';
+  } catch { return false; }
+})());
 T('gorev SEMA', ['gorevAktif', 'gorevKanal', 'gorevTur', 'gorevGunlukMesaj', 'gorevGunlukOdul', 'gorevHaftalikAktif', 'gorevHaftalikMesaj', 'gorevHaftalikOdul'].every((k) => k in require('./web/server').SEMA));
 T('medya gif ayikla', (() => { const r = u.medyaAyikla('selam https://cdn.discord.com/a.gif oley'); return r.resim === 'https://cdn.discord.com/a.gif' && r.metin.includes('selam'); })());
 T('medya yok', (() => { const r = u.medyaAyikla('sadece yazi'); return r.resim === null; })());

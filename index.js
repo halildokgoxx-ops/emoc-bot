@@ -573,6 +573,21 @@ client.on('messageCreate', async (message) => {
       }
     }
 
+    // ---- 🎮 Oyun kanalları (sayı-sayma + kelime-türetme, her sunucuda oto) ----
+    try {
+      const kanalAd = (message.channel.name || '').toLocaleLowerCase('tr');
+      if (!message.content.startsWith(prefix)) {
+        const OY = require('./src/oyun');
+        if (kanalAd.includes('sayı-sayma') || kanalAd.includes('sayi-sayma')) {
+          await OY.oyunSayi(message);
+          return;
+        }
+        if (kanalAd.includes('kelime-türetme') || kanalAd.includes('kelime-turetme')) {
+          await OY.oyunKelime(message);
+          return;
+        }
+      }
+    } catch {}
     // --- Oto-cevap (premium) ---
     try {
       const goc = getGuild(message.guild.id);
@@ -1803,7 +1818,7 @@ client.on('interactionCreate', async (interaction) => {
         const r = require('./commands/itibar');
         return r.repBildirimButon(interaction, client);
       }
-      if (interaction.customId === 'sunucu_kur_onay' || interaction.customId === 'sunucu_kur_iptal') {
+      if (interaction.customId === 'sunucu_kur_onay' || interaction.customId === 'sunucu_kur_iptal' || interaction.customId === 'sunucu_oryantasyon_kur') {
         const s = require('./commands/sunucu');
         return s.handleSunucuButton(interaction, client);
       }
