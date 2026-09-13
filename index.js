@@ -326,6 +326,8 @@ client.on('messageCreate', async (message) => {
     if (!message.guild || message.author.bot) return;
     // --- Partner chat tetikleyici (butonlu başvuru daveti) ---
     try { require('./commands/partner').maybePartnerPrompt(message); } catch {}
+    // --- Partner sayaç: yetkilinin davetli texti → +1 ---
+    try { require('./commands/partner').maybePartnerSkor(message); } catch {}
     const prefix = sunucuPrefix(message.guild.id);
     const g = getGuild(message.guild.id);
     const u = getUser(message.guild.id, message.author.id);

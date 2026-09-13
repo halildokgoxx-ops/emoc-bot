@@ -135,7 +135,7 @@ module.exports = [
       if (!davet) return message.reply({ embeds: [err('Davet oluşturamadım! Yetkim yok.')] });
       const d = db();
       d.vitrin = d.vitrin.filter(v => v.guildId !== message.guild.id);
-      d.vitrin.unshift({ guildId: message.guild.id, name: message.guild.name, desc: aciklama, invite: davet, members: message.guild.memberCount, date: Date.now(), owner: message.author.id });
+      d.vitrin.unshift({ guildId: message.guild.id, name: message.guild.name, desc: aciklama, invite: davet, members: message.guild.memberCount, ikon: message.guild.iconURL({ size: 128 }), date: Date.now(), owner: message.author.id });
       d.vitrin = d.vitrin.slice(0, 50);
       save();
       return message.reply({ embeds: [ok(`🌟 Sunucun vitrine eklendi!\n\`!vitrin\` yazanlar seni bulabilecek.`)] });

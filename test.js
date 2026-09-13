@@ -261,6 +261,38 @@ T('partner sayac', (() => {
     return ok;
   } catch { return false; }
 })());
+T('partner text skor', (() => {
+  try {
+    const P = require('./commands/partner');
+    const DB = require('./src/db');
+    const d = DB.db();
+    const once = (d.partnerSkor || []).length;
+    const rolId = '999999999999999999';
+    DB.setGuild('test-gid', { partnerKanal: 'test-kanal', partnerYetkiliRol: rolId });
+    const sahte = (icerik, roller) => ({
+      guild: { id: 'test-gid' },
+      author: { id: 'test-uid', bot: false },
+      member: { id: 'test-uid', roles: { cache: new Map(roller.map((r) => [r, {}])) }, permissions: { has: () => false } },
+      channel: { id: 'test-kanal' },
+      content: icerik,
+    });
+    P.maybePartnerSkor(sahte('gel https://discord.gg/abc123', [rolId]));
+    const sonra = (DB.db().partnerSkor || []).length;
+    P.maybePartnerSkor(sahte('!yardim https://discord.gg/abc123', [rolId]));
+    P.maybePartnerSkor(sahte('selam naber', [rolId]));
+    P.maybePartnerSkor(sahte('gel https://discord.gg/abc123', []));
+    const son2 = (DB.db().partnerSkor || []).length;
+    delete DB.db().guilds['test-gid'];
+    DB.db().partnerSkor = (DB.db().partnerSkor || []).slice(0, once);
+    return (sonra === once + 1) && (son2 === sonra) && typeof P.maybePartnerSkor === 'function';
+  } catch (e) { console.log('   text skor hata:', e.message); return false; }
+})());
+T('admin vitrin', (() => {
+  try {
+    const A = require('./web/aksiyon');
+    return typeof A.adminVitrin === 'function' && typeof A.adminVitrinListe === 'function';
+  } catch { return false; }
+})());
 T('itiraf akisi', (() => {
   try {
     const O = require('./commands/ozel');

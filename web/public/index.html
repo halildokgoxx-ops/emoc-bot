@@ -168,8 +168,11 @@ fetch('/api/vitrin').then(r => r.json()).then(j => {
   g.innerHTML = '';
   liste.forEach((s) => {
     const d = document.createElement('div');
-    d.className = 'kart buyume';
-    d.innerHTML = `<h3>🌍 ${String(s.ad).slice(0, 40)}</h3><p>${String(s.desc || '').slice(0, 120)}</p><p>👥 ${s.uye || '?'} üye</p>`;
+    d.className = 'kart buyume vitrin-kart';
+    const logo = s.ikon ? `<img class="vitrin-logo" src="${String(s.ikon).replace(/"/g, '')}" loading="lazy" onerror="this.remove()">` : `<div class="vitrin-logo vitrin-harfi">${String(s.ad || '?')[0].toUpperCase()}</div>`;
+    const uye = (s.uye ?? '?');
+    const aktif = (s.aktif ?? null);
+    d.innerHTML = `${logo}<div class="vitrin-ic"><h3>${String(s.ad).slice(0, 40)}</h3><p class="vitrin-aciklama">${String(s.desc || 'Açıklama yok.').slice(0, 120)}</p><div class="vitrin-sayilar"><span>👥 ${uye} üye</span>${aktif !== null && aktif !== undefined ? `<span class="vitrin-aktif">🟢 ${aktif} aktif</span>` : ''}<span class="vitrin-katil">Katıl →</span></div></div>`;
     if (s.davet) { d.classList.add('tiklanabilir'); d.onclick = () => window.open(s.davet, '_blank'); }
     g.appendChild(d);
   });

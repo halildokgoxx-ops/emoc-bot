@@ -748,7 +748,7 @@ function tarihYaz(ms){
   return d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
 }
 let ADMIN_SEKME='genel';
-const ADMIN_SEKMELER=[['genel','\u{1F4CA}','Genel'],['sunucular','\u{1F30D}','Sunucular'],['uyeler','\u{1F464}','\u00DCyeler'],['komutlar','\u2328\uFE0F','Komutlar'],['analitik','\u{1F4C8}','Analitik'],['koruma','\u{1F6E1}\uFE0F','Koruma'],['kodlar','\u{1F39F}\uFE0F','Kodlar'],['duyuru','\u{1F4E2}','Duyurular'],['sistem','\u{1F6E0}\uFE0F','Sistem']];
+const ADMIN_SEKMELER=[['genel','\u{1F4CA}','Genel'],['sunucular','\u{1F30D}','Sunucular'],['uyeler','\u{1F464}','\u00DCyeler'],['komutlar','\u2328\uFE0F','Komutlar'],['analitik','\u{1F4C8}','Analitik'],['koruma','\u{1F6E1}\uFE0F','Koruma'],['vitrin','\u{1F31F}','Vitrin'],['kodlar','\u{1F39F}\uFE0F','Kodlar'],['duyuru','\u{1F4E2}','Duyurular'],['sistem','\u{1F6E0}\uFE0F','Sistem']];
 async function cizAdmin(c){
   c.innerHTML='<div class="page-h">\u{1F451} Admin Paneli</div><div class="page-s">Sadece bot sahipleri g\u00F6r\u00FCr</div>'
     +'<div class="greet-wrap"><div class="greet-side"><h3>\u{1F451} Y\u00F6netim</h3><p>Kategoriye g\u00F6re y\u00F6net.</p>'
@@ -762,6 +762,7 @@ async function adSekmeYukle(){
   if(ADMIN_SEKME==='komutlar')return adKomutlarTab();
   if(ADMIN_SEKME==='analitik')return adAnalitikTab();
   if(ADMIN_SEKME==='koruma')return adKorumaTab();
+  if(ADMIN_SEKME==='vitrin')return adVitrinTab();
   if(ADMIN_SEKME==='sistem')return adSistemTab();
   if(ADMIN_SEKME==='sunucular')return adSunucular();
   if(ADMIN_SEKME==='kodlar')return adKodlarTab();
@@ -1052,6 +1053,38 @@ async function adKorumaTab(){
       +'<div class="panel"><div class="panel-top"><div><h3>🛡️ Son Koruma Olayları</h3><p>Spam, haksız premium ve kod saldırıları.</p></div><button class="btn sm" onclick="adSekmeYukle()">Yenile</button></div>'+olay+'</div>'
       +'<div class="panel"><div class="panel-top"><div><h3>🚀 Aktif Boost-Premiumlar</h3><p>Boostu çekenin premiumu saatlik taramada otomatik iptal olur.</p></div></div>'+boost+'</div>';
   }catch{ kutu.innerHTML='<div class="hata-kutu">Yüklenemedi (yetki/bot bağlantısı).<br><br><button class="btn sm" onclick="adSekmeYukle()">Tekrar Dene</button></div>'; }
+}
+async function adVitrinTab(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  kutu.innerHTML='<div class="panel"><div class="panel-top"><div><h3>🌟 Topluluk Vitrini</h3><p>Davet linki gir, sunucunun açıklaması + logosu + üye/aktif sayısı otomatik çekilsin.</p></div></div>'
+  +'<div class="field"><label>Sunucu davet linki</label><div style="display:flex;gap:8px"><input type="text" id="vitrin-davet" placeholder="https://discord.gg/xxxx" style="flex:1"><button class="btn pri sm" onclick="adVitrinEkle()">Ekle</button></div></div></div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>📌 Vitrindekiler</h3></div><button class="btn sm" onclick="adSekmeYukle()">Yenile</button></div><div id="vitrin-liste"><div class="bos iskelet-kutu">Yükleniyor...</div></div></div>';
+  adVitrinListe();
+}
+async function adVitrinListe(){
+  const kutu=document.getElementById('vitrin-liste');if(!kutu)return;
+  try{
+    const j=await api('/api/admin/vitrin');
+    const l=j.vitrin||[];
+    kutu.innerHTML=l.length?l.map(v=>'<div class="liste-satir" style="align-items:flex-start"><span style="display:flex;gap:10px;align-items:center">'
+      +((v.ikon||v.icon)?'<img src="'+esc(v.ikon||v.icon)+'" style="width:40px;height:40px;border-radius:12px">':'<span style="width:40px;height:40px;font-size:16px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:#3a3a5c">🌍</span>')
+      +'<span><b>'+esc(v.ad||v.name||'?')+'</b><br><span style="font-size:12px;color:var(--mut)">'+esc(String(v.desc||v.aciklama||'').slice(0,80))+'</span><br><span style="font-size:12px;color:var(--mut)">👥 '+(v.uye??v.members??'?')+(v.online!=null&&v.online!==undefined?' • 🟢 '+v.online+' aktif':'')+'</span></span></span>'
+      +'<span style="display:flex;gap:6px"><button class="btn sm" onclick="window.open(\''+esc(v.davet||v.invite||'')+'\',\'_blank\')">Aç</button><button class="btn btn-ghost sm" onclick="adVitrinSil(\''+esc(String(v.guildId))+'\')">Sil</button></span></div>').join(''):'<div class="bos">Vitrin boş — yukarıdan ekle!</div>';
+  }catch{ kutu.innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'; }
+}
+async function adVitrinEkle(){
+  const d=(document.getElementById('vitrin-davet').value||'').trim();
+  if(!d){toast('Davet linki yaz!');return}
+  try{
+    const j=await api('/api/admin/vitrin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({islem:'ekle',davet:d})});
+    if(j.ok){toast('Eklendi: '+(j.eklenen?j.eklenen.name:''));adVitrinListe()}
+    else toast(hataMesaj(j,'Eklenemedi! Davet geçerli mi?'));
+  }catch{toast('Olmadı!')}
+}
+async function adVitrinSil(gid){
+  if(!confirm('Vitrinden çıkarılsın mı?'))return;
+  try{ await api('/api/admin/vitrin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({islem:'sil',guildId:gid})}); toast('Silindi!'); adVitrinListe(); }
+  catch{toast('Olmadı!')}
 }
 async function adSistemTab(){
   const kutu=document.getElementById('ad-icerik');if(!kutu)return;

@@ -77,7 +77,7 @@ function sayacEmbed(guild, donem) {
     .setTitle(`🤝 Partner Sayaç — ${D.emoji} ${D.ad}`)
     .setThumbnail(guild.iconURL({ size: 128 }) || null)
     .setDescription(satir.slice(0, 3500))
-    .addFields({ name: '🔢 Dönem Toplamı', value: `**${toplam}** onay`, inline: true })
+    .addFields({ name: '🔢 Dönem Toplamı', value: `**${toplam}** paylaşım`, inline: true })
     .setFooter({ text: `${guild.name} • Aşağıdan dönem değiştir` })
     .setTimestamp();
 }
@@ -96,7 +96,7 @@ function kisiSayacEmbed(guild, user) {
     .setTitle(`🤝 ${user.tag} — Partner Karnesi`)
     .setThumbnail(user.displayAvatarURL({ size: 128 }))
     .setDescription(satir)
-    .addFields({ name: '🔢 Toplam (yıllık)', value: `**${s.toplam}** onay`, inline: true })
+    .addFields({ name: '🔢 Toplam (yıllık)', value: `**${s.toplam}** paylaşım`, inline: true })
     .setFooter({ text: guild.name })
     .setTimestamp();
 }
@@ -119,6 +119,35 @@ async function otoDavetUret(kanal) {
     const davet = await kanal.createInvite({ maxAge: 0, maxUses: 0, reason: 'Oto-partner tanıtımı' });
     return davet.url;
   } catch { return null; }
+}
+
+// Partner kanalına yetkilinin davetli texti → +1 (kullanıcı başına 60sn cooldown)
+// (Botun kendi onay mesajları bot olduğu için sayılmaz.)
+const skorCooldown = new Map();
+function maybePartnerSkor(message) {
+  try {
+    if (!message.guild || !message.author || message.author.bot) return;
+    const g = pv2Ayar(message.guild.id);
+    if (!g.partnerKanal || !message.channel || message.channel.id !== g.partnerKanal) return;
+    // Komutları sayma
+    let pref = config.prefix;
+    try {
+      const o = String(getGuild(message.guild.id).prefix || '').trim();
+      if (o && require('../src/premium').premiumMu(message.guild.id)) pref = o.slice(0, 5);
+    } catch {}
+    if (String(message.content || '').startsWith(pref)) return;
+    const uye = message.member;
+    if (!uye) return;
+    const yetkili = (g.partnerYetkiliRol && uye.roles.cache.has(g.partnerYetkiliRol)) ||
+      (uye.permissions && uye.permissions.has(PermissionFlagsBits.ManageGuild));
+    if (!yetkili) return;
+    if (!davetKoduBul(message.content || '')) return;
+    const son = skorCooldown.get(message.author.id) || 0;
+    if (Date.now() - son < 60_000) return;
+    skorCooldown.set(message.author.id, Date.now());
+    if (skorCooldown.size > 1000) skorCooldown.clear();
+    skorKaydet(message.guild.id, message.author.id);
+  } catch {}
 }
 
 // Chat tetikleyici cooldown (kullanıcı bazında 45sn)
@@ -596,6 +625,7 @@ const komutlar = [
 module.exports = komutlar;
 module.exports.partnerSlash = partnerSlash;
 module.exports.sayacButton = sayacButton;
+module.exports.maybePartnerSkor = maybePartnerSkor;
 module.exports.DONEMLER = DONEMLER;
 module.exports.skorKaydet = skorKaydet;
 module.exports.skorLiderlik = skorLiderlik;

@@ -32,6 +32,7 @@ const ROLLER = [
   { ad: '13-15', renk: '#2b2d31', hosit: false },
   { ad: '♂️ Erkek', renk: '#00D4FF', hosit: false },
   { ad: '♀️ Kadın', renk: '#FF69B4', hosit: false },
+  { ad: '🚫 Belirtmedi', renk: '#2b2d31', hosit: false },
   { ad: 'Anime', renk: '#EC4899', hosit: false },
   { ad: 'Manga', renk: '#FFC93C', hosit: false },
   { ad: 'Oyun', renk: '#00E676', hosit: false },
@@ -277,13 +278,16 @@ async function oryantasyonKur(guild, rolMap, isaret) {
     } catch { return null; }
   };
   const secenek = (baslik, emoji, rid) => rid ? { title: baslik, emoji, roles: [rid] } : { title: baslik, emoji };
+  // Discord her seçenekte rol/kanal ŞART koşar → "belirtmek istemiyorum" etkisiz role bağlanır
+  const belirtmediId = rolId('🚫 Belirtmedi');
+  const vazgecme = () => (belirtmediId ? [secenek('Belirtmek istemiyorum', '🚫', belirtmediId)] : []);
   const prompts = [];
   // 1) Yaş
   const yaslar = [['13-15', '🌱'], ['15-18', '🌿'], ['18+', '🌳']].filter(([a]) => rolId(a));
   if (yaslar.length >= 2) {
     prompts.push({
       title: 'Kaç yaşındasın?', singleSelect: true, required: false, inOnboarding: true,
-      options: [...yaslar.map(([a, e]) => secenek(a, e, rolId(a))), secenek('Belirtmek istemiyorum', '🚫', null)],
+      options: [...yaslar.map(([a, e]) => secenek(a, e, rolId(a))), ...vazgecme()],
     });
   }
   // 2) Oyunlar
@@ -304,7 +308,7 @@ async function oryantasyonKur(guild, rolMap, isaret) {
   if (cinsiyetler.length >= 1) {
     prompts.push({
       title: 'Cinsiyetin nedir?', singleSelect: true, required: false, inOnboarding: true,
-      options: [...cinsiyetler.map(([a, e]) => secenek(a, e, rolId(a))), secenek('Belirtmek istemiyorum', '🚫', null)],
+      options: [...cinsiyetler.map(([a, e]) => secenek(a, e, rolId(a))), ...vazgecme()],
     });
   }
   // 4) İlgi alanları

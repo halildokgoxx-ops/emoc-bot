@@ -364,6 +364,8 @@ function startKopru() {
     catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   });
   app.get('/api/admin/komutlar', (req, res) => adminIlet2(req, res, '/api/bot/admin/komutlar'));
+  app.get('/api/admin/vitrin', (req, res) => adminIlet2(req, res, '/api/bot/admin/vitrin'));
+  app.post('/api/admin/vitrin', (req, res) => adminIletPost(req, res, '/api/bot/admin/vitrin'));
   app.get('/api/admin/koruma', (req, res) => adminIlet2(req, res, '/api/bot/admin/koruma'));
   app.post('/api/admin/komut-durum', (req, res) => adminIletPost(req, res, '/api/bot/admin/komut-durum'));
   app.post('/api/admin/bakim', (req, res) => adminIletPost(req, res, '/api/bot/admin/bakim'));

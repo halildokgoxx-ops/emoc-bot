@@ -471,6 +471,8 @@ function startWeb(client) {
   app.post('/api/admin/komut-durum', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutDurum));
   app.post('/api/admin/bakim', (req, res) => adminSarmala(req, res, (c, govde) => require('./aksiyon').adminBakim(govde)));
   app.get('/api/admin/koruma', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKoruma));
+  app.get('/api/admin/vitrin', (req, res) => adminSarmala(req, res, () => require('./aksiyon').adminVitrinListe()));
+  app.post('/api/admin/vitrin', (req, res) => adminSarmala(req, res, (c, govde) => require('./aksiyon').adminVitrin(c, govde)));
   app.get('/api/admin/yedek', (req, res) => {
     if (!adminKontrol(req, res)) return;
     try { res.json(require('../src/db').db()); }
@@ -753,6 +755,8 @@ function startWeb(client) {
         ad: String(x.ad || x.name || 'Sunucu').slice(0, 60),
         desc: String(x.desc || x.aciklama || '').slice(0, 160),
         uye: x.uye ?? x.members ?? null,
+        aktif: x.online ?? x.aktif ?? null,
+        ikon: x.ikon || x.icon || null,
         davet: String(x.davet || x.invite || ''),
       })).filter((x) => x.davet);
       res.json({ vitrin: liste });

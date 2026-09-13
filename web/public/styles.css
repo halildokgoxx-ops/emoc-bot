@@ -352,3 +352,14 @@ code{background:rgba(139,124,246,.14);padding:2px 8px;border-radius:6px;font-siz
 .side-item,.mod-card,.g-opt,.server-card{transition:transform .12s ease,background .12s ease}
 .side-item:hover,.mod-card:hover,.server-card:hover{transform:translateY(-1px)}
 .btn:active{transform:scale(.97)}
+
+/* vitrin dikdortgen kartlar */
+.vitrin-kart{display:flex;gap:14px;align-items:center;text-align:left}
+.vitrin-logo{width:64px;height:64px;border-radius:16px;flex:none;object-fit:cover}
+.vitrin-harfi{display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;background:linear-gradient(135deg,var(--mor,#8b5cf6),var(--pembe,#ec4899));color:#fff}
+.vitrin-ic{flex:1;min-width:0}
+.vitrin-ic h3{margin:0 0 4px;font-size:16px}
+.vitrin-aciklama{margin:0 0 8px;font-size:13px;color:var(--mut)}
+.vitrin-sayilar{display:flex;gap:12px;align-items:center;font-size:13px;flex-wrap:wrap}
+.vitrin-aktif{color:#57F287;font-weight:600}
+.vitrin-katil{margin-left:auto;color:var(--acc,#a08ffb);font-weight:700}

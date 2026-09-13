@@ -222,6 +222,52 @@ function adminBakim({ aktif, mesaj }) {
   } catch { return { hata: 'hata' }; }
 }
 
+function adminVitrinListe() {
+  try {
+    const d = require('../src/db').db();
+    return { ok: true, vitrin: (d.vitrin || []).slice(0, 50) };
+  } catch { return { hata: 'hata' }; }
+}
+
+async function adminVitrin(client, { islem, davet, guildId }) {
+  try {
+    const DB = require('../src/db');
+    const d = DB.db();
+    if (!Array.isArray(d.vitrin)) d.vitrin = [];
+    if (islem === 'sil') {
+      const gid = String(guildId || '').replace(/\D/g, '');
+      d.vitrin = d.vitrin.filter((v) => String(v.guildId) !== gid);
+      DB.save();
+      return { ok: true, vitrin: d.vitrin };
+    }
+    // ekle: davet linkinden sunucu bilgisini otomatik çek
+    const kod = String(davet || '').match(/(?:discord\.gg\/|discord\.com\/invite\/|discordapp\.com\/invite\/)([a-zA-Z0-9-]+)/);
+    if (!kod) return { hata: 'davet-gecersiz' };
+    let inv;
+    try { inv = await client.fetchInvite(kod[1], { withCounts: true }); }
+    catch { return { hata: 'davet-bulunamadi' }; }
+    if (!inv || !inv.guild) return { hata: 'davet-bulunamadi' };
+    const g = inv.guild;
+    const ikon = typeof g.iconURL === 'function' ? g.iconURL({ size: 128 }) : (g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=128` : null);
+    const entry = {
+      guildId: g.id,
+      name: g.name || 'Sunucu',
+      desc: String(g.description || '').slice(0, 160),
+      invite: `https://discord.gg/${kod[1]}`,
+      members: inv.approximateMemberCount ?? null,
+      online: inv.approximatePresenceCount ?? null,
+      ikon,
+      date: Date.now(),
+      owner: 'admin',
+    };
+    d.vitrin = d.vitrin.filter((v) => String(v.guildId) !== g.id);
+    d.vitrin.unshift(entry);
+    d.vitrin = d.vitrin.slice(0, 50);
+    DB.save();
+    return { ok: true, vitrin: d.vitrin, eklenen: entry };
+  } catch { return { hata: 'hata' }; }
+}
+
 function adminKoruma(client) {
   try {
     const K = require('../src/koruma');
@@ -298,4 +344,5 @@ module.exports = {
   embedGonder, medyaYukle, emojirolTepki, ticketPanelGonder,
   adminUye, adminPremiumSure, adminAnalitik, adminSunucuFull,
   adminKomutlar, adminKomutDurum, adminBakim, adminKoruma,
+  adminVitrinListe, adminVitrin,
 };
