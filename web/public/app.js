@@ -341,7 +341,7 @@ function cizDestek(c){
   +'<div class="hint" style="margin-top:8px">Önce yukarıdan Destek rolünü seçip Kaydet yap, sonra panel kanalını seçip bu butona bas.</div></div>'
   +'<div class="panel"><div class="panel-top"><div><h3>⚙️ Komutlar</h3><p>Panel kurulumu ve ticket işlemleri — prefix ve slash ikisi de çalışır.</p></div></div>'
   +'<div class="field"><label>Kurulum</label><div class="hint">/ticket kur kanal:#destek rol:@Destek — veya — !ticket-kur #destek @Destek</div></div>'
-  +'<div class="field"><label>İşlemler</label><div class="hint">/ticket kapat/devral/devret/beklet/ac/ekle/cikar — veya — !ticket-kapat !ticket-devral !ticket-devret !ticket-beklet !ticket-ac !ticket-ekle !ticket-cikar<br>Konular: Genel, Şikayet, Partner, Öneri, Yetkili Alım, Özel + Aciliyet: Normal/Acele/Acil. Kapatınca konuşma kaydı .txt olarak loga gider.</div></div></div>'
+  +'<div class="field"><label>İşlemler</label><div class="hint">/ticket kapat/devral/devret/beklet/ac/oncelik/ekle👑/cikar — veya — !ticket-kapat !ticket-devral !ticket-devret !ticket-beklet !ticket-ac !ticket-oncelik !ticket-ekle👑 !ticket-cikar<br>Ticket içindeki butonlar: Devral • Beklet/Geri Aç • Kapat • 🔄 Devret • ⚡ Öncelik • ➕ Ekle👑<br>Konular: Genel, Şikayet, Partner, Öneri, Yetkili Alım, Özel + Aciliyet: Normal/Acele/Acil. Kapatınca konuşma kaydı .txt olarak loga gider.<br>👑 Ticketa kullanıcı ekleme PREMIUM sunuculara özeldir.</div></div></div>'
   +saveBar();
 }
 async function ticketPanelKur(){

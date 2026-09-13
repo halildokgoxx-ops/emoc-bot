@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, ChannelType, StringSelectMenuBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, ChannelType, StringSelectMenuBuilder, UserSelectMenuBuilder } = require('discord.js');
 const { getGuild, save } = require('../src/db');
 const { ok, err } = require('../src/embeds');
 const config = require('../config');
@@ -63,7 +63,34 @@ function kontrolButonlari(durum) {
     new ButtonBuilder().setCustomId('ticket_devral').setLabel('🙋 Devral').setStyle(ButtonStyle.Primary),
     beklet,
     new ButtonBuilder().setCustomId('ticket_kapat').setLabel('🔒 Kapat').setStyle(ButtonStyle.Danger),
+  ),
+  new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('ticket_devret').setLabel('🔄 Devret').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('ticket_oncelik').setLabel('⚡ Öncelik').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('ticket_ekle').setLabel('➕ Ekle').setStyle(ButtonStyle.Secondary),
   )];
+}
+
+function premiumGerekli(message, ozellik) {
+  try {
+    if (require('../src/premium').premiumMu(message.guild.id)) return false;
+  } catch {}
+  message.reply({ embeds: [err(`👑 **${ozellik}** PREMIUM özelliğidir!\nKodun varsa \`!premium-aktifleştir KOD\` yaz, detay için \`/premium bilgi\` bak! 💎`)] }).catch(() => {});
+  return true;
+}
+
+// Öncelik (aciliyet) değiştir: kayıt + kanal adı + bilgi mesajı
+async function oncelikUygula(guild, kanal, kayit, seviye, degistiren) {
+  const ac = ACILIYET[seviye] || ACILIYET.normal;
+  kayit.aciliyet = seviye;
+  save();
+  try {
+    const suanki = kanal.name || '';
+    const temiz = suanki.replace(/^(🟡-|🔴-)/, '');
+    const yeni = `${ac.emoji ? ac.emoji + '-' : ''}${temiz}`.slice(0, 90);
+    if (yeni !== suanki) await kanal.setName(yeni).catch(() => {});
+  } catch {}
+  await kanal.send(`⚡ Öncelik **${ac.emoji || '🟢'} ${ac.etiket}** olarak değiştirildi! (${degistiren})`).catch(() => {});
 }
 
 async function transcriptTopla(kanal, limit = 500) {
@@ -166,7 +193,7 @@ module.exports = [
       );
 
       await kanal.send({ embeds: [embed], components: [menu] }).catch(() => null);
-      return message.reply({ embeds: [ok('🎫 Ticket paneli ' + kanal + ' kanalına kuruldu!\n👥 Destek rolü: ' + (rol || 'ayarlanmadı') + '\n📁 Kategori: ' + (kat || 'oluşturulamadı') + '\n\nKomutlar: !ticket-kapat !ticket-devral !ticket-devret !ticket-beklet !ticket-ac !ticket-ekle !ticket-cikar')] });
+      return message.reply({ embeds: [ok('🎫 Ticket paneli ' + kanal + ' kanalına kuruldu!\n👥 Destek rolü: ' + (rol || 'ayarlanmadı') + '\n📁 Kategori: ' + (kat || 'oluşturulamadı') + '\n\nKomutlar: !ticket-kapat !ticket-devral !ticket-devret !ticket-beklet !ticket-ac !ticket-oncelik !ticket-ekle👑 !ticket-cikar')] });
     },
   },
   {
@@ -258,15 +285,35 @@ module.exports = [
     },
   },
   {
+    name: 'ticket-oncelik', aliases: ['t-oncelik', 't-öncelik', 'ticket-öncelik'], category: 'Genel',
+    description: 'Ticketın önceliğini değiştirir (normal/acele/acil).', usage: '!ticket-oncelik <normal|acele|acil>',
+    async run(message, args) {
+      const t = ticketAyar(message.guild.id);
+      const bulunan = acikBul(t, message.channel.id);
+      if (!bulunan) return message.reply({ embeds: [err('Burası bir ticket kanalı değil!')] });
+      if (!ekipMi(message.member, t)) return message.reply({ embeds: [err('Sadece destek ekibi öncelik değiştirebilir!')] });
+      const giris = String(args[0] || '').toLocaleLowerCase('tr');
+      const seviye = giris.startsWith('acil') ? 'acil' : giris.startsWith('acele') ? 'acele' : giris.startsWith('normal') ? 'normal' : null;
+      if (!seviye) return message.reply({ embeds: [err('`!ticket-oncelik normal|acele|acil`')] });
+      const kayit = typeof t.acik[bulunan.uid] === 'string' ? null : t.acik[bulunan.uid];
+      if (!kayit) return message.reply({ embeds: [err('Eski kayıt, önce ticketı kapatıp yeniden aç!')] });
+      await oncelikUygula(message.guild, message.channel, kayit, seviye, `${message.author}`);
+      return message.reply({ embeds: [ok(`⚡ Öncelik **${ACILIYET[seviye].etiket}** yapıldı!`)] });
+    },
+  },
+  {
     name: 'ticket-ekle', aliases: ['t-ekle'], category: 'Genel',
-    description: 'Ticketa kullanıcı ekler.', usage: '!ticket-ekle @kullanıcı',
+    description: 'Ticketa kullanıcı ekler. (👑 PREMIUM)', usage: '!ticket-ekle @kullanıcı',
     async run(message) {
       const t = ticketAyar(message.guild.id);
       if (!acikBul(t, message.channel.id)) return message.reply({ embeds: [err('Burası ticket kanalı değil!')] });
+      if (!ekipMi(message.member, t)) return message.reply({ embeds: [err('Sadece destek ekibi kullanıcı ekleyebilir!')] });
+      if (premiumGerekli(message, 'Ticketa kullanıcı ekleme')) return;
       const h = message.mentions.members.first();
       if (!h) return message.reply({ embeds: [err('`!ticket-ekle @kullanıcı`')] });
-      await message.channel.permissionOverwrites.edit(h, { ViewChannel: true, SendMessages: true }).catch(() => null);
-      return message.reply({ embeds: [ok(`${h} ticketa eklendi.`)] });
+      if (h.user.bot) return message.reply({ embeds: [err('Bot ekleyemezsin!')] });
+      await message.channel.permissionOverwrites.edit(h, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true }).catch(() => null);
+      return message.reply({ embeds: [ok(`${h} ticketa eklendi. 👑`)] });
     },
   },
   {
@@ -387,7 +434,84 @@ module.exports = [
         } catch {}
         return interaction.reply({ content: `▶️ Geri açıldı! ${sahip || ''}`, components: kontrolButonlari('acik') }).catch(() => {});
       }
+      if (id === 'ticket_devret') {
+        if (!ekipMi(interaction.member, t)) return interaction.reply({ content: '❌ Sadece destek ekibi devredebilir!', ephemeral: true }).catch(() => {});
+        const kayit = typeof t.acik[bulunan.uid] === 'string' ? null : t.acik[bulunan.uid];
+        const devralanId = kayit && kayit.devralan;
+        const yetkili = interaction.member.permissions.has(PermissionFlagsBits.ManageGuild) || devralanId === interaction.user.id || !devralanId;
+        if (!yetkili) return interaction.reply({ content: '❌ Sadece devralan kişi veya yönetici devredebilir!', ephemeral: true }).catch(() => {});
+        const row = new ActionRowBuilder().addComponents(
+          new UserSelectMenuBuilder().setCustomId('ticket_devret_select').setPlaceholder('🔄 Devredilecek yetkiliyi seç...').setMinValues(1).setMaxValues(1)
+        );
+        return interaction.reply({ content: '🔄 Ticketı kime devredeyim? Aşağıdan yetkiliyi seç:', components: [row], ephemeral: true }).catch(() => {});
+      }
+      if (id === 'ticket_oncelik') {
+        if (!ekipMi(interaction.member, t)) return interaction.reply({ content: '❌ Sadece destek ekibi!', ephemeral: true }).catch(() => {});
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('ticket_oncelik_normal').setLabel('🟢 Normal').setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId('ticket_oncelik_acele').setLabel('🟡 Acele').setStyle(ButtonStyle.Primary),
+          new ButtonBuilder().setCustomId('ticket_oncelik_acil').setLabel('🔴 Acil').setStyle(ButtonStyle.Danger),
+        );
+        return interaction.reply({ content: '⚡ Yeni önceliği seç:', components: [row], ephemeral: true }).catch(() => {});
+      }
+      if (id === 'ticket_oncelik_normal' || id === 'ticket_oncelik_acele' || id === 'ticket_oncelik_acil') {
+        if (!ekipMi(interaction.member, t)) return interaction.reply({ content: '❌ Sadece destek ekibi!', ephemeral: true }).catch(() => {});
+        const kayit = typeof t.acik[bulunan.uid] === 'string' ? null : t.acik[bulunan.uid];
+        if (!kayit) return interaction.reply({ content: '❌ Eski kayıt, önce ticketı kapatıp yeniden aç!', ephemeral: true }).catch(() => {});
+        const seviye = id.endsWith('_acil') ? 'acil' : id.endsWith('_acele') ? 'acele' : 'normal';
+        await oncelikUygula(interaction.guild, interaction.channel, kayit, seviye, `${interaction.user}`);
+        return interaction.reply({ content: `⚡ Öncelik **${ACILIYET[seviye].etiket}** yapıldı!`, ephemeral: true }).catch(() => {});
+      }
+      if (id === 'ticket_ekle') {
+        if (!ekipMi(interaction.member, t)) return interaction.reply({ content: '❌ Sadece destek ekibi!', ephemeral: true }).catch(() => {});
+        try {
+          if (!require('../src/premium').premiumMu(interaction.guild.id)) {
+            return interaction.reply({ content: '👑 **Ticketa kullanıcı ekleme PREMIUM** özelliğidir!\nKodun varsa `!premium-aktifleştir KOD` yaz! 💎', ephemeral: true }).catch(() => {});
+          }
+        } catch {}
+        const row = new ActionRowBuilder().addComponents(
+          new UserSelectMenuBuilder().setCustomId('ticket_ekle_select').setPlaceholder('➕ Ticketa eklenecek kişiyi seç...').setMinValues(1).setMaxValues(5)
+        );
+        return interaction.reply({ content: '➕ Kimi ekleyeyim? (en fazla 5 kişi)', components: [row], ephemeral: true }).catch(() => {});
+      }
       return interaction.reply({ content: '❌ Bilinmeyen işlem!', ephemeral: true }).catch(() => {});
+    },
+    async userSelect(interaction, client) {
+      const t = ticketAyar(interaction.guild.id);
+      const bulunan = acikBul(t, interaction.channel.id);
+      if (!bulunan) return interaction.reply({ content: '❌ Bu kanal bir ticket değil!', ephemeral: true }).catch(() => {});
+      if (interaction.customId === 'ticket_devret_select') {
+        if (!ekipMi(interaction.member, t)) return interaction.reply({ content: '❌ Sadece destek ekibi!', ephemeral: true }).catch(() => {});
+        const hedefId = interaction.values[0];
+        const hedef = await interaction.guild.members.fetch(hedefId).catch(() => null);
+        if (!hedef || hedef.user.bot) return interaction.reply({ content: '❌ Geçerli bir yetkili seç!', ephemeral: true }).catch(() => {});
+        if (!ekipMi(hedef, t)) return interaction.reply({ content: '❌ Seçtiğin kişi destek ekibinde değil!', ephemeral: true }).catch(() => {});
+        const kayit = typeof t.acik[bulunan.uid] === 'string' ? null : t.acik[bulunan.uid];
+        if (kayit) { kayit.devralan = hedef.id; save(); }
+        await interaction.channel.permissionOverwrites.edit(hedef, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true }).catch(() => null);
+        await interaction.update({ content: `🔄 Ticket ${interaction.user} tarafından ${hedef} adlı yetkiliye **devredildi!**`, components: [] }).catch(() => {});
+        return;
+      }
+      if (interaction.customId === 'ticket_ekle_select') {
+        if (!ekipMi(interaction.member, t)) return interaction.reply({ content: '❌ Sadece destek ekibi!', ephemeral: true }).catch(() => {});
+        try {
+          if (!require('../src/premium').premiumMu(interaction.guild.id)) {
+            return interaction.reply({ content: '👑 **Ticketa kullanıcı ekleme PREMIUM** özelliğidir!', ephemeral: true }).catch(() => {});
+          }
+        } catch {}
+        const eklenen = [];
+        for (const uid of interaction.values.slice(0, 5)) {
+          if (uid === bulunan.uid) continue;
+          const uye = await interaction.guild.members.fetch(uid).catch(() => null);
+          if (!uye || uye.user.bot) continue;
+          await interaction.channel.permissionOverwrites.edit(uye, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true }).catch(() => null);
+          eklenen.push(`${uye}`);
+        }
+        if (!eklenen.length) return interaction.reply({ content: '❌ Kimse eklenemedi!', ephemeral: true }).catch(() => {});
+        await interaction.update({ content: `➕ Ticketa eklendi: ${eklenen.join(' ')} 👑`, components: [] }).catch(() => {});
+        return;
+      }
+      return interaction.reply({ content: '❌ Bilinmeyen seçim!', ephemeral: true }).catch(() => {});
     },
   },
 ];
@@ -398,7 +522,7 @@ const _CMDS = module.exports;
 const ticketSlash = {
   data: {
     name: 'ticket',
-    description: '🎫 Ticket sistemi (kur/kapat/devral/devret/beklet/aç/ekle/çıkar)',
+    description: '🎫 Ticket sistemi (kur/kapat/devral/devret/beklet/aç/öncelik/ekle/çıkar)',
     contexts: [0],
     options: [
       { type: 1, name: 'kur', description: '🎫 Ticket paneli kur (Yönetici)', options: [{ type: 7, name: 'kanal', description: 'Panelin gönderileceği kanal', required: true }, { type: 8, name: 'rol', description: 'Destek ekibi rolü', required: false }] },
@@ -407,7 +531,8 @@ const ticketSlash = {
       { type: 1, name: 'devret', description: '🔄 Ticketı başka yetkiliye devret', options: [{ type: 6, name: 'yetkili', description: 'Devredilecek yetkili', required: true }, { type: 3, name: 'sebep', description: 'Sebep', required: false }] },
       { type: 1, name: 'beklet', description: '⏸️ Ticketı beklemeye al', options: [{ type: 3, name: 'sebep', description: 'Sebep', required: false }] },
       { type: 1, name: 'ac', description: '▶️ Beklemedeki ticketı geri aç' },
-      { type: 1, name: 'ekle', description: '➕ Ticketa kullanıcı ekle', options: [{ type: 6, name: 'kullanici', description: 'Eklenecek kullanıcı', required: true }] },
+      { type: 1, name: 'oncelik', description: '⚡ Ticket önceliğini değiştir', options: [{ type: 3, name: 'seviye', description: 'Yeni öncelik', required: true, choices: [{ name: '🟢 Normal', value: 'normal' }, { name: '🟡 Acele', value: 'acele' }, { name: '🔴 Acil', value: 'acil' }] }] },
+      { type: 1, name: 'ekle', description: '➕ Ticketa kullanıcı ekle (👑 PREMIUM)', options: [{ type: 6, name: 'kullanici', description: 'Eklenecek kullanıcı', required: true }] },
       { type: 1, name: 'cikar', description: '➖ Tickettan kullanıcı çıkar', options: [{ type: 6, name: 'kullanici', description: 'Çıkarılacak kullanıcı', required: true }] },
     ],
   },
@@ -485,6 +610,11 @@ const ticketSlash = {
         return;
       }
       if (alt === 'ac') { await bul('ticket-ac').run(sahte(), [], client); return; }
+      if (alt === 'oncelik') {
+        const seviye = interaction.options.getString('seviye') || 'normal';
+        await bul('ticket-oncelik').run(sahte(), [seviye], client);
+        return;
+      }
       if (alt === 'ekle' || alt === 'cikar') {
         const k = interaction.options.getUser('kullanici');
         const cmd = bul(alt === 'ekle' ? 'ticket-ekle' : 'ticket-cikar');

@@ -1742,6 +1742,11 @@ client.on('interactionCreate', async (interaction) => {
       const internal = arr.find(c => c.name === '__ticket_internal__');
       if (internal?.select) return internal.select(interaction, client);
     }
+    if (interaction.isUserSelectMenu() && interaction.customId.startsWith('ticket_')) {
+      const arr = require('./commands/ticket');
+      const internal = arr.find(c => c.name === '__ticket_internal__');
+      if (internal?.userSelect) return internal.userSelect(interaction, client);
+    }
     if (interaction.isButton()) {
       if (interaction.customId === 'pv2_basvuru' || interaction.customId.startsWith('pv2_onay_') || interaction.customId.startsWith('pv2_red_')) {
         const p = require('./commands/partner');
