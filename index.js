@@ -1779,7 +1779,12 @@ client.on('interactionCreate', async (interaction) => {
         const internal = arr.find(c => c.name === '__partner_button__');
         if (internal?.button) return internal.button(interaction, client);
       }
-      if (interaction.customId === 'ticket_kapat' || interaction.customId === 'ticket_kilit') {
+      if (interaction.customId.startsWith('ticket_acil_')) {
+        const arr = require('./commands/ticket');
+        const internal = arr.find(c => c.name === '__ticket_internal__');
+        if (internal?.aciliyet) return internal.aciliyet(interaction, client);
+      }
+      if (interaction.customId.startsWith('ticket_')) {
         const arr = require('./commands/ticket');
         const internal = arr.find(c => c.name === '__ticket_internal__');
         if (internal?.button) return internal.button(interaction, client);
