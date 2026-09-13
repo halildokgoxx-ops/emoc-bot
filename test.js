@@ -178,6 +178,15 @@ T('sahip gizli komutlar', ['komut-ac', 'komut-kapat', 'komut-liste', 'restart'].
 T('sahip hardcode ID yok', (() => { const t = fs.readFileSync(path.join(__dirname, 'commands', 'sahip.js'), 'utf8'); return !/\d{15,22}/.test(t); })());
 T('kura free limit', (() => { const t = fs.readFileSync(path.join(__dirname, 'commands', 'faydali.js'), 'utf8'); return t.includes('premiumMu') && t.includes('Free kura'); })());
 T('web liste guard', (() => { const t = fs.readFileSync(path.join(__dirname, 'web', 'server.js'), 'utf8'); return t.includes('LISTE_LIMIT') && t.includes('premium-gerek'); })());
+T('web JS syntax', (() => {
+  try {
+    const cp = require('child_process');
+    for (const f of ['web/public/app.js', 'web/server.js', 'web/bridge.js', 'web/botapi.js', 'web/aksiyon.js']) {
+      cp.execSync(`node --check ${f}`, { cwd: __dirname, stdio: 'pipe' });
+    }
+    return true;
+  } catch { return false; }
+})());
 T('gorev motoru', (() => {
   try {
     const G = require('./src/gorev');
