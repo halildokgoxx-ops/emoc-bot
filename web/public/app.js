@@ -48,7 +48,10 @@ async function baslat(){
     }
     renderMisafir();
     serverList();
-  }catch(e){}
+  }catch(e){
+    if(String((e&&e.message)||'')==='giris')return;
+    document.getElementById('content').innerHTML='<div class="hata-kutu">😵 Panele ulaşılamadı! Bot çalışmıyor veya bağlantı koptu olabilir.<br><br><button class="btn sm" onclick="baslat()">🔄 Tekrar Dene</button> <a class="btn btn-ghost sm" href="/login">Giriş Yap</a></div>';
+  }
 }
 function renderMisafir(){
   document.getElementById('sidebar').innerHTML='<div class="side-logo"><div class="mark">✦</div><span>EMOÇ <small>PANEL</small></span></div>'
@@ -67,7 +70,7 @@ function serverList(){
 
 async function sunucuAc(id){
   const g=GUILDS.find(x=>x.id===id);if(!g)return;
-  document.getElementById('content').innerHTML='<div class="yukleniyor">Ayarlar yükleniyor...</div>';
+  document.getElementById('content').innerHTML='<div class="page-h"><div class="iskelet" style="width:220px;height:26px"></div></div><div class="iskelet" style="width:160px;height:14px;margin-bottom:16px"></div><div class="iskelet" style="height:120px;margin-bottom:12px"></div><div class="iskelet" style="height:120px"></div>';
   try{
     const j=await api('/api/guild/'+id);
     SID=id;SNAME=j.ad;KANALLAR=j.kanallar||[];ROLLER=j.roller||[];FORM=Object.assign({},j.ayarlar||{});PREMIUM_AKTIF=!!j.prem;
@@ -745,7 +748,7 @@ function tarihYaz(ms){
   return d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
 }
 let ADMIN_SEKME='genel';
-const ADMIN_SEKMELER=[['genel','\u{1F4CA}','Genel'],['sunucular','\u{1F30D}','Sunucular'],['uyeler','\u{1F464}','\u00DCyeler'],['komutlar','\u2328\uFE0F','Komutlar'],['analitik','\u{1F4C8}','Analitik'],['kodlar','\u{1F39F}\uFE0F','Kodlar'],['duyuru','\u{1F4E2}','Duyurular'],['sistem','\u{1F6E0}\uFE0F','Sistem']];
+const ADMIN_SEKMELER=[['genel','\u{1F4CA}','Genel'],['sunucular','\u{1F30D}','Sunucular'],['uyeler','\u{1F464}','\u00DCyeler'],['komutlar','\u2328\uFE0F','Komutlar'],['analitik','\u{1F4C8}','Analitik'],['koruma','\u{1F6E1}\uFE0F','Koruma'],['kodlar','\u{1F39F}\uFE0F','Kodlar'],['duyuru','\u{1F4E2}','Duyurular'],['sistem','\u{1F6E0}\uFE0F','Sistem']];
 async function cizAdmin(c){
   c.innerHTML='<div class="page-h">\u{1F451} Admin Paneli</div><div class="page-s">Sadece bot sahipleri g\u00F6r\u00FCr</div>'
     +'<div class="greet-wrap"><div class="greet-side"><h3>\u{1F451} Y\u00F6netim</h3><p>Kategoriye g\u00F6re y\u00F6net.</p>'
@@ -758,6 +761,7 @@ async function adSekmeYukle(){
   if(ADMIN_SEKME==='uyeler')return adUyelerTab();
   if(ADMIN_SEKME==='komutlar')return adKomutlarTab();
   if(ADMIN_SEKME==='analitik')return adAnalitikTab();
+  if(ADMIN_SEKME==='koruma')return adKorumaTab();
   if(ADMIN_SEKME==='sistem')return adSistemTab();
   if(ADMIN_SEKME==='sunucular')return adSunucular();
   if(ADMIN_SEKME==='kodlar')return adKodlarTab();
@@ -1030,6 +1034,24 @@ async function adAnalitikTab(){
       +'<div class="panel"><div class="panel-top"><div><h3>⭐ En İtibarlı</h3></div></div>'+bar(j.topRep,'rep')+'</div></div>'
       +'<div class="panel"><div class="panel-top"><div><h3>📚 Komut Kategorileri</h3></div></div>'+((j.kategoriler||[]).map(k=>{const mx=(j.kategoriler[0]||{sayi:1}).sayi;return '<div class="bar-satir"><span style="width:130px">'+esc(k.ad)+'</span><span class="bar-dis"><span class="bar-ic" style="display:block;width:'+Math.max(4,Math.round(k.sayi/mx*100))+'%"></span></span><b>'+k.sayi+'</b></div>'}).join('')||'<div class="bos">Yok.</div>')+'</div>';
   }catch{ kutu.innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'; }
+}
+async function adKorumaTab(){
+  const kutu=document.getElementById('ad-icerik');if(!kutu)return;
+  kutu.innerHTML='<div class="panel"><div class="bos iskelet-kutu">Yükleniyor...</div></div>';
+  try{
+    const j=await api('/api/admin/koruma');
+    const turAd={'komut-spam':'🚨 Komut spamı','etkilesim-spam':'👆 Buton spamı','boost-revoke':'👑 Haksız boost-premium','kod-brute':'🔑 Kod brute-force'};
+    const olay=(j.olaylar||[]).length?j.olaylar.map(o=>'<div class="liste-satir"><span>'+(turAd[o.tur]||o.tur)+' <span style="color:var(--mut2);font-size:11px">'+esc(o.detay||'')+'</span></span><span style="font-size:12px;color:var(--mut)">'+tarihYaz(o.tarih)+'</span></div>').join(''):'<div class="bos">Olay yok — her şey temiz! ✨</div>';
+    const boost=(j.boostler||[]).length?j.boostler.map(b=>'<div class="liste-satir"><span>🚀 <b>'+esc(b.ad)+'</b> <span style="color:var(--mut2);font-size:11px">'+b.gid+'</span></span><span style="font-size:12px;color:var(--mut)">'+(b.sahip?'sahip: '+esc(b.sahip)+' • ':'')+'bitiş: '+tarihYaz(b.bitis)+(b.botta?'':' • ⚠️ bot yok!')+'</span></div>').join(''):'<div class="bos">Aktif boost-premiumu yok.</div>';
+    kutu.innerHTML='<div class="stat-grid">'
+      +statMini('🚨',j.komutSpam||0,'Komut Spamı')
+      +statMini('👆',j.etkilesimSpam||0,'Buton Spamı')
+      +statMini('👑',j.revoke||0,'Boost Revoke')
+      +statMini('🔑',j.kodBrute||0,'Kod Brute-Force')
+      +'</div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>🛡️ Son Koruma Olayları</h3><p>Spam, haksız premium ve kod saldırıları.</p></div><button class="btn sm" onclick="adSekmeYukle()">Yenile</button></div>'+olay+'</div>'
+      +'<div class="panel"><div class="panel-top"><div><h3>🚀 Aktif Boost-Premiumlar</h3><p>Boostu çekenin premiumu saatlik taramada otomatik iptal olur.</p></div></div>'+boost+'</div>';
+  }catch{ kutu.innerHTML='<div class="hata-kutu">Yüklenemedi (yetki/bot bağlantısı).<br><br><button class="btn sm" onclick="adSekmeYukle()">Tekrar Dene</button></div>'; }
 }
 async function adSistemTab(){
   const kutu=document.getElementById('ad-icerik');if(!kutu)return;

@@ -141,16 +141,24 @@ async function amKuralIslet(message, kural, cfg, sebepKisa) {
     return;
   }
   amIhlalMap.delete(key);
+  // 🧠 Akıllı ceza: tekrar suçluda süre katlanır (son 7 gün siciline göre 1x/2x/4x)
+  let carpan = 1;
+  try { carpan = require('./src/koruma').tekrarCarpani(uid); } catch {}
   try {
     if (cfg.yasakla) {
       await message.guild.members.ban(uid, { reason: neden }).catch(() => {});
+      try { require('./src/db').cezaKaydet(uid, 'ban', `AutoMod ${kural}: ${sebepKisa}`); } catch {}
       await logla(message.author + ' \u26D4 yasakland\u0131! (' + sebepKisa + ')');
     } else if (cfg.sunucudanAt) {
       await message.member.kick(neden).catch(() => {});
+      try { require('./src/db').cezaKaydet(uid, 'kick', `AutoMod ${kural}: ${sebepKisa}`); } catch {}
       await logla(message.author + ' sunucudan at\u0131ld\u0131! (' + sebepKisa + ')');
     } else {
-      await message.member.timeout(10 * 60_000, neden).catch(() => {});
-      await logla(message.author + ' 10dk susturuldu! (' + sebepKisa + ')');
+      const sure = Math.min(24 * 3600_000, 10 * 60_000 * carpan);
+      const sureYaz = sure >= 3600000 ? `${Math.round(sure / 3600000)}sa` : `${Math.round(sure / 60000)}dk`;
+      await message.member.timeout(sure, neden).catch(() => {});
+      try { require('./src/db').cezaKaydet(uid, 'mute', `${sureYaz} • AutoMod ${kural}: ${sebepKisa}`); } catch {}
+      await logla(message.author + ` ${sureYaz} susturuldu! (${sebepKisa})${carpan > 1 ? ` 🔁 tekrar suçlu (x${carpan})` : ''}`);
     }
   } catch {}
   if (!require('./src/logger').logOlayAcik(gid, 'modAuto')) return;
@@ -301,6 +309,13 @@ client.once('clientReady', async () => {
         } catch {}
       }
       if (bitenler.length) console.log(`👑 ${bitenler.length} premium süresi doldu`);
+    } catch {}
+  }, 3600_000);
+  // Boost-premium doğrulama (saatte bir: boostu çekenin premiumu iptal!)
+  setInterval(async () => {
+    try {
+      const r = await require('./src/koruma').boostDogrula(client);
+      if (r.revoke.length) console.log(`🛡️ ${r.revoke.length} haksız boost-premium iptal: ${r.revoke.join(',')}`);
     } catch {}
   }, 3600_000);
 });
@@ -665,6 +680,24 @@ client.on('messageCreate', async (message) => {
       }
       if ((dd.kapaliKomutlar || []).includes(cmd.name.toLowerCase())) {
         return message.reply('🔒 Bu komut yönetim tarafından kapatıldı!').catch(() => {});
+      }
+    } catch {}
+    // Komut spam kalkanı (sahipler muaf): 8/10sn → uyar, 15/10sn → 5dk sustur
+    try {
+      if (!require('./src/premium').sahipMi(message.author.id)) {
+        const son = require('./src/koruma').komutKontrol(message.author.id);
+        if (son.durum === 'ceza') {
+          await message.member.timeout(5 * 60_000, 'Komut spami').catch(() => {});
+          try { require('./src/db').cezaKaydet(message.author.id, 'mute', '5dk • Komut spami'); } catch {}
+          const m = await message.reply('🚨 Komut spami tespit edildi! **5dk susturuldun.**').catch(() => null);
+          if (m) setTimeout(() => m.delete().catch(() => {}), 8000);
+          return;
+        }
+        if (son.durum === 'yavas') {
+          const m = await message.reply('⏳ Yavaşla! Çok hızlı komut kullanıyorsun.').catch(() => null);
+          if (m) setTimeout(() => m.delete().catch(() => {}), 4000);
+          return;
+        }
       }
     } catch {}
 
@@ -1096,8 +1129,8 @@ client.on('guildMemberUpdate', async (eski, yeni) => {
             const hedef = adaylar[0];
             const mevcut = P.premiumBilgi(hedef.id);
             const gun = 30;
-            if (mevcut) P.premiumVer(hedef.id, Math.ceil((mevcut.bitis - Date.now()) / 86400000) + gun);
-            else P.premiumVer(hedef.id, gun);
+            if (mevcut) P.premiumVer(hedef.id, Math.ceil((mevcut.bitis - Date.now()) / 86400000) + gun, mevcut.kod || 'ADMIN', mevcut.sahip || yeni.id);
+            else P.premiumVer(hedef.id, gun, 'BOOST', yeni.id);
             try {
               await yeni.send(`🚀 **Boost için teşekkürler!** Desteğinin karşılığı olarak **${hedef.name}** sunucunda **👑 PREMIUM** aktifleşti (30 gün)! İyi eğlenceler! 💜`);
             } catch {}
@@ -1782,6 +1815,16 @@ client.on('guildDelete', async (guild) => {
 
 client.on('interactionCreate', async (interaction) => {
   try {
+    // 0) Etkileşim spam kalkanı (buton/menü flood → 60sn sessiz)
+    try {
+      const uid0 = interaction.user && interaction.user.id;
+      const PP0 = require('./src/premium');
+      if (uid0 && !PP0.sahipMi(uid0)) {
+        const K0 = require('./src/koruma');
+        if (K0.etkilesimYasakliMi(uid0)) return;
+        if (!K0.etkilesimKontrol(uid0)) { K0.etkilesimYasakla(uid0); return; }
+      }
+    } catch {}
     // 1) Slash komutlar
     if (interaction.isChatInputCommand()) {
       try {

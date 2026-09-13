@@ -170,10 +170,18 @@ module.exports = [
     usage: '!premium-aktifleştir <kod>',
     async run(message, args, client) {
       if (!message.guild) return;
+      const K = require('../src/koruma');
+      if (K.kodEngelliMi(message.author.id)) {
+        return message.reply({ embeds: [err('🔒 Çok fazla hatalı kod denedin! **1 saat** bekle.')] });
+      }
       const kod = (args[0] || '').trim();
       if (!kod) return message.reply({ embeds: [err('Kod yaz! `!premium-aktifleştir EMOC-XXXX-XXXX`')] });
       const s = P.kodKullan(kod, message.guild.id, message.author.id);
-      if (s.hata) return message.reply({ embeds: [err(s.hata)] });
+      if (s.hata) {
+        const r = K.kodDeneme(message.author.id, false);
+        return message.reply({ embeds: [err(s.hata + (r.kalan ? `\n⚠️ Kalan deneme: **${r.kalan}/5** (sonra 1sa engel!)` : ''))] });
+      }
+      K.kodDeneme(message.author.id, true);
       await message.delete().catch(() => {});
       return message.channel.send({
         embeds: [kart(client || message.client, {
@@ -258,8 +266,16 @@ const premiumSlash = {
       });
     }
     if (alt === 'aktiflestir') {
+      const K = require('../src/koruma');
+      if (K.kodEngelliMi(interaction.user.id)) {
+        return interaction.reply({ content: '🔒 Çok fazla hatalı kod denedin! **1 saat** bekle.', ephemeral: true });
+      }
       const s = P.kodKullan(interaction.options.getString('kod'), interaction.guild.id, interaction.user.id);
-      if (s.hata) return interaction.reply({ content: `❌ ${s.hata}`, ephemeral: true });
+      if (s.hata) {
+        const r = K.kodDeneme(interaction.user.id, false);
+        return interaction.reply({ content: `❌ ${s.hata}${r.kalan ? ` (kalan deneme: **${r.kalan}/5**)` : ''}`, ephemeral: true });
+      }
+      K.kodDeneme(interaction.user.id, true);
       return interaction.reply({
         embeds: [kart(client, {
           renk: RENK.altin,

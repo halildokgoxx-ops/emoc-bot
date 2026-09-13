@@ -476,6 +476,7 @@ function mountBotAPI(app, client) {
   router.get('/admin/komutlar', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutlar));
   router.post('/admin/komut-durum', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutDurum));
   router.post('/admin/bakim', (req, res) => adminSarmala(req, res, (c, govde) => require('./aksiyon').adminBakim(govde)));
+  router.get('/admin/koruma', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKoruma));
   router.get('/admin/yedek', (req, res) => {
     try { res.json(require('../src/db').db()); }
     catch { res.status(500).json({ hata: 'hata' }); }

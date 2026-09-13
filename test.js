@@ -210,6 +210,38 @@ T('gorev motoru', (() => {
 })());
 T('gorev komutlari', cmds.has('gorev-ayarla') && cmds.has('gunluk-gorev') && r.payload.some((p) => p.name === 'gorev-ayarla'));
 T('oryantasyon', typeof require('./commands/sunucu').oryantasyonKur === 'function' && !(require('./commands/sunucu').sunucuSlash?.data?.options || []).some((o) => o.name === 'oryantasyon'));
+T('koruma modul', (() => {
+  try {
+    const K = require('./src/koruma');
+    let s = 'ok';
+    for (let i = 0; i < 8; i++) s = K.komutKontrol('test-k-1').durum;
+    const yavas = s === 'yavas';
+    for (let i = 0; i < 9; i++) s = K.komutKontrol('test-k-1').durum;
+    const ceza = s === 'ceza';
+    let e = true;
+    for (let i = 0; i < 19; i++) e = K.etkilesimKontrol('test-e-1') && e;
+    const spam = K.etkilesimKontrol('test-e-1') === false;
+    const carp = K.tekrarCarpani('0') === 1;
+    const brute1 = K.kodDeneme('test-b-1', false).kalan === 4;
+    let eng = false;
+    for (let i = 0; i < 4; i++) K.kodDeneme('test-b-1', false);
+    eng = K.kodEngelliMi('test-b-1') === true;
+    K.kodDeneme('test-b-1', true);
+    const temiz = K.kodEngelliMi('test-b-1') === false;
+    const oz = K.korumaOzet();
+    return yavas && ceza && e && spam && carp && brute1 && eng && temiz && typeof oz.komutSpam === 'number' && Array.isArray(oz.olaylar);
+  } catch { return false; }
+})());
+T('premiumVer kod param', (() => {
+  try {
+    const P = require('./src/premium');
+    P.premiumVer('test-g', 1, 'BOOST', '123');
+    const b = P.premiumBilgi('test-g');
+    const ok = b && b.kod === 'BOOST' && b.sahip === '123';
+    P.premiumAl('test-g');
+    return ok;
+  } catch { return false; }
+})());
 T('partner sayac', (() => {
   try {
     const P = require('./commands/partner');

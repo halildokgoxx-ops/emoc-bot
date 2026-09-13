@@ -64,8 +64,8 @@ function kodKullan(kod, gid, uid) {
   return { ok: true, bitis: p.sunucular[String(gid)].bitis, gun: k.gun };
 }
 
-function premiumVer(gid, gun) {
-  premDB().sunucular[String(gid)] = { bitis: Date.now() + gun * 86400000, kod: 'ADMIN' };
+function premiumVer(gid, gun, kod = 'ADMIN', sahip = null) {
+  premDB().sunucular[String(gid)] = { bitis: Date.now() + gun * 86400000, kod, ...(sahip ? { sahip: String(sahip) } : {}) };
   save();
 }
 

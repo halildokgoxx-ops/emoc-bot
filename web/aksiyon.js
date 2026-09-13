@@ -222,6 +222,29 @@ function adminBakim({ aktif, mesaj }) {
   } catch { return { hata: 'hata' }; }
 }
 
+function adminKoruma(client) {
+  try {
+    const K = require('../src/koruma');
+    const ozet = K.korumaOzet();
+    // Aktif BOOST premiumları + sahipleri (haksız kullanım denetimi)
+    const d = require('../src/db').db();
+    const sunucular = (d.premium && d.premium.sunucular) || {};
+    const boostler = [];
+    for (const [gid, s] of Object.entries(sunucuListesiFiltre(sunucular))) {
+      const g = client.guilds.cache.get(gid);
+      boostler.push({
+        gid, ad: g ? g.name : '?', bitis: s.bitis,
+        sahip: s.sahip || null, kod: s.kod,
+        botta: !!g,
+      });
+    }
+    return { ok: true, ...ozet, boostler: boostler.slice(0, 60) };
+  } catch { return { hata: 'hata' }; }
+}
+function sunucuListesiFiltre(sunucular) {
+  return Object.fromEntries(Object.entries(sunucular).filter(([, s]) => s && s.kod === 'BOOST' && s.bitis > Date.now()));
+}
+
 async function ticketPanelGonder(client, { guildId, kanalId, rolId }) {
   const { PermissionFlagsBits, ChannelType, EmbedBuilder: EB, ActionRowBuilder: AR, StringSelectMenuBuilder: SM } = require('discord.js');
   const { getGuild, setGuild, save } = require('../src/db');
@@ -274,5 +297,5 @@ async function ticketPanelGonder(client, { guildId, kanalId, rolId }) {
 module.exports = {
   embedGonder, medyaYukle, emojirolTepki, ticketPanelGonder,
   adminUye, adminPremiumSure, adminAnalitik, adminSunucuFull,
-  adminKomutlar, adminKomutDurum, adminBakim,
+  adminKomutlar, adminKomutDurum, adminBakim, adminKoruma,
 };

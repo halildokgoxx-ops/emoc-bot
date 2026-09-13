@@ -324,6 +324,22 @@ async function handleSlash(interaction, client, harita) {
       } catch { return; }
     }
   }
+  // Komut spam kalkanı (sahipler muaf, defer öncesi)
+  try {
+    const PP = require('./premium');
+    if (!PP.sahipMi(interaction.user.id)) {
+      const son = require('./koruma').komutKontrol(interaction.user.id);
+      if (son.durum !== 'ok') {
+        try {
+          if (son.durum === 'ceza' && interaction.member) {
+            await interaction.member.timeout(5 * 60_000, 'Komut spami').catch(() => {});
+            try { require('./db').cezaKaydet(interaction.user.id, 'mute', '5dk • Komut spami'); } catch {}
+          }
+          return await interaction.reply({ content: son.durum === 'ceza' ? '🚨 Komut spami! **5dk susturuldun.**' : '⏳ Yavaşla! Çok hızlı komut kullanıyorsun.', ephemeral: true });
+        } catch { return; }
+      }
+    }
+  } catch {}
   // ⚡ DEFER-FIRST: önce "düşünüyor..." onayı → 3sn timeout tarihe karışır.
   // Komut API'ye takılsa (hava/anime/gif) bile asla "yanıt vermedi" olmaz.
   try {

@@ -470,6 +470,7 @@ function startWeb(client) {
   app.get('/api/admin/komutlar', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutlar));
   app.post('/api/admin/komut-durum', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKomutDurum));
   app.post('/api/admin/bakim', (req, res) => adminSarmala(req, res, (c, govde) => require('./aksiyon').adminBakim(govde)));
+  app.get('/api/admin/koruma', (req, res) => adminSarmala(req, res, require('./aksiyon').adminKoruma));
   app.get('/api/admin/yedek', (req, res) => {
     if (!adminKontrol(req, res)) return;
     try { res.json(require('../src/db').db()); }

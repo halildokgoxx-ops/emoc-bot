@@ -343,3 +343,12 @@ code{background:rgba(139,124,246,.14);padding:2px 8px;border-radius:6px;font-siz
   .hero{padding:52px 0 36px}
   .ozellikler{grid-template-columns:1fr}
 }
+
+/* iskelet yukleme + icerik giris animasyonu */
+.iskelet{border-radius:10px;background:linear-gradient(90deg,#23233a 25%,#2e2e4e 50%,#23233a 75%);background-size:200% 100%;animation:iskeletKay 1.1s linear infinite}
+@keyframes iskeletKay{to{background-position:-200% 0}}
+#content{animation:icerikGir .22s ease}
+@keyframes icerikGir{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.side-item,.mod-card,.g-opt,.server-card{transition:transform .12s ease,background .12s ease}
+.side-item:hover,.mod-card:hover,.server-card:hover{transform:translateY(-1px)}
+.btn:active{transform:scale(.97)}
