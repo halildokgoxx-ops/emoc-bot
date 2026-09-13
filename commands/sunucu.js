@@ -20,6 +20,10 @@ const ROLLER = [
   { ad: '🎙️ Ses Yetkilisi', renk: '#00D4FF', hosit: true },
   { ad: '💬 Chat Yetkilisi', renk: '#8B5CF6', hosit: true },
   { ad: '🎉 Etkinlik Yetkilisi', renk: '#FFC93C', hosit: true },
+  { ad: '🔔 Anime Bildirim', renk: '#EC4899', hosit: false, bahsedilebilir: true },
+  { ad: '🎮 Oyun Bildirim', renk: '#00D4FF', hosit: false, bahsedilebilir: true },
+  { ad: '🤝 Partner Bildirim', renk: '#57F287', hosit: false, bahsedilebilir: true },
+  { ad: '💀 Dead Chat', renk: '#2b2d31', hosit: false },
   { ad: '🎭 Üye', renk: '#8B5CF6', hosit: false },
   { ad: '🌟 VIP Üye', renk: '#FFD700', hosit: true },
   { ad: '💎 Booster', renk: '#FF73FA', hosit: true },
@@ -139,9 +143,10 @@ const KATEGORILER = [
   { ad: '▬▬ ● ᴄᴇᴋɪʟɪs ● ▬▬', kanallar: [{ ad: '🎉・çekiliş', tip: 'yazi', kilitli: true }] },
   {
     ad: '▬▬ ● ᴏɴᴇʀɪ ● ▬▬', kanallar: [
+      { ad: '🎬・anime-öneri', tip: 'yazi', isaret: 'animeOneri' },
       { ad: '🎬・film-dizi-öneri', tip: 'yazi' },
       { ad: '🎧・şarkı-öneri', tip: 'yazi' },
-      { ad: '🎮・oyun-öneri', tip: 'yazi' },
+      { ad: '🎮・oyun-öneri', tip: 'yazi', isaret: 'oyunOneri' },
     ],
   },
   {
@@ -197,9 +202,10 @@ const KONULAR = {
   '💎・partner-text': '💎 Sunucumuzun resmi tanıtım yazısı.',
   '🤝・partner': '🤝 Onaylı partner sunucular burada!',
   '🎉・çekiliş': '🎁 Çekilişler burada! Katılmayı unutma.',
+  '🎬・anime-öneri': '🎬 Her gün yeni anime önerisi burada! Bildirim için oryantasyonda Anime seç!',
   '🎬・film-dizi-öneri': '🍿 İzlemeye değer ne var?',
   '🎧・şarkı-öneri': '🎵 Günün şarkısını bırak!',
-  '🎮・oyun-öneri': '🕹️ Hangi oyuna dalalım?',
+  '🎮・oyun-öneri': '🕹️ Her gün yeni oyun önerisi burada! Bildirim için oryantasyonda Oyun seç!',
   '📥・gelenler': '👋 Yeni üyeler burada karşılanır!',
   '📤・gidenler': '👋 Ayrılanlara elveda...',
   '📈・sayaç': '🎯 Üye hedefine sayaç!',
@@ -310,6 +316,19 @@ async function oryantasyonKur(guild, rolMap, isaret) {
       options: hobiler.map((a) => secenek(a, hobiEmo[a], rolId(a))),
     });
   }
+  // 5) Bildirimler
+  const bildirimler = [
+    ['Anime', '🔔', '🔔 Anime Bildirim'],
+    ['Oyun', '🎮', '🎮 Oyun Bildirim'],
+    ['Partner', '🤝', '🤝 Partner Bildirim'],
+    ['Sohbet', '💀', '💀 Dead Chat'],
+  ].filter(([, , r]) => rolId(r));
+  if (bildirimler.length >= 2) {
+    prompts.push({
+      title: 'Hangi bildirimleri almak istersin?', singleSelect: false, required: false, inOnboarding: true,
+      options: bildirimler.map(([a, e, r]) => secenek(a, e, rolId(r))),
+    });
+  }
   if (!prompts.length) return { ok: false, hata: 'Eşleşen rol bulunamadı' };
   const varsayilan = [isaret.kurallar?.id, isaret.duyuru?.id, isaret.gununSorusu?.id].filter(Boolean).slice(0, 7);
   try {
@@ -371,7 +390,7 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
     const perms = r.admin ? [PermissionFlagsBits.Administrator]
       : r.mod ? [PermissionFlagsBits.KickMembers, PermissionFlagsBits.ModerateMembers, PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MoveMembers, PermissionFlagsBits.MuteMembers, PermissionFlagsBits.DeafenMembers]
       : [];
-    const rol = await guild.roles.create({ name: r.ad, color: r.renk, hoist: r.hosit, mentionable: false, permissions: perms, reason: 'Sunucu kurulumu' }).catch(() => null);
+    const rol = await guild.roles.create({ name: r.ad, color: r.renk, hoist: r.hosit, mentionable: !!r.bahsedilebilir, permissions: perms, reason: 'Sunucu kurulumu' }).catch(() => null);
     if (rol) rolMap[r.ad] = rol;
     await sleep(600);
   }
@@ -467,6 +486,12 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
     partnerYetkiliRol: rolMap['★ Partner Sorumlusu']?.id || null,
     partnerText: VARSAYILAN_PARTNER_TEXT,
     itirafKanal: isaret.itiraf?.id || null,
+    animeOneriKanal: isaret.animeOneri?.id || null,
+    oyunOneriKanal: isaret.oyunOneri?.id || null,
+    animeRol: rolMap['🔔 Anime Bildirim']?.id || null,
+    oyunRol: rolMap['🎮 Oyun Bildirim']?.id || null,
+    partnerBildirimRol: rolMap['🤝 Partner Bildirim']?.id || null,
+    deadChatRol: rolMap['💀 Dead Chat']?.id || null,
     gununSorusuKanal: isaret.gununSorusu?.id || null,
     gununSorusuSon: Date.now(),
     seviyeRoller: [
@@ -632,7 +657,7 @@ const sunucuSlash = {
           baslik: '🛠️ /sunucu kur — Önizleme',
           aciklama: `**${KATEGORILER.length + 1} kategori • ${kanalSayi} kanal • ${rolSayi} rol** kurulur.\nAnime/Manga topluluk template'i + bot bağlantılı + 🌍 emojili şehir ses kanalları (limitsiz>90>...>5>4>3>2 merdiveni) + 🎓 oryantasyon!`,
           alanlar: [
-            { name: '🤖 Otomatik Bağlananlar', value: '🎭 Oto-rol → Üye\n📋 Log → loglar\n👋 HG/Çıkış → gelenler/gidenler\n🎯 Sayaç (1000) → sayaç\n🔔 İtibar bildirim → itibar-bildirim\n🤝 Partner (kanal+chat+onay+rol+yazı)\n🎫 Ticket paneli → destek\n🤫 İtiraf kanalı → itiraflar (hesaplı/gizli butonlu)\n🎓 Oryantasyon (yaş + oyun + cinsiyet + ilgi)\n🎮 Oyunlar oto-başlar (sayı + kelime motoru)\n💎 Booster rolü + özel izinler\n🥷 Alt hesap koruması (3g kick / 7g gözlem)\n💬 Günün sorusu → genel-sohbet\n🚀 Sv.5/10/20 + 🏅 25/50/100 İtibar rolleri\n👑 Owner rolü → sahip + kurucular', inline: false },
+            { name: '🤖 Otomatik Bağlananlar', value: '🎭 Oto-rol → Üye\n📋 Log → loglar\n👋 HG/Çıkış → gelenler/gidenler\n🎯 Sayaç (1000) → sayaç\n🔔 İtibar bildirim → itibar-bildirim\n🤝 Partner (kanal+chat+onay+rol+yazı)\n🎫 Ticket paneli → destek\n🤫 İtiraf kanalı → itiraflar (hesaplı/gizli butonlu)\n🎓 Oryantasyon (yaş + oyun + cinsiyet + ilgi + bildirim)\n🎮 Oyunlar oto-başlar (sayı + kelime motoru)\n🎬 Günlük anime + oyun önerisi (bildirim rollü)\n💎 Booster rolü + özel izinler\n🥷 Alt hesap koruması (3g kick / 7g gözlem)\n💬 Günün sorusu → genel-sohbet\n🚀 Sv.5/10/20 + 🏅 25/50/100 İtibar rolleri\n👑 Owner rolü → sahip + kurucular', inline: false },
             { name: '⚠️ Dikkat', value: 'Mevcut **TÜM kanallar ve roller silinir!** (bot rolleri hariç)\nSadece **sunucu sahibi** kurabilir.\n🎓 Oryantasyon için sunucuda **Topluluk** açık olmalı, değilse kurulum sonunda uyarı verir.', inline: false },
           ],
           altbilgi: 'Kurmak için: /sunucu kur',
@@ -721,8 +746,8 @@ async function handleSunucuButton(interaction, client) {
       baslik: '🎉 SUNUCUN HAZIR!',
       aciklama: `**${sure} saniyede** her şey kuruldu! ${E(client, 'parti', '🎉')}\n👑 **Taçlı sahip + kurucular:** ${(tacAlanlar || []).map((u) => `${u}`).join(' ') || '*sunucuda bulunamadı*'}`,
       alanlar: [
-            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n🤫 İtiraf kanalı (hesaplı/gizli) • 💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 emojili şehir ses kanalı (limitsiz>90>...>5>4>3>2)\n🎮 Oyun kanalları oto-başlatıldı (sayı + kelime)', inline: false },
-        { name: '🎓 Oryantasyon', value: oryantasyon?.ok ? `✅ Kuruldu (${oryantasyon.soru} soru: yaş + oyun + cinsiyet + ilgi)! Yeni gelenler soruları cevaplayıp rol kapar.` : `⚠️ Atlandı (${oryantasyon?.hata || 'bilinmiyor'}) — yönetim sohbetine retry butonu bıraktım!`, inline: false },
+            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n🤫 İtiraf kanalı (hesaplı/gizli) • 💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 emojili şehir ses kanalı (limitsiz>90>...>5>4>3>2)\n🎮 Oyun kanalları oto-başlatıldı (sayı + kelime)\n🎬 Günlük anime + oyun önerisi bağlandı', inline: false },
+        { name: '🎓 Oryantasyon', value: oryantasyon?.ok ? `✅ Kuruldu (${oryantasyon.soru} soru: yaş + oyun + cinsiyet + ilgi + bildirim)! Yeni gelenler soruları cevaplayıp rol kapar.` : `⚠️ Atlandı (${oryantasyon?.hata || 'bilinmiyor'}) — yönetim sohbetine retry butonu bıraktım!`, inline: false },
         { name: '🚀 Sonraki Adımlar', value: '`/ticket-kur #destek @Destek` → destek paneli\n`/vitrin-ekle ...` → sunucunu tanıt\n`/partner ayarla` → yazını özelleştir', inline: false },
       ],
     });

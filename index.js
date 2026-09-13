@@ -237,6 +237,10 @@ client.once('clientReady', async () => {
   setInterval(() => {
     try { require('./commands/topluluk').gununSorusuTara(client); } catch {}
   }, 5 * 60_000);
+  // Günün anime + oyun önerisi (10dk'da bir kontrol, kanalı ayarlıysa günde 1 kez)
+  setInterval(() => {
+    try { require('./src/oneriler').oneriTara(client); } catch {}
+  }, 10 * 60_000);
   // Bitmemiş çekilişleri zamanla (restart-dayanıklı)
   try {
     const { db } = require('./src/db');

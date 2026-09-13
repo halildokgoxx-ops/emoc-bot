@@ -178,6 +178,18 @@ T('sahip gizli komutlar', ['komut-ac', 'komut-kapat', 'komut-liste', 'restart'].
 T('sahip hardcode ID yok', (() => { const t = fs.readFileSync(path.join(__dirname, 'commands', 'sahip.js'), 'utf8'); return !/\d{15,22}/.test(t); })());
 T('kura free limit', (() => { const t = fs.readFileSync(path.join(__dirname, 'commands', 'faydali.js'), 'utf8'); return t.includes('premiumMu') && t.includes('Free kura'); })());
 T('web liste guard', (() => { const t = fs.readFileSync(path.join(__dirname, 'web', 'server.js'), 'utf8'); return t.includes('LISTE_LIMIT') && t.includes('premium-gerek'); })());
+T('oneri modul', (() => {
+  try {
+    const O = require('./src/oneriler');
+    const oyun = O.oyunGetir('2026-09-13');
+    return O.OYUNLAR.length >= 20 && !!oyun.ad && !!oyun.aciklama &&
+      O.turkceTarih(2015, 7, 5) === '5 Temmuz 2015' &&
+      O.TUR_MAP['Action'] === 'Aksiyon' && O.DURUM_MAP.FINISHED === 'Tamamlandı' &&
+      typeof O.animeEmbed === 'function' && typeof O.oyunEmbed === 'function' &&
+      typeof O.oneriTara === 'function' &&
+      ['anime-oneri', 'oyun-oneri', 'oneri-kanal'].every((n) => cmds.has(n));
+  } catch { return false; }
+})());
 T('web JS syntax', (() => {
   try {
     const cp = require('child_process');
