@@ -111,6 +111,19 @@ T('sureParse 1y', PR.sureParse('1y') === 365);
 T('sureParse sinirsiz', PR.sureParse('sinirsiz') === 36500);
 T('sureParse bos', PR.sureParse('xyz') === 0);
 T('sahipMi yabanci', PR.sahipMi('123') === false);
+T('ceza helper', (() => {
+  try {
+    const DB = require('./src/db');
+    const id = '999000111222333444';
+    DB.cezaKaydet(id, 'ban', 'test sebep');
+    DB.cezaKaydet(id, 'kick', 'test2');
+    DB.cezaKaydet(id, 'zzz', 'yok sayilmali');
+    const g = DB.cezaGecmisi(id);
+    const ok = g.ban === 1 && g.kick === 1 && g.mute === 0 && g.kayitlar.length === 2;
+    delete DB.db().cezaGecmisi[id];
+    return ok;
+  } catch { return false; }
+})());
 T('premiumMu yok', PR.premiumMu('0') === false);
 
 // ---------- 6. web köprü entegrasyonu (gerçek HTTP, sahte istemci) ----------

@@ -166,6 +166,7 @@ async function amKuralIslet(message, kural, cfg, sebepKisa) {
 async function otoCeza(message, sebep) {
   try {
     await message.member.timeout(10 * 60_000, 'Üst üste kural ihlali: ' + sebep).catch(() => {});
+    try { require('./src/db').cezaKaydet(message.author.id, 'mute', `10dk • ${sebep}`); } catch {}
     const m = await message.channel.send(`🚨 ${message.author} üst üste kural ihlali → **10dk susturuldu!**`).catch(() => null);
     if (m) setTimeout(() => m.delete().catch(() => {}), 8000);
     const gg = getGuild(message.guild.id);

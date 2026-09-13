@@ -1,5 +1,5 @@
 const { EmbedBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
-const { getGuild, setGuild, getUser, db, save } = require('../src/db');
+const { getGuild, setGuild, getUser, db, save, cezaKaydet } = require('../src/db');
 const { ok, err, kisiBulAsync, repRozet } = require('../src/embeds');
 const { parseSure, sureYaz } = require('../src/utils');
 const config = require('../config');
@@ -32,6 +32,7 @@ module.exports = [
       const sebep = args.slice(1).join(' ') || 'Sebep belirtilmedi';
       try { await message.guild.members.ban(id, { reason: `${message.author.tag}: ${sebep}` }); }
       catch { return message.reply({ embeds: [err('Banlayamadım! (ID hatalı veya zaten banlı)')] }); }
+      try { cezaKaydet(id, 'ban', sebep); } catch {}
       modLog(message, `🔨 <@${id}> (\`${id}\`) **force-banlandı** • ${message.author} • ${sebep}`);
       return message.reply({ embeds: [ok(`🔨 \`${id}\` banlandı.\n📝 Sebep: *${sebep}*`)] });
     },
@@ -51,6 +52,7 @@ module.exports = [
       const d = db();
       if (!d.tempbanlar) d.tempbanlar = [];
       d.tempbanlar.push({ guildId: message.guild.id, userId: h.id, bitis: Date.now() + sure });
+      try { cezaKaydet(h.id, 'ban', `${sureYaz(sure)} • ${sebep}`); } catch {}
       save();
       modLog(message, `⏳ ${h.user.tag} **${sureYaz(sure)} banlandı** • ${message.author} • ${sebep}`);
       return message.reply({ embeds: [ok(`⏳ ${h.user.tag} **${sureYaz(sure)}** banlandı!\n🔓 Açılma: <t:${Math.floor((Date.now() + sure) / 1000)}:F>\n📝 ${sebep}`)] });
@@ -76,6 +78,32 @@ module.exports = [
       const d = getUser(message.guild.id, h.id);
       const yasGun = Math.floor((Date.now() - h.user.createdTimestamp) / 86400000);
       const sus = h.communicationDisabledUntilTimestamp && h.communicationDisabledUntilTimestamp > Date.now();
+      // 🌐 Global ceza geçmişi (botun verdiği ban/kick/mute, sunucular arası)
+      const { cezaGecmisi } = require('../src/db');
+      const gc = cezaGecmisi(h.id);
+      // 🔍 Canlı tarama: botun olduğu sunucularda ban + aktif susturma (isim YOK, sadece sayı + sebep)
+      let canliBan = 0, canliMute = 0;
+      const canliSebepler = [];
+      try {
+        const sonuclar = await Promise.allSettled([...message.client.guilds.cache.values()].map(async (guild) => {
+          const out = { ban: null, mute: false };
+          try {
+            const ban = await guild.bans.fetch(h.id).catch(() => null);
+            if (ban) out.ban = String(ban.reason || 'sebep yok').slice(0, 100);
+          } catch {}
+          try {
+            const uye = await guild.members.fetch(h.id).catch(() => null);
+            if (uye && uye.communicationDisabledUntilTimestamp > Date.now()) out.mute = true;
+          } catch {}
+          return out;
+        }));
+        for (const r of sonuclar) {
+          const v = r.status === 'fulfilled' ? r.value : null;
+          if (!v) continue;
+          if (v.ban) { canliBan++; if (canliSebepler.length < 3) canliSebepler.push(v.ban); }
+          if (v.mute) canliMute++;
+        }
+      } catch {}
       // RİSK SKORU
       let risk = 0; const neden = [];
       if (yasGun < 7) { risk += 30; neden.push('🆕 Hesap 7 günden yeni (+30)'); }
@@ -85,16 +113,31 @@ module.exports = [
       if ((d.rep || 0) < 0) { risk += 20; neden.push(`👎 Negatif itibar (${d.rep}) (+20)`); }
       if (!h.user.avatar) { risk += 10; neden.push('🖼️ Profil fotoğrafı yok (+10)'); }
       if ((d.rep || 0) >= 25) { risk = Math.max(0, risk - 15); neden.push(`⭐ Yüksek itibar (-15)`); }
+      const globalBanPuan = Math.min(30, gc.ban * 10);
+      if (globalBanPuan) { risk += globalBanPuan; neden.push(`🔨 ${gc.ban} global ban (+${globalBanPuan})`); }
+      if (gc.kick) neden.push(`👢 ${gc.kick} kick yemiş`);
+      if (gc.mute) neden.push(`🔇 ${gc.mute} kez susturulmuş`);
+      if (canliBan) { risk += 15; neden.push(`🌐 Şu an ${canliBan} sunucuda banlı! (+15)`); }
+      if (canliMute) neden.push(`🌐 Şu an ${canliMute} sunucuda susturmalı`);
       risk = Math.min(100, risk);
       const karar = risk >= 70 ? '🚨 TEHLİKELİ' : risk >= 40 ? '⚠️ RİSKLİ' : risk >= 15 ? '👀 DİKKAT' : '✅ TEMİZ';
       const renk = risk >= 70 ? config.colors.error : risk >= 40 ? config.colors.warn : risk >= 15 ? config.colors.gold : config.colors.success;
       const uyarilar = (d.warns || []).slice(-5).map((w, i) => `\`${i + 1}.\` *${w.reason}* (<t:${Math.floor(w.date / 1000)}:R>)`).join('\n') || 'Yok ✨';
+      const ikon = { ban: '🔨', kick: '👢', mute: '🔇' };
+      const gecmisSatir = gc.kayitlar.map((k) => `${ikon[k.tur] || '•'} *${String(k.sebep).slice(0, 80)}* (<t:${Math.floor(k.tarih / 1000)}:R>)`).join('\n');
+      const canliSatir = [
+        canliBan ? `🔨 **${canliBan}** sunucuda banlı` : '🔨 Ban yok ✨',
+        canliMute ? `🔇 **${canliMute}** sunucuda susturmalı` : null,
+        ...canliSebepler.map((s) => `> 📝 ${s}`),
+      ].filter(Boolean).join('\n');
       return message.reply({
         embeds: [new EmbedBuilder().setColor(renk).setTitle(`📁 ${h.user.tag} — SİCİL DOSYASI`)
           .setThumbnail(h.user.displayAvatarURL({ size: 256 }))
           .addFields(
             { name: '☢️ Risk Skoru', value: `**%${risk} — ${karar}**\n${'█'.repeat(Math.round(risk / 10))}${'░'.repeat(10 - Math.round(risk / 10))}`, inline: false },
             { name: '📊 Neden?', value: neden.join('\n') || 'Temiz kayıt', inline: false },
+            { name: '🌐 Global Ceza Geçmişi', value: `🔨 **${gc.ban}** ban • 👢 **${gc.kick}** kick • 🔇 **${gc.mute}** mute${gecmisSatir ? '\n' + gecmisSatir : ''}`.slice(0, 1000), inline: false },
+            { name: '🔍 Canlı Tarama (botun gördüğü sunucular)', value: canliSatir.slice(0, 1000), inline: false },
             { name: '⚠️ Uyarı', value: `${(d.warns || []).length} adet`, inline: true },
             { name: '⭐ İtibar', value: `${d.rep} ${repRozet(d.rep)}`, inline: true },
             { name: '🔇 Susturma', value: sus ? `Evet (<t:${Math.floor(h.communicationDisabledUntilTimestamp / 1000)}:R>)` : 'Hayır', inline: true },
@@ -390,6 +433,7 @@ module.exports = [
       const sus = message.guild.roles.cache.find((r) => r.name === 'Susturulmuş');
       if (sus) await h.roles.add(sus).catch(() => {});
       await h.timeout(60 * 60 * 1000, 'Karantina: ' + sebep).catch(() => {});
+      try { cezaKaydet(h.id, 'mute', `Karantina • ${sebep}`); } catch {}
       modLog(message, `☢️ ${h.user.tag} **karantinaya** alındı (${d.karantinaRoller.length} rol alındı) • ${message.author} • ${sebep}`);
       return message.reply({ embeds: [new EmbedBuilder().setColor(config.colors.error).setTitle('☢️ KARANTİNA!').setDescription(`${h} karantinaya alındı!\n🎭 **${d.karantinaRoller.length}** rolü alındı\n🔇 1 saat susturuldu\n📝 ${sebep}`).setTimestamp()] });
     },

@@ -1,5 +1,5 @@
 const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
-const { getUser, save } = require('../src/db');
+const { getUser, save, cezaKaydet } = require('../src/db');
 const { ok, err, kisiBulAsync } = require('../src/embeds');
 const { parseSure, sureYaz } = require('../src/utils');
 const config = require('../config');
@@ -22,6 +22,7 @@ module.exports = [
       if (!h.bannable) return message.reply({ embeds: [err('Onu banlayamam! (Rolüm yetmiyor veya yetkili)')] });
       const sebep = args.slice(1).join(' ') || 'Sebep belirtilmedi';
       await h.ban({ reason: `${message.author.tag}: ${sebep}` }).catch(() => null);
+      try { cezaKaydet(h.id, 'ban', sebep); } catch {}
       logla(message, `🔨 ${h.user.tag} **banlandı** • ${message.author} • ${sebep}`);
       return message.reply({ embeds: [ok(`🔨 ${h.user.tag} banlandı.\n📝 Sebep: *${sebep}*`)] });
     },
@@ -43,6 +44,7 @@ module.exports = [
       if (!h || !h.kickable) return message.reply({ embeds: [err('Atamam! Kullanıcı bulunamadı veya yetkim yetmiyor.')] });
       const sebep = args.slice(1).join(' ') || 'Sebep belirtilmedi';
       await h.kick(`${message.author.tag}: ${sebep}`).catch(() => null);
+      try { cezaKaydet(h.id, 'kick', sebep); } catch {}
       logla(message, `👢 ${h.user.tag} **atıldı** • ${message.author} • ${sebep}`);
       return message.reply({ embeds: [ok(`👢 ${h.user.tag} sunucudan atıldı.`) ] });
     },
@@ -57,6 +59,7 @@ module.exports = [
       if (!sure) return message.reply({ embeds: [err('Süre yaz! `!mute @kullanıcı 10m küfür`')] });
       const sebep = args.slice(2).join(' ') || 'Sebep belirtilmedi';
       await h.timeout(sure, `${message.author.tag}: ${sebep}`).catch(() => null);
+      try { cezaKaydet(h.id, 'mute', `${sureYaz(sure)} • ${sebep}`); } catch {}
       logla(message, `🔇 ${h.user.tag} **${sureYaz(sure)} susturuldu** • ${message.author} • ${sebep}`);
       return message.reply({ embeds: [ok(`🔇 ${h} **${sureYaz(sure)}** susturuldu.\n📝 ${sebep}`)] });
     },
@@ -85,6 +88,7 @@ module.exports = [
       let ekstra = '';
       if (d.warns.length >= 3 && h.moderatable) {
         await h.timeout(60 * 60 * 1000, '3 uyarı oto-ceza').catch(() => null);
+        try { cezaKaydet(h.id, 'mute', '1sa • 3 uyarı oto-ceza'); } catch {}
         ekstra = '\n🚨 **3 uyarıya ulaştı, 1 saat susturuldu!**';
       }
       return message.reply({ embeds: [ok(`⚠️ ${h} uyarıldı. (**${d.warns.length}** uyarısı var)\n📝 ${sebep}${ekstra}`)] });

@@ -16,6 +16,7 @@ const DEFAULTS = {
   vitrin: [], // { guildId, name, desc, invite, members, date, owner }
   gorevler: {}, // userId_gun: {...}
   ruh: {}, // guildId: { userId: {mood, date} }
+  cezaGecmisi: {}, // userId: [{tur: ban|kick|mute, sebep, tarih}] (botun verdiği cezalar, sunucular arası)
 };
 
 let cache = null;
@@ -128,4 +129,23 @@ function topLevel(gid, limit = 10) {
 
 process.on('exit', saveNow);
 
-module.exports = { db, load, save, saveNow, getGuild, setGuild, getUser, topRep, topPara, topLevel };
+// ---- Global ceza geçmişi (botun verdiği ban/kick/mute, sunucu ismi tutulmaz) ----
+function cezaKaydet(uid, tur, sebep) {
+  if (!['ban', 'kick', 'mute'].includes(tur)) return;
+  const d = db();
+  if (!d.cezaGecmisi) d.cezaGecmisi = {};
+  const id = String(uid);
+  if (!d.cezaGecmisi[id]) d.cezaGecmisi[id] = [];
+  d.cezaGecmisi[id].push({ tur, sebep: String(sebep || 'Sebep belirtilmedi').slice(0, 120), tarih: Date.now() });
+  if (d.cezaGecmisi[id].length > 30) d.cezaGecmisi[id] = d.cezaGecmisi[id].slice(-30);
+  save();
+}
+function cezaGecmisi(uid) {
+  const d = db();
+  const liste = (d.cezaGecmisi && d.cezaGecmisi[String(uid)]) || [];
+  const say = { ban: 0, kick: 0, mute: 0 };
+  for (const k of liste) if (say[k.tur] !== undefined) say[k.tur]++;
+  return { ...say, kayitlar: liste.slice(-5).reverse() };
+}
+
+module.exports = { db, load, save, saveNow, getGuild, setGuild, getUser, topRep, topPara, topLevel, cezaKaydet, cezaGecmisi };
