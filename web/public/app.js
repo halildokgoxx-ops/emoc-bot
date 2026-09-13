@@ -83,10 +83,10 @@ async function sunucuAc(id){
 const NAV=[
   {sec:null,items:[['home','🏠','Kontrol Paneli']]},
   {sec:null,items:[['ayarlar','⚙️','Ayarlar'],['premium','⭐','Premium'],['gomulu','📝','Gömülü Mesajlar']]},
-  {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['destek','🎫','Destek / Ticket','YENİ'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi','👑'],['medya','🎨','Medya Yükle']]},
+  {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['destek','🎫','Destek / Ticket','YENİ'],['partner','🤝','Partner Sayaç','YENİ'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi','👑'],['medya','🎨','Medya Yükle']]},
   {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡️','Hesap Filtresi','👑'],['govRol','🎭','Rol Limitlemeleri'],['govBot','🤖','Bot Filtresi'],['govYasak','⛔','Yasaklama Limiti'],['govAtma','🚪','Atma Limiti'],['govKanal','📁','Kanal Limitlemeleri'],['govWebhook','🪝','Anti-Webhook','👑'],['govEmoji','😎','Emoji Limitleri']]},
 ];
-const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',destek:'Destek / Ticket',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',admin:'Admin Paneli',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
+const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',destek:'Destek / Ticket',partner:'Partner Sayaç',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',admin:'Admin Paneli',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
 
 function renderAll(){renderSide();renderTop();renderContent()}
 function renderSide(){
@@ -166,6 +166,7 @@ function renderContentIc(){
   if(AKTIF==='seviye')return cizSeviye(c);
   if(AKTIF==='karsilama')return cizKarsilama(c);
   if(AKTIF==='destek')return cizDestek(c);
+  if(AKTIF==='partner')return cizPartner(c);
   if(AKTIF==='otomod')return cizOtomod(c);
   if(AKTIF==='denetim')return cizDenetim(c);
   if(AKTIF==='gomulu')return cizGomulu(c);
@@ -189,6 +190,7 @@ function cizHome(c){
     +kart('seviye','📊','Seviye Sistemi','Mesaj ve ses etkinliğini seviyeler, sıralamalar ve rollerle ödüllendirin.')
     +kart('karsilama','👋','Karşılama & Veda','Bir üye katıldığında veya ayrıldığında olacakları yönetin')
     +kart('destek','🎫','Destek / Ticket','Ticket destek rolünü ve kategorisini yönetin, paneli slash ile kurun.',true)
+    +kart('partner','🤝','Partner Sayaç','Hangi yetkili kaç partner yapmış — dönemlik liderlik ve kişisel karne.',true)
     +kart('otomod','🛡️','Otomatik Moderasyon','Sunucu moderasyonunu otomatikleştirir',true)
     +kart('denetimMasasi','🎛️','Denetim Masası','Güvenilir üye rollerini belirle: bu rollerdekiler denetim kaydını görür, hızlı işlem menüsünü kullanır')
     +kart('denetim','📋','Denetim Kaydı','Sunucunuzda olanların kaydını tutar')
@@ -363,6 +365,43 @@ async function ticketPanelKur(){
     if(j.ok)toast('Panel gönderildi!');
     else toast(hataMesaj(j,'Panel gönderilemedi!'));
   }catch{toast('Bota ulaşılamadı! Bot çalışıyor mu?')}
+}
+
+/* partner sayaç */
+let PARTNER_DONEM='aylik';
+const PARTNER_DONEMLER={gunluk:'📅 Günlük',haftalik:'📆 Haftalık',aylik:'🗓️ Aylık',yillik:'📊 Yıllık'};
+async function cizPartner(c){
+  c.innerHTML='<div class="page-h">Partner Sayaç</div><div class="page-s">Hangi yetkili kaç partner yapmış — dönem seç, liderliği ve kişisel karneyi gör</div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>🏆 Dönem Liderliği</h3><p>Onaylanan partnerlerin yetkili bazında dağılımı.</p></div></div>'
+  +'<div class="field"><label>Dönem</label><select id="partner-donem" onchange="PARTNER_DONEM=this.value;partnerLiderlik()">'
+  +Object.entries(PARTNER_DONEMLER).map(([k,v])=>'<option value="'+k+'"'+(PARTNER_DONEM===k?' selected':'')+'>'+v+'</option>').join('')+'</select></div>'
+  +'<div id="partner-lider"><div class="bos">Yükleniyor...</div></div></div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>👤 Kişisel Karne</h3><p>Kullanıcı ID yaz, 4 dönemlik karnesini gör.</p></div></div>'
+  +'<div class="field"><label>Kullanıcı ID</label><div style="display:flex;gap:8px"><input type="text" id="partner-uid" placeholder="örn: 123456789012345678" style="flex:1"><button class="btn pri sm" onclick="partnerKarne()">Sorgula</button></div></div>'
+  +'<div id="partner-karne"></div></div>';
+  partnerLiderlik();
+}
+async function partnerLiderlik(){
+  const kutu=document.getElementById('partner-lider');if(!kutu)return;
+  try{
+    const j=await api('/api/partner-sayac/'+SID+'?donem='+PARTNER_DONEM);
+    const mad=['🥇','🥈','🥉'];
+    const satir=(j.liderlik&&j.liderlik.sira.length)?j.liderlik.sira.map((s,i)=>'<div class="liste-satir"><span>'+(mad[i]||((i+1)+'.'))+' <b>'+esc(s.ad||s.staff)+'</b> <span style="color:var(--mut)">'+esc(s.staff)+'</span></span><b>'+s.sayi+' partner</b></div>').join(''):'<div class="bos">Bu dönemde onay yok.</div>';
+    kutu.innerHTML='<div class="hint" style="margin-bottom:8px">Dönem toplamı: <b>'+(j.liderlik?j.liderlik.toplam:0)+'</b> onay • Tüm zamanlar: <b>'+(j.toplamOnay||0)+'</b></div>'+satir;
+  }catch{kutu.innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'}
+}
+async function partnerKarne(){
+  const uid=(document.getElementById('partner-uid').value||'').replace(/\D/g,'');
+  const kutu=document.getElementById('partner-karne');
+  if(!/^\d{15,25}$/.test(uid)){toast('Geçerli ID yaz!');return}
+  kutu.innerHTML='<div class="bos">Yükleniyor...</div>';
+  try{
+    const j=await api('/api/partner-sayac/'+SID+'?uid='+uid);
+    const k=j.kisi||{};
+    kutu.innerHTML='<div class="page-h" style="font-size:15px;margin:0 0 8px">'+esc(k.ad||k.uid)+'</div><div class="kv-list">'
+    +Object.entries(PARTNER_DONEMLER).map(([d,v])=>'<div class="liste-satir"><span>'+v+'</span><b>'+(k[d]||0)+' partner</b></div>').join('')
+    +'</div><div class="hint" style="margin-top:8px">Toplam (yıllık): <b>'+(k.toplam||0)+'</b></div>';
+  }catch{kutu.innerHTML='<div class="hata-kutu">Yüklenemedi.</div>'}
 }
 
 /* medya yükle */

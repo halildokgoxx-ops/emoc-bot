@@ -18,6 +18,7 @@ const DEFAULTS = {
   ruh: {}, // guildId: { userId: {mood, date} }
   cezaGecmisi: {}, // userId: [{tur: ban|kick|mute, sebep, tarih}] (botun verdiği cezalar, sunucular arası)
   oyunlar: {}, // `${gid}_${kanalId}`: {son, sonKullanici, kelimeler[]} (sayı-sayma + kelime-türetme)
+  partnerSkor: [], // [{gid, staff, tarih}] (onaylanan partnerler, yetkili skoru)
 };
 
 let cache = null;

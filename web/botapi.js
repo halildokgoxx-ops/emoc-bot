@@ -47,6 +47,34 @@ function mountBotAPI(app, client) {
     res.json({ id: guild.id, ad: guild.name, uye: guild.memberCount || 0, ayarlar, kanallar, roller, prem: (() => { try { return require('../src/premium').premiumMu(guild.id); } catch { return false; } })() });
   });
 
+  router.get('/partner-sayac', async (req, res) => {
+    try {
+      const P = require('../commands/partner');
+      const gid = String(req.query.guildId || '');
+      const donem = String(req.query.donem || 'aylik');
+      const uid = String(req.query.uid || '');
+      const guild = client.guilds.cache.get(gid);
+      if (!guild) return res.status(404).json({ hata: 'bot-bu-sunucuda-degil' });
+      const liderlik = P.skorLiderlik(gid, donem);
+      for (const s of liderlik.sira) {
+        try {
+          const m = await guild.members.fetch(s.staff).catch(() => null);
+          s.ad = m ? (m.nickname || m.user.username) : null;
+        } catch { s.ad = null; }
+      }
+      const out = { donem, liderlik, toplamOnay: require('../src/db').getGuild(gid).partnerSayi || 0 };
+      if (uid) {
+        let ad = null;
+        try {
+          const m = await guild.members.fetch(uid).catch(() => null);
+          ad = m ? (m.nickname || m.user.username) : null;
+        } catch {}
+        out.kisi = { uid, ad, ...P.skorKisi(gid, uid) };
+      }
+      res.json(out);
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   router.get('/vitrin', (req, res) => {
     try {
       const d = require('../src/db').db();

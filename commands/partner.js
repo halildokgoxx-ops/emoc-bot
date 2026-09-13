@@ -1,6 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits, ChannelType, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { getGuild, setGuild, db, save } = require('../src/db');
-const { ok, err } = require('../src/embeds');
+const { ok, err, kisiBulAsync } = require('../src/embeds');
 const { davetKoduBul } = require('../src/utils');
 const { animeGif, tenorLink } = require('../src/gif');
 const config = require('../config');
@@ -18,6 +18,91 @@ function basvuruStore() {
   const d = db();
   if (!d.partnerBasvuru) d.partnerBasvuru = {};
   return d.partnerBasvuru;
+}
+
+// ---------- Partner sayaç (yetkili skoru: günlük/haftalık/aylık/yıllık) ----------
+const DONEMLER = {
+  gunluk: { ad: 'Günlük', emoji: '📅', ms: 86400_000 },
+  haftalik: { ad: 'Haftalık', emoji: '📆', ms: 7 * 86400_000 },
+  aylik: { ad: 'Aylık', emoji: '🗓️', ms: 30 * 86400_000 },
+  yillik: { ad: 'Yıllık', emoji: '📊', ms: 365 * 86400_000 },
+};
+function donemNorm(d) {
+  d = String(d || '').toLocaleLowerCase('tr');
+  return DONEMLER[d] ? d : 'aylik';
+}
+function skorKaydet(gid, staffId) {
+  try {
+    const d = db();
+    if (!d.partnerSkor) d.partnerSkor = [];
+    d.partnerSkor.push({ gid: String(gid), staff: String(staffId), tarih: Date.now() });
+    const sinir = Date.now() - 400 * 86400_000;
+    d.partnerSkor = d.partnerSkor.filter((x) => x.tarih > sinir).slice(-5000);
+    save();
+  } catch {}
+}
+function skorLiderlik(gid, donem) {
+  const D = DONEMLER[donemNorm(donem)];
+  const esik = Date.now() - D.ms;
+  const say = {};
+  for (const x of (db().partnerSkor || [])) {
+    if (x.gid !== String(gid) || x.tarih < esik) continue;
+    say[x.staff] = (say[x.staff] || 0) + 1;
+  }
+  const toplam = Object.values(say).reduce((a, b) => a + b, 0);
+  const sira = Object.entries(say)
+    .map(([staff, n]) => ({ staff, sayi: n }))
+    .sort((a, b) => b.sayi - a.sayi)
+    .slice(0, 10);
+  return { donem: donemNorm(donem), toplam, sira };
+}
+function skorKisi(gid, uid) {
+  const out = {};
+  for (const [k, D] of Object.entries(DONEMLER)) {
+    const esik = Date.now() - D.ms;
+    out[k] = (db().partnerSkor || []).filter((x) => x.gid === String(gid) && x.staff === String(uid) && x.tarih >= esik).length;
+  }
+  out.toplam = out.yillik;
+  return out;
+}
+
+const MADALYA = ['🥇', '🥈', '🥉'];
+function sayacEmbed(guild, donem) {
+  const { donem: d, toplam, sira } = skorLiderlik(guild.id, donem);
+  const D = DONEMLER[d];
+  const satir = sira.length
+    ? sira.map((s, i) => `${MADALYA[i] || `\`${i + 1}.\``} <@${s.staff}> — **${s.sayi}** partner`).join('\n')
+    : '*Bu dönemde onay yok.*';
+  return new EmbedBuilder().setColor(config.colors.main)
+    .setTitle(`🤝 Partner Sayaç — ${D.emoji} ${D.ad}`)
+    .setThumbnail(guild.iconURL({ size: 128 }) || null)
+    .setDescription(satir.slice(0, 3500))
+    .addFields({ name: '🔢 Dönem Toplamı', value: `**${toplam}** onay`, inline: true })
+    .setFooter({ text: `${guild.name} • Aşağıdan dönem değiştir` })
+    .setTimestamp();
+}
+function sayacRow(aktif) {
+  return [new ActionRowBuilder().addComponents(
+    Object.entries(DONEMLER).map(([k, D]) =>
+      new ButtonBuilder().setCustomId(`partner_sayac_${k}`)
+        .setLabel(`${D.emoji} ${D.ad}`).setStyle(k === aktif ? ButtonStyle.Primary : ButtonStyle.Secondary)
+        .setDisabled(k === aktif))
+  )];
+}
+function kisiSayacEmbed(guild, user) {
+  const s = skorKisi(guild.id, user.id);
+  const satir = Object.entries(DONEMLER).map(([k, D]) => `${D.emoji} **${D.ad}:** ${s[k]} partner`).join('\n');
+  return new EmbedBuilder().setColor(0x57F287)
+    .setTitle(`🤝 ${user.tag} — Partner Karnesi`)
+    .setThumbnail(user.displayAvatarURL({ size: 128 }))
+    .setDescription(satir)
+    .addFields({ name: '🔢 Toplam (yıllık)', value: `**${s.toplam}** onay`, inline: true })
+    .setFooter({ text: guild.name })
+    .setTimestamp();
+}
+async function sayacButton(interaction, client) {
+  const donem = donemNorm((interaction.customId || '').replace('partner_sayac_', ''));
+  await interaction.update({ embeds: [sayacEmbed(interaction.guild, donem)], components: sayacRow(donem) }).catch(() => {});
 }
 function linkVarMi(text) {
   return /(discord\.gg\/|discord\.com\/invite\/|discordapp\.com\/invite\/|https?:\/\/)/i.test(text || '');
@@ -108,6 +193,7 @@ async function handlePv2Button(interaction, client) {
     b.status = 'onay'; b.kararVeren = interaction.user.id; b.kararTarih = Date.now();
     g.partnerSayi = (g.partnerSayi || 0) + 1;
     save();
+    skorKaydet(interaction.guild.id, interaction.user.id);
 
     // Partner kanalına ŞIK embed
     const gif = await animeGif('happy').catch(() => null);
@@ -238,6 +324,10 @@ const partnerSlash = {
       },
       { type: 1, name: 'sifirla', description: 'Partner ayarlarını sıfırlar' },
       {
+        type: 1, name: 'sayac', description: '🏆 Yetkili partner sayacı (dönemlik liderlik)',
+        options: [{ type: 6, name: 'kullanici', description: 'Kişisel karne için etiketle (boş = liderlik)', required: false }],
+      },
+      {
         type: 1, name: 'capraz-istek', description: 'Başka sunucuya botlar-arası oto partner isteği gönder',
         options: [{ type: 3, name: 'davet', description: 'Karşı sunucunun davet linki', required: true }],
       },
@@ -298,6 +388,11 @@ const partnerSlash = {
       if (!yonetici) return interaction.reply({ content: '❌ Sunucuyu Yönet yetkisi gerek!', ephemeral: true });
       setGuild(interaction.guild.id, { partnerKanal: null, partnerText: null, partnerChat: null, partnerYetkiliKanal: null, partnerYetkiliRol: null });
       return interaction.reply({ embeds: [ok('🗑️ Partner ayarları sıfırlandı.')] });
+    }
+    if (alt === 'sayac') {
+      const hedef = interaction.options.getUser('kullanici');
+      if (hedef) return interaction.reply({ embeds: [kisiSayacEmbed(interaction.guild, hedef)] });
+      return interaction.reply({ embeds: [sayacEmbed(interaction.guild, 'aylik')], components: sayacRow('aylik') });
     }
     if (alt === 'capraz-istek') {
       // Eski botlar-arası akışı slash üzerinden çalıştır
@@ -448,6 +543,17 @@ const komutlar = [
       return message.reply({ embeds: [ok('🗑️ Partner ayarları sıfırlandı.')] });
     },
   },
+  {
+    name: 'partner-sayac', aliases: ['partnersayac', 'psayac'], category: 'Partner',
+    description: '🏆 Yetkili partner sayacı (dönemlik liderlik / kişisel karne).', usage: '!partner-sayac [@kullanıcı] [gunluk|haftalik|aylik|yillik]',
+    async run(message, args) {
+      const hedef = await kisiBulAsync(message, args, 0).catch(() => null);
+      if (hedef) return message.reply({ embeds: [kisiSayacEmbed(message.guild, hedef.user)] });
+      const ham = String(args[0] || '').toLocaleLowerCase('tr');
+      const tur = { gunluk: 'gunluk', günlük: 'gunluk', haftalik: 'haftalik', haftalık: 'haftalik', aylik: 'aylik', aylık: 'aylik', yillik: 'yillik', yıllık: 'yillik' }[ham] || 'aylik';
+      return message.reply({ embeds: [sayacEmbed(message.guild, tur)], components: sayacRow(tur) });
+    },
+  },
   // --- Eski çapraz butonlar (geriye uyumluluk) ---
   {
     name: '__partner_button__', aliases: [], category: 'Sistem', description: 'internal', usage: '',
@@ -478,6 +584,7 @@ const komutlar = [
       fromAyar.partnerSayi = (fromAyar.partnerSayi || 0) + 1;
       toAyar.partnerSayi = (toAyar.partnerSayi || 0) + 1;
       save();
+      skorKaydet(req.toGuild, interaction.user.id);
       const gif = await animeGif('happy').catch(() => null);
       try { if (fromKanal) await fromKanal.send({ embeds: [new EmbedBuilder().setColor(config.colors.success).setTitle(`🤝 YENİ PARTNER: ${toG.name}!`).setThumbnail(toG.iconURL({ size: 256 })).setDescription(partnerTextUret(toAyar.partnerText, toG, karsiDavet)).setImage(gif || null).setFooter({ text: `Kod: ${kod}` }).setTimestamp()] }); } catch {}
       try { if (toKanal) await toKanal.send({ embeds: [new EmbedBuilder().setColor(config.colors.success).setTitle(`🤝 YENİ PARTNER: ${fromG.name}!`).setThumbnail(fromG.iconURL({ size: 256 })).setDescription(partnerTextUret(fromAyar.partnerText, fromG, fromDavet)).setImage(gif || null).setFooter({ text: `Kod: ${kod}` }).setTimestamp()] }); } catch {}
@@ -488,6 +595,11 @@ const komutlar = [
 
 module.exports = komutlar;
 module.exports.partnerSlash = partnerSlash;
+module.exports.sayacButton = sayacButton;
+module.exports.DONEMLER = DONEMLER;
+module.exports.skorKaydet = skorKaydet;
+module.exports.skorLiderlik = skorLiderlik;
+module.exports.skorKisi = skorKisi;
 module.exports.handlePv2Button = handlePv2Button;
 module.exports.handlePv2Modal = handlePv2Modal;
 module.exports.maybePartnerPrompt = maybePartnerPrompt;

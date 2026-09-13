@@ -536,6 +536,33 @@ function startWeb(client) {
     return id;
   }
 
+  app.get('/api/partner-sayac/:id', async (req, res) => {
+    const guild = await yasakliYetki(req, res);
+    if (!guild) return;
+    try {
+      const P = require('../commands/partner');
+      const donem = String(req.query.donem || 'aylik');
+      const uid = String(req.query.uid || '');
+      const liderlik = P.skorLiderlik(guild.id, donem);
+      for (const s of liderlik.sira) {
+        try {
+          const m = await guild.members.fetch(s.staff).catch(() => null);
+          s.ad = m ? (m.nickname || m.user.username) : null;
+        } catch { s.ad = null; }
+      }
+      const out = { donem, liderlik, toplamOnay: require('../src/db').getGuild(guild.id).partnerSayi || 0 };
+      if (uid) {
+        let ad = null;
+        try {
+          const m = await guild.members.fetch(uid).catch(() => null);
+          ad = m ? (m.nickname || m.user.username) : null;
+        } catch {}
+        out.kisi = { uid, ad, ...P.skorKisi(guild.id, uid) };
+      }
+      res.json(out);
+    } catch { res.status(500).json({ hata: 'hata' }); }
+  });
+
   app.get('/api/liste/:id', async (req, res) => {
     const guild = await yasakliYetki(req, res);
     if (!guild) return;

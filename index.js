@@ -1857,6 +1857,10 @@ client.on('interactionCreate', async (interaction) => {
         const internal = arr.find(c => c.name === '__partner_button__');
         if (internal?.button) return internal.button(interaction, client);
       }
+      if (interaction.customId.startsWith('partner_sayac_')) {
+        const p = require('./commands/partner');
+        if (p.sayacButton) return p.sayacButton(interaction, client);
+      }
       if (interaction.customId.startsWith('ticket_acil_')) {
         const arr = require('./commands/ticket');
         const internal = arr.find(c => c.name === '__ticket_internal__');

@@ -210,6 +210,25 @@ T('gorev motoru', (() => {
 })());
 T('gorev komutlari', cmds.has('gorev-ayarla') && cmds.has('gunluk-gorev') && r.payload.some((p) => p.name === 'gorev-ayarla'));
 T('oryantasyon', typeof require('./commands/sunucu').oryantasyonKur === 'function' && !(require('./commands/sunucu').sunucuSlash?.data?.options || []).some((o) => o.name === 'oryantasyon'));
+T('partner sayac', (() => {
+  try {
+    const P = require('./commands/partner');
+    const db = require('./src/db').db();
+    const once = (db.partnerSkor || []).length;
+    P.skorKaydet('test-gid', '111111111111111111');
+    P.skorKaydet('test-gid', '111111111111111111');
+    P.skorKaydet('test-gid', '222222222222222222');
+    const lid = P.skorLiderlik('test-gid', 'aylik');
+    const k = P.skorKisi('test-gid', '111111111111111111');
+    const ok = lid.toplam === 3 && lid.sira[0].staff === '111111111111111111' && lid.sira[0].sayi === 2 &&
+      k.gunluk === 2 && k.yillik === 2 && k.toplam === 2 &&
+      P.skorLiderlik('test-gid', 'bozuk').donem === 'aylik' &&
+      typeof P.sayacButton === 'function' &&
+      (P.partnerSlash?.data?.options || []).some((o) => o.name === 'sayac');
+    db.partnerSkor = (db.partnerSkor || []).slice(0, once);
+    return ok;
+  } catch { return false; }
+})());
 T('itiraf akisi', (() => {
   try {
     const O = require('./commands/ozel');

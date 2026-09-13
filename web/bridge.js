@@ -240,6 +240,15 @@ function startKopru() {
     catch { res.status(502).json({ hata: 'bot-hatasi' }); }
   });
 
+  app.get('/api/partner-sayac/:id', async (req, res) => {
+    if (!(await yasakliKontrol(req, res))) return;
+    try {
+      const q = new URLSearchParams({ guildId: req.params.id, donem: String(req.query.donem || 'aylik'), uid: String(req.query.uid || '') }).toString();
+      res.json(await botAPI(`/api/bot/partner-sayac?${q}`));
+    }
+    catch { res.status(502).json({ hata: 'bot-hatasi' }); }
+  });
+
   app.get('/api/liste/:id', async (req, res) => {
     if (!(await yasakliKontrol(req, res))) return;
     try { res.json(await botAPI(`/api/bot/liste/${req.params.id}`)); }
