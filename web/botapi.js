@@ -345,6 +345,14 @@ function mountBotAPI(app, client) {
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
 
+  router.post('/ticket-panel', async (req, res) => {
+    try {
+      const r = await require('./aksiyon').ticketPanelGonder(client, req.body || {});
+      if (r.hata) return res.status(r.hata === 'yok' ? 404 : 400).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'gonderilemedi' }); }
+  });
+
   // Web-içi panel duyurusu (sadece panelde banner olarak görünür)
   router.get('/panel-duyuru', (req, res) => {
     try {

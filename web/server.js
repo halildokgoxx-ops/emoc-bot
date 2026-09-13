@@ -668,6 +668,15 @@ function startWeb(client) {
       res.json(r);
     } catch { res.status(500).json({ hata: 'hata' }); }
   });
+  app.post('/api/ticket-panel', async (req, res) => {
+    const guild = await aksiyonYetki(req, res);
+    if (!guild) return;
+    try {
+      const r = await require('./aksiyon').ticketPanelGonder(client, { guildId: guild.id, kanalId: req.body?.kanalId, rolId: req.body?.rolId });
+      if (r.hata) return res.status(r.hata === 'yok' ? 404 : 400).json(r);
+      res.json(r);
+    } catch { res.status(500).json({ hata: 'gonderilemedi' }); }
+  });
 
   app.get('/api/guilds', async (req, res) => {
     const s = oturum(req);

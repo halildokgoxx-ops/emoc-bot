@@ -330,15 +330,65 @@ function isimKelimeEkle(w){
 /* destek / ticket */
 function cizDestek(c){
   const f=FORM;
-  c.innerHTML='<div class="page-h">Destek / Ticket</div><div class="page-s">Ticket destek rolünü ve kategori ID\'sini yönetin — paneli Discord\'da /ticket kur ile gönderin</div>'
+  c.innerHTML='<div class="page-h">Destek / Ticket</div><div class="page-s">Ticket destek rolünü ve kategoriyi yönetin, paneli buradan tek tıkla gönderin</div>'
   +'<div class="panel"><div class="panel-top"><div><h3>🎫 Destek ekibi rolü</h3><p>Ticketları devralabilecek, bekletebilecek rol. Boşsa sadece Yönetici/Moderatör yetkisi geçer.</p></div></div>'
   +'<div class="field"><label>Destek rolü</label><select data-k="ticketDestekRol">'+secenek('rol',f.ticketDestekRol,'Seçilmedi')+'</select></div></div>'
   +'<div class="panel"><div class="panel-top"><div><h3>📁 Ticket kategori ID</h3><p>Ticket kanallarının açılacağı kategori. Boşsa bot 🎫-DESTEK kategorisini kullanır. Kategori ID\'sini Discord\'da sağ tık → ID Kopyala ile alın.</p></div></div>'
   +'<div class="field"><label>Kategori ID</label><input type="text" data-k="ticketKategori" placeholder="örn: 123456789012345678" value="'+esc(f.ticketKategori||'')+'" style="max-width:280px"></div></div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>📢 Ticket panelini gönder</h3><p>Seçtiğin kanala menülü destek panelini anında gönderir (kategori + rol otomatik bağlanır).</p></div></div>'
+  +'<div class="field"><label>Panel kanalı</label><select id="ticket-panel-kanal">'+secenek('yazi','','Seçin')+'</select></div>'
+  +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri sm" onclick="ticketPanelKur()">📢 Paneli Gönder</button></div>'
+  +'<div class="hint" style="margin-top:8px">Önce yukarıdan Destek rolünü seçip Kaydet yap, sonra panel kanalını seçip bu butona bas.</div></div>'
   +'<div class="panel"><div class="panel-top"><div><h3>⚙️ Komutlar</h3><p>Panel kurulumu ve ticket işlemleri — prefix ve slash ikisi de çalışır.</p></div></div>'
   +'<div class="field"><label>Kurulum</label><div class="hint">/ticket kur kanal:#destek rol:@Destek — veya — !ticket-kur #destek @Destek</div></div>'
   +'<div class="field"><label>İşlemler</label><div class="hint">/ticket kapat/devral/devret/beklet/ac/ekle/cikar — veya — !ticket-kapat !ticket-devral !ticket-devret !ticket-beklet !ticket-ac !ticket-ekle !ticket-cikar<br>Konular: Genel, Şikayet, Partner, Öneri, Yetkili Alım, Özel + Aciliyet: Normal/Acele/Acil. Kapatınca konuşma kaydı .txt olarak loga gider.</div></div></div>'
   +saveBar();
+}
+async function ticketPanelKur(){
+  domKaydet();
+  const kanal=document.getElementById('ticket-panel-kanal')?.value;
+  if(!kanal){toast('Panel kanalı seç!');return}
+  try{
+    const j=await api('/api/ticket-panel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,kanalId:kanal,rolId:FORM.ticketDestekRol||null})});
+    if(j.ok)toast('Panel gönderildi!');
+    else toast(hataMesaj(j,'Panel gönderilemedi!'));
+  }catch{toast('Bota ulaşılamadı! Bot çalışıyor mu?')}
+}
+
+/* medya yükle */
+function cizMedya(c){
+  c.innerHTML='<div class="page-h">Medya Yükle</div><div class="page-s">Sunucuya toplu emoji ve sticker yükleyin (butonla tek tık)</div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>🎨 Yüklenecek dosyalar</h3><p>Emoji en fazla 256KB, sticker en fazla 512KB. En fazla 10 dosya. PNG/JPG/GIF/WEBP.</p></div></div>'
+  +'<div class="field"><label>Tür</label><select id="medya-tip"><option value="emoji">😀 Emoji</option><option value="sticker">🌟 Sticker</option></select></div>'
+  +'<div class="field"><label>Dosya seç</label><input type="file" id="medya-dosya" multiple accept="image/png,image/jpeg,image/gif,image/webp"></div>'
+  +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri sm" onclick="medyaYukle()">⬆️ Yükle</button></div>'
+  +'<div class="hint" id="medya-durum" style="margin-top:8px"></div></div>'+saveBar();
+}
+function medyaDosyaOku(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res({ad:(file.name||'medya').split('.')[0],data:String(r.result||'')});
+    r.onerror=()=>rej(new Error('okunamadi'));
+    r.readAsDataURL(file);
+  });
+}
+async function medyaYukle(){
+  const tip=document.getElementById('medya-tip')?.value||'emoji';
+  const input=document.getElementById('medya-dosya');
+  const durum=document.getElementById('medya-durum');
+  const files=[...(input?.files||[])].slice(0,10);
+  if(!files.length){toast('Dosya seç!');return}
+  if(durum)durum.textContent='Okunuyor...';
+  try{
+    const dosyalar=[];
+    for(const f of files){dosyalar.push(await medyaDosyaOku(f));}
+    if(durum)durum.textContent='Yükleniyor...';
+    const j=await api('/api/medya-yukle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({guildId:SID,tip,dosyalar})});
+    const ok=(j.sonuc||[]).filter(x=>x.ok).length;
+    const toplam=(j.sonuc||[]).length;
+    if(durum)durum.textContent=ok+'/'+toplam+' yüklendi!';
+    toast(ok+'/'+toplam+' medya yüklendi!');
+  }catch{toast('Bota ulaşılamadı! Bot çalışıyor mu?');if(durum)durum.textContent='Hata!'}
 }
 
 /* otomod */

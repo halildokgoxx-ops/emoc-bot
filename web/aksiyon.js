@@ -222,8 +222,57 @@ function adminBakim({ aktif, mesaj }) {
   } catch { return { hata: 'hata' }; }
 }
 
+async function ticketPanelGonder(client, { guildId, kanalId, rolId }) {
+  const { PermissionFlagsBits, ChannelType, EmbedBuilder: EB, ActionRowBuilder: AR, StringSelectMenuBuilder: SM } = require('discord.js');
+  const { getGuild, setGuild, save } = require('../src/db');
+  const guild = client.guilds.cache.get(guildId);
+  if (!guild) return { hata: 'yok' };
+  const kanal = guild.channels.cache.get(String(kanalId || ''));
+  if (!kanal || !kanal.isTextBased()) return { hata: 'kanal-yok' };
+  const botUye = guild.members.me;
+  if (!botUye || !kanal.permissionsFor(botUye)?.has(PermissionFlagsBits.SendMessages)) return { hata: 'bot-hatasi' };
+  let rol = null;
+  if (rolId) {
+    rol = guild.roles.cache.get(String(rolId));
+    if (!rol) return { hata: 'rol-yok' };
+  }
+  const g = getGuild(guild.id);
+  if (!g.ticket) g.ticket = { kategori: null, logKanal: null, destekRol: null, sayac: 0, acik: {} };
+  if (!g.ticket.acik) g.ticket.acik = {};
+  g.ticket.destekRol = rol ? rol.id : null;
+  g.ticket.logKanal = g.logKanal || null;
+  let kat = null;
+  if (g.ticket.kategori) kat = guild.channels.cache.get(g.ticket.kategori) || null;
+  if (!kat) {
+    kat = guild.channels.cache.find((c) => c.name === '🎫-DESTEK' && c.type === ChannelType.GuildCategory) || null;
+    if (!kat) {
+      try { kat = await guild.channels.create({ name: '🎫-DESTEK', type: ChannelType.GuildCategory, reason: 'Web panel ticket kurulumu' }); } catch { kat = null; }
+    }
+    if (kat) g.ticket.kategori = kat.id;
+  }
+  setGuild(guild.id, { ticketDestekRol: rol ? rol.id : null, ticketKategori: kat ? kat.id : null });
+  save();
+  const KONULAR = [
+    { label: 'Genel Destek', value: 'genel', emoji: '🛠️', description: 'Soru ve yardım' },
+    { label: 'Şikayet', value: 'sikayet', emoji: '🚨', description: 'Kullanıcı/olay bildir' },
+    { label: 'Partner', value: 'partner', emoji: '🤝', description: 'Partner başvurusu' },
+    { label: 'Öneri', value: 'oneri', emoji: '💡', description: 'Fikrini paylaş' },
+    { label: 'Yetkili Alım', value: 'yetkili', emoji: '🎖️', description: 'Yetkili başvurusu' },
+    { label: 'Özel', value: 'ozel', emoji: '🔒', description: 'Gizli konu' },
+  ];
+  const embed = new EB().setColor(0x5865F2).setTitle('🎫 DESTEK TALEBİ OLUŞTUR')
+    .setThumbnail(guild.iconURL({ size: 256 }) || null)
+    .setDescription('Yardıma mı ihtiyacın var? Aşağıdan konusunu seç, aciliyetini işaretle, özel odan **anında** açılsın!\n\n🛠️ **Genel Destek** — soru, yardım\n🚨 **Şikayet** — kullanıcı/olay bildir\n🤝 **Partner** — partner başvurusu\n💡 **Öneri** — fikirlerin\n🎖️ **Yetkili Alım** — yetkili başvurusu\n🔒 **Özel** — gizli konu\n\n*Kötüye kullananlara ceza verilir.*')
+    .setFooter({ text: `${guild.name} • 7/24 destek` }).setTimestamp();
+  const menu = new AR().addComponents(
+    new SM().setCustomId('ticket_menu').setPlaceholder('🎫 Konu seç, ticket aç...').addOptions(KONULAR)
+  );
+  await kanal.send({ embeds: [embed], components: [menu] });
+  return { ok: true, kanal: kanal.id, rol: rol ? rol.id : null, kategori: kat ? kat.id : null };
+}
+
 module.exports = {
-  embedGonder, medyaYukle, emojirolTepki,
+  embedGonder, medyaYukle, emojirolTepki, ticketPanelGonder,
   adminUye, adminPremiumSure, adminAnalitik, adminSunucuFull,
   adminKomutlar, adminKomutDurum, adminBakim,
 };
