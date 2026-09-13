@@ -14,6 +14,7 @@ const PREFIX_ONLY = new Set([
   'espri', 'tersyazi', 'tkm', 'dogruluk', 'cesaret', 'yazitura', 'zar', 'askolcer',
   'op', 'yumruk', 'gunluk-gorev', 'motivasyon', 'ticket-ekle', 'ticket-cikar',
   'ticket-devral', 'ticket-devret', 'ticket-beklet', 'ticket-ac',
+  'ticket-kur', 'ticket-kapat',
   'hosgeldin-mesaj', 'emoji-cal', 'itiraf-ayarla', 'vitrin-ekle', 'kanal-bilgi',
   'rol-olustur', 'rol-sil', 'rol-renk', 'kanal-ac', 'kanal-sil',
   'toplu-rol', 'forceban', 'tempban', 'davet-olustur', 'rol-bilgi',
@@ -117,6 +118,9 @@ function buildSlashPayload(commands) {
     if (cmd.name === 'premium') {
       continue; // /premium grubu var, prefix !premium duruyor
     }
+    if (cmd.name.startsWith('ticket-') || cmd.name.startsWith('ticket')) {
+      continue; // /ticket grubu var, prefix !ticket-* duruyor
+    }
     const def = slashTanimi(cmd, inferOptions(cmd));
     if (!def) { eksikler.push(cmd.name); continue; }
     if (harita.has(def.name)) { eksikler.push(cmd.name + ' (çakışma)'); continue; }
@@ -182,6 +186,13 @@ function buildSlashPayload(commands) {
     const s = require('../commands/sunucu');
     if (s.sunucuSlash) {
       payload.push(s.sunucuSlash.data);
+    }
+  } catch {}
+  // Özel: /ticket grubu
+  try {
+    const tk = require('../commands/ticket');
+    if (tk.ticketSlash) {
+      payload.push(tk.ticketSlash.data);
     }
   } catch {}
   return { payload, harita, eksikler };
@@ -291,6 +302,11 @@ async function handleSlash(interaction, client, harita) {
   if (interaction.commandName === 'sunucu') {
     const s = require('../commands/sunucu');
     return s.sunucuSlash.execute(interaction, client);
+  }
+  // /ticket grubu
+  if (interaction.commandName === 'ticket') {
+    const tk = require('../commands/ticket');
+    return tk.ticketSlash.execute(interaction, client);
   }
   const kayit = harita.get(interaction.commandName);
   if (!kayit) return interaction.reply({ content: '❌ Bilinmeyen komut!', ephemeral: true });

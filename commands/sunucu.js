@@ -244,6 +244,16 @@ Sunucuya boost basan efsanelere özel lounge! **Sadece boosterlar görür.** �
 **Desteklerin için teşekkürler, iyi ki varsın!** 💜`;
 
 const SEHIR_SESLER = ['İstanbul','Ankara','İzmir','Bursa','Antalya','Adana','Konya','Gaziantep','Mersin','Diyarbakır','Kayseri','Eskişehir','Samsun','Trabzon','Şanlıurfa','Denizli','Kocaeli','Sakarya','Tekirdağ','Balıkesir','Manisa','Hatay','Van','Erzurum','Muğla','Kahramanmaraş'];
+// Şehre uyumlu emoji + limit merdiveni: en üst limitsiz(0), sonra 90'dan inerek ... en alt 2, üstü 3/4/5
+const SEHIR_EMOJI = {
+  'İstanbul': '🌉', 'Ankara': '🏛️', 'İzmir': '🌊', 'Bursa': '🌳', 'Antalya': '🏖️',
+  'Adana': '🌶️', 'Konya': '🕌', 'Gaziantep': '🍴', 'Mersin': '🍋', 'Diyarbakır': '🏰',
+  'Kayseri': '🏔️', 'Eskişehir': '🚂', 'Samsun': '🚢', 'Trabzon': '⚽', 'Şanlıurfa': '🐟',
+  'Denizli': '🐓', 'Kocaeli': '🏭', 'Sakarya': '🏞️', 'Tekirdağ': '🍇', 'Balıkesir': '🫒',
+  'Manisa': '🌿', 'Hatay': '🏺', 'Van': '🐱', 'Erzurum': '❄️', 'Muğla': '🌅',
+  'Kahramanmaraş': '🍦',
+};
+const SEHIR_LIMIT = [0, 90, 85, 80, 75, 70, 60, 50, 40, 35, 30, 25, 20, 18, 15, 12, 10, 9, 8, 7, 6, 6, 5, 4, 3, 2];
 async function ilerle(interaction, yazi) {
   try { await interaction.editReply({ content: yazi, embeds: [], components: [] }); } catch {}
 }
@@ -328,18 +338,22 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
     }
   }
 
-  // ---- 5) ŞEHİR SES KANALLARI (26 şehir, limitli) ----
+  // ---- 5) ŞEHİR SES KANALLARI (26 şehir, emojili + limit merdiveni) ----
   await ilerle(interaction, '🌍 **5/6** Şehir ses kanalları kuruluyor...');
   try {
-    const sesLimit = Math.max(0, Math.min(99, ekstra.sesLimit ?? 10));
+    const ozelLimit = ekstra.sesLimit ?? null;
+    const tekLimit = ozelLimit === null ? null : Math.max(0, Math.min(99, ozelLimit));
     const sehirKat = await guild.channels.create({ name: '🌍・ŞEHİRLER', type: ChannelType.GuildCategory, reason: 'Sunucu kurulumu' }).catch(() => null);
     if (sehirKat) {
-      for (const sehir of SEHIR_SESLER) {
+      for (let i = 0; i < SEHIR_SESLER.length; i++) {
+        const sehir = SEHIR_SESLER[i];
+        const emoji = SEHIR_EMOJI[sehir] || '📍';
+        const limit = tekLimit !== null ? tekLimit : (SEHIR_LIMIT[i] ?? 0);
         await guild.channels.create({
-          name: sehir,
+          name: `${emoji}・${sehir}`,
           type: ChannelType.GuildVoice,
           parent: sehirKat.id,
-          userLimit: sesLimit > 0 ? sesLimit : undefined,
+          userLimit: limit > 0 ? limit : undefined,
           reason: 'Sunucu kurulumu',
         }).catch(() => null);
         await sleep(400);
@@ -483,7 +497,7 @@ const sunucuSlash = {
     description: '🛠️ Sunucu kurulum sihirbazı (template + oto-ayar)',
     contexts: [0],
     options: [
-      { type: 1, name: 'kur', description: '⚠️ HER ŞEYİ silip hazır topluluk sunucusu kurar (SADECE sahip)', options: [{ type: 4, name: 'ses-limit', description: 'Şehir ses kanallarında kişi limiti (0=sınırsız)', required: false, min_value: 0, max_value: 99 }] },
+      { type: 1, name: 'kur', description: '⚠️ HER ŞEYİ silip hazır topluluk sunucusu kurar (SADECE sahip)', options: [{ type: 4, name: 'ses-limit', description: 'Boşsa limit merdiveni (limitsiz>90>...>5>4>3>2), verirsen tüm şehirler aynı limit', required: false, min_value: 0, max_value: 99 }] },
       { type: 1, name: 'bilgi', description: 'Kurulumda neler olacağını önizle (silmez)' },
     ],
   },
@@ -495,7 +509,7 @@ const sunucuSlash = {
       return interaction.reply({
         embeds: [kart(client, {
           baslik: '🛠️ /sunucu kur — Önizleme',
-          aciklama: `**${KATEGORILER.length + 1} kategori • ${kanalSayi} kanal • ${rolSayi} rol** kurulur.\nAnime/Manga topluluk template'i + bot bağlantılı + 🌍 şehir ses kanalları!`,
+          aciklama: `**${KATEGORILER.length + 1} kategori • ${kanalSayi} kanal • ${rolSayi} rol** kurulur.\nAnime/Manga topluluk template'i + bot bağlantılı + 🌍 emojili şehir ses kanalları (limitsiz>90>...>5>4>3>2 merdiveni)!`,
           alanlar: [
             { name: '🤖 Otomatik Bağlananlar', value: '🎭 Oto-rol → Üye\n📋 Log → loglar\n👋 HG/Çıkış → gelenler/gidenler\n🎯 Sayaç (1000) → sayaç\n🔔 İtibar bildirim → itibar-bildirim\n🤝 Partner (kanal+chat+onay+rol+yazı)\n🎫 Ticket paneli → destek\n💎 Booster rolü + özel izinler\n🥷 Alt hesap koruması (3g kick / 7g gözlem)\n💬 Günün sorusu → genel-sohbet\n🚀 Sv.5/10/20 + 🏅 25/50/100 İtibar rolleri\n👑 Owner rolü → sahip + kurucular', inline: false },
             { name: '⚠️ Dikkat', value: 'Mevcut **TÜM kanallar ve roller silinir!** (bot rolleri hariç)\nSadece **sunucu sahibi** kurabilir.', inline: false },
@@ -518,7 +532,7 @@ const sunucuSlash = {
       return interaction.reply({ content: '❌ Önce bana **Yönetici** yetkisi ver! (Sunucu Ayarları → Roller → Emoç)', ephemeral: true });
     }
 
-    bekleyen.set(interaction.guild.id, { userId: interaction.user.id, bitis: Date.now() + 60000, sesLimit: interaction.options.getInteger('ses-limit') ?? 10 });
+    bekleyen.set(interaction.guild.id, { userId: interaction.user.id, bitis: Date.now() + 60000, sesLimit: interaction.options.getInteger('ses-limit') ?? null });
     setTimeout(() => bekleyen.delete(interaction.guild.id), 65000);
 
     const row = new ActionRowBuilder().addComponents(
@@ -529,7 +543,7 @@ const sunucuSlash = {
       embeds: [kart(client, {
         renk: RENK.hata,
         baslik: '☢️ SON UYARI!',
-        aciklama: '**TÜM kanallar ve TÜM roller kalıcı olarak silinecek!**\nGeri dönüş YOK!\n\nKurulacak: **15 kategori • 65+ kanal (26 şehir ses kanalı dahil) • 39 rol** + tüm bot ayarları otomatik.',
+        aciklama: '**TÜM kanallar ve TÜM roller kalıcı olarak silinecek!**\nGeri dönüş YOK!\n\nKurulacak: **15 kategori • 65+ kanal (26 emojili şehir ses kanalı, limit merdivenli) • 39 rol** + tüm bot ayarları otomatik.',
         altbilgi: '60 saniyen var — iyi düşün!',
       })],
       components: [row],
@@ -560,7 +574,7 @@ async function handleSunucuButton(interaction, client) {
       baslik: '🎉 SUNUCUN HAZIR!',
       aciklama: `**${sure} saniyede** her şey kuruldu! ${E(client, 'parti', '🎉')}\n👑 **Taçlı sahip + kurucular:** ${(tacAlanlar || []).map((u) => `${u}`).join(' ') || '*sunucuda bulunamadı*'}`,
       alanlar: [
-            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 şehir ses kanalı (limitli)', inline: false },
+            { name: '✅ Otomatik Ayarlananlar', value: '🎭 Oto-rol • 📋 Log • 👋 HG/Çıkış • 🎯 Sayaç\n🔔 İtibar bildirim • 🤝 Partner full-set • 🎫 Ticket paneli\n💬 Günün sorusu • 🚀 Seviye rolleri • 🏅 İtibar rolleri\n💎 Booster rolü+izinleri • 🥷 Alt hesap koruması\n👑 Owner rolleri dağıtıldı\n🌍 26 emojili şehir ses kanalı (limitsiz>90>...>5>4>3>2)', inline: false },
         { name: '🚀 Sonraki Adımlar', value: '`/ticket-kur #destek @Destek` → destek paneli\n`/vitrin-ekle ...` → sunucunu tanıt\n`/partner ayarla` → yazını özelleştir', inline: false },
       ],
     });

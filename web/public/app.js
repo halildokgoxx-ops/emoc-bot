@@ -82,10 +82,10 @@ async function sunucuAc(id){
 const NAV=[
   {sec:null,items:[['home','🏠','Kontrol Paneli']]},
   {sec:null,items:[['ayarlar','⚙️','Ayarlar'],['premium','⭐','Premium'],['gomulu','📝','Gömülü Mesajlar']]},
-  {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi','👑'],['medya','🎨','Medya Yükle']]},
+  {sec:'Sunucu Yönetimi',items:[['seviye','📊','Seviye Sistemi'],['karsilama','👋','Karşılama & Veda'],['destek','🎫','Destek / Ticket','YENİ'],['otomod','🛡️','Otomatik Moderasyon','YENİ'],['denetimMasasi','🎛️','Denetim Masası'],['denetim','📋','Denetim Kaydı'],['otocevap','🤖','Otomatik Cevap'],['emojirol','😀','Emoji Rol'],['etiket','🏷️','Sunucu Etiketi','👑'],['medya','🎨','Medya Yükle']]},
   {sec:'Güvenlik',items:[['govDavet','🔗','Davet Koruması','👑'],['govHesap','🛡️','Hesap Filtresi','👑'],['govRol','🎭','Rol Limitlemeleri'],['govBot','🤖','Bot Filtresi'],['govYasak','⛔','Yasaklama Limiti'],['govAtma','🚪','Atma Limiti'],['govKanal','📁','Kanal Limitlemeleri'],['govWebhook','🪝','Anti-Webhook','👑'],['govEmoji','😎','Emoji Limitleri']]},
 ];
-const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',admin:'Admin Paneli',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
+const NAV_AD={home:'Kontrol Paneli',ayarlar:'Ayarlar',premium:'Premium',gomulu:'Gömülü Mesajlar',seviye:'Seviye Sistemi',karsilama:'Karşılama & Veda',destek:'Destek / Ticket',otomod:'Otomatik Moderasyon',denetimMasasi:'Denetim Masası',denetim:'Denetim Kaydı',otocevap:'Otomatik Cevap',emojirol:'Emoji Rol',etiket:'Sunucu Etiketi',medya:'Medya Yükle',admin:'Admin Paneli',govDavet:'Davet Koruması',govHesap:'Hesap Filtresi',govRol:'Rol Limitlemeleri',govBot:'Bot Filtresi',govYasak:'Yasaklama Limiti',govAtma:'Atma Limiti',govKanal:'Kanal Limitlemeleri',govWebhook:'Anti-Webhook',govEmoji:'Emoji Limitleri'};
 
 function renderAll(){renderSide();renderTop();renderContent()}
 function renderSide(){
@@ -164,6 +164,7 @@ function renderContentIc(){
   if(AKTIF==='ayarlar')return cizAyarlar(c);
   if(AKTIF==='seviye')return cizSeviye(c);
   if(AKTIF==='karsilama')return cizKarsilama(c);
+  if(AKTIF==='destek')return cizDestek(c);
   if(AKTIF==='otomod')return cizOtomod(c);
   if(AKTIF==='denetim')return cizDenetim(c);
   if(AKTIF==='gomulu')return cizGomulu(c);
@@ -186,6 +187,7 @@ function cizHome(c){
     +'<div class="sec-h">Sunucu Yönetimi</div><div class="kart-grid">'
     +kart('seviye','📊','Seviye Sistemi','Mesaj ve ses etkinliğini seviyeler, sıralamalar ve rollerle ödüllendirin.')
     +kart('karsilama','👋','Karşılama & Veda','Bir üye katıldığında veya ayrıldığında olacakları yönetin')
+    +kart('destek','🎫','Destek / Ticket','Ticket destek rolünü ve kategorisini yönetin, paneli slash ile kurun.',true)
     +kart('otomod','🛡️','Otomatik Moderasyon','Sunucu moderasyonunu otomatikleştirir',true)
     +kart('denetimMasasi','🎛️','Denetim Masası','Güvenilir üye rollerini belirle: bu rollerdekiler denetim kaydını görür, hızlı işlem menüsünü kullanır')
     +kart('denetim','📋','Denetim Kaydı','Sunucunuzda olanların kaydını tutar')
@@ -323,6 +325,20 @@ function isimKelimeEkle(w){
   w=(w||'').trim();if(!w)return;
   if(!Array.isArray(FORM.isimKelimeler))FORM.isimKelimeler=[];
   FORM.isimKelimeler.push(w);renderContent();
+}
+
+/* destek / ticket */
+function cizDestek(c){
+  const f=FORM;
+  c.innerHTML='<div class="page-h">Destek / Ticket</div><div class="page-s">Ticket destek rolünü ve kategori ID\'sini yönetin — paneli Discord\'da /ticket kur ile gönderin</div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>🎫 Destek ekibi rolü</h3><p>Ticketları devralabilecek, bekletebilecek rol. Boşsa sadece Yönetici/Moderatör yetkisi geçer.</p></div></div>'
+  +'<div class="field"><label>Destek rolü</label><select data-k="ticketDestekRol">'+secenek('rol',f.ticketDestekRol,'Seçilmedi')+'</select></div></div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>📁 Ticket kategori ID</h3><p>Ticket kanallarının açılacağı kategori. Boşsa bot 🎫-DESTEK kategorisini kullanır. Kategori ID\'sini Discord\'da sağ tık → ID Kopyala ile alın.</p></div></div>'
+  +'<div class="field"><label>Kategori ID</label><input type="text" data-k="ticketKategori" placeholder="örn: 123456789012345678" value="'+esc(f.ticketKategori||'')+'" style="max-width:280px"></div></div>'
+  +'<div class="panel"><div class="panel-top"><div><h3>⚙️ Komutlar</h3><p>Panel kurulumu ve ticket işlemleri — prefix ve slash ikisi de çalışır.</p></div></div>'
+  +'<div class="field"><label>Kurulum</label><div class="hint">/ticket kur kanal:#destek rol:@Destek — veya — !ticket-kur #destek @Destek</div></div>'
+  +'<div class="field"><label>İşlemler</label><div class="hint">/ticket kapat/devral/devret/beklet/ac/ekle/cikar — veya — !ticket-kapat !ticket-devral !ticket-devret !ticket-beklet !ticket-ac !ticket-ekle !ticket-cikar<br>Konular: Genel, Şikayet, Partner, Öneri, Yetkili Alım, Özel + Aciliyet: Normal/Acele/Acil. Kapatınca konuşma kaydı .txt olarak loga gider.</div></div></div>'
+  +saveBar();
 }
 
 /* otomod */

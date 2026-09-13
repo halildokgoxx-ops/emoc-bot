@@ -21,7 +21,7 @@ const ACILIYET = {
 };
 
 function ticketAyar(gid) {
-  const { getGuild } = require('../src/db');
+  const { getGuild, save: _save } = require('../src/db');
   const g = getGuild(gid);
   if (!g.ticket) g.ticket = { kategori: null, logKanal: null, destekRol: null, sayac: 0, acik: {} };
   if (!g.ticket.acik) g.ticket.acik = {};
@@ -29,6 +29,11 @@ function ticketAyar(gid) {
   for (const [uid, v] of Object.entries(g.ticket.acik)) {
     if (typeof v === 'string') g.ticket.acik[uid] = { kanal: v, konu: 'genel', aciliyet: 'normal', devralan: null, durum: 'acik', acilma: Date.now() };
   }
+  // Web panel (flat) -> nested senkron: web kazanır
+  let degisti = false;
+  if (g.ticketDestekRol && g.ticketDestekRol !== g.ticket.destekRol) { g.ticket.destekRol = g.ticketDestekRol; degisti = true; }
+  if (g.ticketKategori && g.ticketKategori !== g.ticket.kategori) { g.ticket.kategori = g.ticketKategori; degisti = true; }
+  if (degisti) { try { _save(); } catch {} }
   return g.ticket;
 }
 
@@ -127,16 +132,19 @@ module.exports = [
       const rol = message.mentions.roles.first();
       if (!kanal) return message.reply({ embeds: [err('Panel kanalı etiketle! `!ticket-kur #destek @Destek-Ekibi`')] });
 
+      const { setGuild } = require('../src/db');
       const g = getGuild(message.guild.id);
       const t = ticketAyar(message.guild.id);
       t.destekRol = rol ? rol.id : null;
       t.logKanal = g.logKanal || null;
+      try { setGuild(message.guild.id, { ticketDestekRol: rol ? rol.id : null }); } catch {}
 
       let kat = message.guild.channels.cache.find(c => c.name === '🎫-DESTEK' && c.type === ChannelType.GuildCategory);
       if (!kat) {
         try { kat = await message.guild.channels.create({ name: '🎫-DESTEK', type: ChannelType.GuildCategory }); } catch {}
       }
       if (kat) t.kategori = kat.id;
+      try { if (kat) setGuild(message.guild.id, { ticketKategori: kat.id }); } catch {}
       save();
 
       const embed = new EmbedBuilder().setColor(config.colors.main).setTitle('🎫 DESTEK TALEBİ OLUŞTUR')
@@ -383,3 +391,118 @@ module.exports = [
     },
   },
 ];
+
+const _CMDS = module.exports;
+
+// /ticket grubu — tek slash, 8 alt komut (100 limitini aşmamak için)
+const ticketSlash = {
+  data: {
+    name: 'ticket',
+    description: '🎫 Ticket sistemi (kur/kapat/devral/devret/beklet/aç/ekle/çıkar)',
+    contexts: [0],
+    options: [
+      { type: 1, name: 'kur', description: '🎫 Ticket paneli kur (Yönetici)', options: [{ type: 7, name: 'kanal', description: 'Panelin gönderileceği kanal', required: true }, { type: 8, name: 'rol', description: 'Destek ekibi rolü', required: false }] },
+      { type: 1, name: 'kapat', description: '🔒 Bulunduğun ticketı kapat', options: [{ type: 3, name: 'sebep', description: 'Kapatma sebebi', required: false }] },
+      { type: 1, name: 'devral', description: '🙋 Ticketı üstüne al' },
+      { type: 1, name: 'devret', description: '🔄 Ticketı başka yetkiliye devret', options: [{ type: 6, name: 'yetkili', description: 'Devredilecek yetkili', required: true }, { type: 3, name: 'sebep', description: 'Sebep', required: false }] },
+      { type: 1, name: 'beklet', description: '⏸️ Ticketı beklemeye al', options: [{ type: 3, name: 'sebep', description: 'Sebep', required: false }] },
+      { type: 1, name: 'ac', description: '▶️ Beklemedeki ticketı geri aç' },
+      { type: 1, name: 'ekle', description: '➕ Ticketa kullanıcı ekle', options: [{ type: 6, name: 'kullanici', description: 'Eklenecek kullanıcı', required: true }] },
+      { type: 1, name: 'cikar', description: '➖ Tickettan kullanıcı çıkar', options: [{ type: 6, name: 'kullanici', description: 'Çıkarılacak kullanıcı', required: true }] },
+    ],
+  },
+  async execute(interaction, client) {
+    const alt = interaction.options.getSubcommand();
+    const bul = (ad) => _CMDS.find((c) => c.name === ad);
+    // sahte message: prefix run() aynen çalışsın (defer sonrası ilk reply -> editReply)
+    const sahte = (extra = {}) => {
+      const cozulen = interaction.options.resolved || {};
+      const { Collection: Col } = require('discord.js');
+      const bos = new Col();
+      const state = { replied: false };
+      const fake = {
+        author: interaction.user, member: interaction.member, guild: interaction.guild,
+        channel: interaction.channel, client, createdTimestamp: Date.now(), content: '',
+        mentions: {
+          users: cozulen.users || bos, members: cozulen.members || bos,
+          channels: cozulen.channels || bos, roles: cozulen.roles || bos,
+        },
+        delete: async () => {},
+        react: async () => {},
+        reply: async (payload) => {
+          if (typeof payload === 'string') payload = { content: payload };
+          try {
+            if (!state.replied) { state.replied = true; await interaction.editReply(payload); }
+            else await interaction.followUp(payload);
+          } catch {}
+          try { return await interaction.fetchReply(); } catch { return null; }
+        },
+        ...extra,
+      };
+      return fake;
+    };
+    await interaction.deferReply().catch(() => {});
+    try {
+      if (alt === 'kur') {
+        const kanal = interaction.options.getChannel('kanal');
+        const rol = interaction.options.getRole('rol');
+        const cmd = bul('ticket-kur');
+        const fake = sahte();
+        // prefix run mention bekler: mentions doldur
+        fake.mentions.channels.set?.(kanal.id, kanal);
+        if (rol) fake.mentions.roles.set?.(rol.id, rol);
+        // mentions.channels.first() Collection ister — set ile doldurduk
+        const { Collection: Col2 } = require('discord.js');
+        fake.mentions.channels = new Col2([[kanal.id, kanal]]);
+        fake.mentions.roles = rol ? new Col2([[rol.id, rol]]) : new Col2();
+        await cmd.run(fake, [], client);
+        return;
+      }
+      if (alt === 'kapat') {
+        const sebep = interaction.options.getString('sebep') || '';
+        const cmd = bul('ticket-kapat');
+        await cmd.run(sahte(), sebep ? [sebep] : [], client);
+        return;
+      }
+      if (alt === 'devral') { await bul('ticket-devral').run(sahte(), [], client); return; }
+      if (alt === 'devret') {
+        const yet = interaction.options.getUser('yetkili');
+        const sebep = interaction.options.getString('sebep') || '';
+        const cmd = bul('ticket-devret');
+        const fake = sahte();
+        const { Collection: Col3 } = require('discord.js');
+        try {
+          const uye = await interaction.guild.members.fetch(yet.id).catch(() => null);
+          fake.mentions.members = new Col3(uye ? [[uye.id, uye]] : []);
+        } catch { fake.mentions.members = new Col3(); }
+        const args = [`<@${yet.id}>`, ...(sebep ? [sebep] : [])];
+        await cmd.run(fake, args, client);
+        return;
+      }
+      if (alt === 'beklet') {
+        const sebep = interaction.options.getString('sebep') || '';
+        await bul('ticket-beklet').run(sahte(), sebep ? [sebep] : [], client);
+        return;
+      }
+      if (alt === 'ac') { await bul('ticket-ac').run(sahte(), [], client); return; }
+      if (alt === 'ekle' || alt === 'cikar') {
+        const k = interaction.options.getUser('kullanici');
+        const cmd = bul(alt === 'ekle' ? 'ticket-ekle' : 'ticket-cikar');
+        const fake = sahte();
+        const { Collection: Col4 } = require('discord.js');
+        try {
+          const uye = await interaction.guild.members.fetch(k.id).catch(() => null);
+          fake.mentions.members = new Col4(uye ? [[uye.id, uye]] : []);
+        } catch { fake.mentions.members = new Col4(); }
+        await cmd.run(fake, [`<@${k.id}>`], client);
+        return;
+      }
+      await interaction.editReply({ content: '❌ Bilinmeyen alt komut!' }).catch(() => {});
+    } catch (e) {
+      await interaction.editReply({ content: '❌ Bir hata oldu!' }).catch(() => {});
+    }
+  },
+};
+
+module.exports = _CMDS;
+module.exports.ticketSlash = ticketSlash;
