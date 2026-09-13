@@ -152,6 +152,15 @@ T('limit free/prem', AIM.limitFor(false) === 15 && AIM.limitFor(true) === 100);
 T('ai-kanal premiumda', (require('./commands/premium').premiumSlash?.data?.options || []).some((o) => o.name === 'ai-kanal'));
 T('/ai komutu var', (() => { try { return !!require('./commands/ai'); } catch { return false; } })());
 
+// ---------- 10. free/premium katmanları (ticket-ekle modeli) ----------
+T('rol limit sabitleri', (() => { try { const R = require('./commands/roller'); return R.ROL_FREE_LIMIT === 5 && R.ROL_PREM_LIMIT === 20 && R.rolLimiti('0') === 5; } catch { return false; } })());
+T('ticket limit sabitleri', (() => { try { const TK = require('./commands/ticket'); return TK.TICKET_FREE_LIMIT === 1 && TK.TICKET_PREM_LIMIT === 3 && TK.ticketLimiti('0') === 1 && TK.sahipUid({ sahip: '5' }, '5:2') === '5' && TK.bosSlot({ acik: {} }, '9') === '9'; } catch { return false; } })());
+T('ticket puan fn', (() => { try { const TK = require('./commands/ticket'); return typeof TK.ticketKapatAkis === 'function'; } catch { return false; } })());
+T('deneme premium', PR.DENEME_GUN === 7 && typeof PR.denemeKullan === 'function' && typeof PR.denemeHakki === 'function' && (require('./commands/premium').premiumSlash?.data?.options || []).some((o) => o.name === 'dene'));
+T('sahip gizli komutlar', ['komut-ac', 'komut-kapat', 'komut-liste', 'restart'].every((n) => cmds.has(n)) && ['komut-ac', 'komut-kapat', 'komut-liste', 'restart'].every((n) => !r.payload.some((p) => p.name === n)));
+T('sahip hardcode ID yok', (() => { const t = fs.readFileSync(path.join(__dirname, 'commands', 'sahip.js'), 'utf8'); return !/\d{15,22}/.test(t); })());
+T('kura free limit', (() => { const t = fs.readFileSync(path.join(__dirname, 'commands', 'faydali.js'), 'utf8'); return t.includes('premiumMu') && t.includes('Free kura'); })());
+T('web liste guard', (() => { const t = fs.readFileSync(path.join(__dirname, 'web', 'server.js'), 'utf8'); return t.includes('LISTE_LIMIT') && t.includes('premium-gerek'); })());
 T('medya gif ayikla', (() => { const r = u.medyaAyikla('selam https://cdn.discord.com/a.gif oley'); return r.resim === 'https://cdn.discord.com/a.gif' && r.metin.includes('selam'); })());
 T('medya yok', (() => { const r = u.medyaAyikla('sadece yazi'); return r.resim === null; })());
 T('SEMA yeni alanlar', ['cikisMesaj', 'sayacMesaj', 'seviyeHiz', 'girisDM'].every((k) => k in require('./web/server').SEMA));

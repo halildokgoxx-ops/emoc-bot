@@ -22,7 +22,9 @@ const AVANTAJLAR =
   '🎁 Günlük x2 • 🚀 XP x2 • ⭐ Profil mührü\n' +
   '⭐ **/starboard** — yıldız panosu: beğenilen mesajlar özel kanala!\n' +
   '🎭 **/toplu-rol** — herkese/botlara tek tıkla toplu rol ver-al!\n' +
-  '🔥 **/aktif-rol** — aktif üyelere (mesaj sayısına göre) otomatik rol!';
+  '🔥 **/aktif-rol** — aktif üyelere (mesaj sayısına göre) otomatik rol!\n' +
+  '🎫 **Ticket PRO** — 3 açık ticket + kullanıcı ekleme + öncelik değiştirme!\n' +
+  '🎭 **Rol menüsü 20 buton** (free 5) + 📝 **25 gömülü mesaj** (free 5) + 🎲 **20 kura seçeneği** (free 10)!';
 
 // Free yazarsa premium hatası veren kapı
 function premKontrol(interaction) {

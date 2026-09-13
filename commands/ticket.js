@@ -82,6 +82,41 @@ function premiumGerekli(message, ozellik) {
   return true;
 }
 
+// Eşzamanlı açık ticket limiti: free 1, premium 3 (ticket-ekle modeli)
+const TICKET_FREE_LIMIT = 1;
+const TICKET_PREM_LIMIT = 3;
+function ticketLimiti(gid) {
+  try {
+    if (require('../src/premium').premiumMu(gid)) return TICKET_PREM_LIMIT;
+  } catch {}
+  return TICKET_FREE_LIMIT;
+}
+function acikTicketSay(t) {
+  let n = 0;
+  for (const v of Object.values(t.acik || {})) {
+    const cid = typeof v === 'string' ? v : v?.kanal;
+    if (cid) n++;
+  }
+  return n;
+}
+
+// Kayıt key'i `uid` veya premium ek slot `uid:2`, `uid:3` olabilir.
+// Gerçek Discord ID her zaman kayit.sahip veya key'in ilk parçasıdır.
+function sahipUid(kayit, key) {
+  if (kayit && kayit.sahip) return String(kayit.sahip);
+  return String(key || '').split(':')[0];
+}
+function kullaniciSlotlar(t, uid) {
+  return Object.keys(t.acik || {}).filter((k) => k === uid || k.startsWith(uid + ':'));
+}
+function bosSlot(t, uid) {
+  if (!t.acik[uid]) return uid;
+  for (let i = 2; i <= TICKET_PREM_LIMIT; i++) {
+    if (!t.acik[`${uid}:${i}`]) return `${uid}:${i}`;
+  }
+  return null;
+}
+
 // Öncelik (aciliyet) değiştir: kayıt + kanal adı + bilgi mesajı
 async function oncelikUygula(guild, kanal, kayit, seviye, degistiren) {
   const ac = ACILIYET[seviye] || ACILIYET.normal;
@@ -139,7 +174,8 @@ async function ticketKapatAkis(guild, kanal, { sahipId, kapatan, sebep }) {
   const t = ticketAyar(guild.id);
   const bulunan = acikBul(t, kanal.id);
   const kayit = bulunan ? bulunan.kayit : {};
-  const gercekSahip = sahipId || (bulunan ? bulunan.uid : null);
+  const kayitKey = sahipId || (bulunan ? bulunan.uid : null);
+  const gercekSahip = sahipUid(kayit, kayitKey);
   const devralanId = (kayit && kayit.devralan) || null;
   const { metin, sayi } = await transcriptTopla(kanal);
   await transcriptGonder(guild, {
@@ -147,7 +183,7 @@ async function ticketKapatAkis(guild, kanal, { sahipId, kapatan, sebep }) {
     konu: kayit.konu || '?', aciliyet: kayit.aciliyet || 'normal',
     devralanId, mesajSayisi: sayi, metin,
   });
-  if (gercekSahip && t.acik[gercekSahip]) { delete t.acik[gercekSahip]; save(); }
+  if (kayitKey && t.acik[kayitKey]) { delete t.acik[kayitKey]; save(); }
   // ⭐ Puanlama DM'i (sahibine, tek oy)
   if (gercekSahip) {
     try {
@@ -312,7 +348,7 @@ module.exports = [
       if (!ekipMi(message.member, t)) return message.reply({ embeds: [err('Sadece destek ekibi bekletebilir!')] });
       const kayit = typeof t.acik[bulunan.uid] === 'string' ? null : t.acik[bulunan.uid];
       if (kayit) { kayit.durum = 'beklemede'; save(); }
-      const sahip = await message.guild.members.fetch(bulunan.uid).catch(() => null);
+      const sahip = await message.guild.members.fetch(sahipUid(kayit, bulunan.uid)).catch(() => null);
       if (sahip) await message.channel.permissionOverwrites.edit(sahip, { ViewChannel: true, SendMessages: false, ReadMessageHistory: true }).catch(() => null);
       try {
         const suanki = message.channel.name;
@@ -332,7 +368,7 @@ module.exports = [
       if (!ekipMi(message.member, t)) return message.reply({ embeds: [err('Sadece destek ekibi açabilir!')] });
       const kayit = typeof t.acik[bulunan.uid] === 'string' ? null : t.acik[bulunan.uid];
       if (kayit) { kayit.durum = 'acik'; save(); }
-      const sahip = await message.guild.members.fetch(bulunan.uid).catch(() => null);
+      const sahip = await message.guild.members.fetch(sahipUid(kayit, bulunan.uid)).catch(() => null);
       if (sahip) await message.channel.permissionOverwrites.edit(sahip, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true }).catch(() => {});
       try {
         const suanki = message.channel.name;
@@ -382,7 +418,7 @@ module.exports = [
       if (!bulunan) return message.reply({ embeds: [err('Burası ticket kanalı değil!')] });
       const h = message.mentions.members.first();
       if (!h) return message.reply({ embeds: [err('`!ticket-cıkar @kullanıcı`')] });
-      if (h.id === bulunan.uid) return message.reply({ embeds: [err('Ticket sahibini çıkaramazsın!')] });
+      if (h.id === sahipUid(typeof t.acik[bulunan.uid] === 'object' ? t.acik[bulunan.uid] : null, bulunan.uid)) return message.reply({ embeds: [err('Ticket sahibini çıkaramazsın!')] });
       await message.channel.permissionOverwrites.delete(h).catch(() => null);
       return message.reply({ embeds: [ok(`${h} ticketdan çıkarıldı.`)] });
     },
@@ -415,11 +451,15 @@ module.exports = [
     async select(interaction, client) {
       // ticket_menu → konu seçildi, şimdi aciliyet sor
       const t = ticketAyar(interaction.guild.id);
-      const kayit = t.acik[interaction.user.id];
-      const cid = typeof kayit === 'string' ? kayit : kayit?.kanal;
-      if (cid) {
-        const eski = interaction.guild.channels.cache.get(cid);
-        if (eski) return interaction.reply({ content: `❌ Zaten açık ticketın var: ${eski}`, ephemeral: true });
+      const limit = ticketLimiti(interaction.guild.id);
+      const slotlar = kullaniciSlotlar(t, interaction.user.id)
+        .map((k) => (typeof t.acik[k] === 'string' ? t.acik[k] : t.acik[k]?.kanal))
+        .filter(Boolean)
+        .map((cid) => interaction.guild.channels.cache.get(cid))
+        .filter(Boolean);
+      if (slotlar.length >= limit) {
+        const ek = limit < TICKET_PREM_LIMIT ? '\n👑 **Premium ile 3 açık ticketa çık!** (`/premium bilgi`)' : '';
+        return interaction.reply({ content: `❌ Açık ticket limitin dolu (${slotlar.length}/${limit})! Önce birini kapat.${ek}`, ephemeral: true });
       }
       const konu = interaction.values[0];
       const bilgi = KONULAR[konu] || KONULAR.genel;
@@ -436,12 +476,18 @@ module.exports = [
       const konu = parca[2];
       const seviye = parca[3] === 'acil' ? 'acil' : parca[3] === 'acele' ? 'acele' : 'normal';
       const t = ticketAyar(interaction.guild.id);
-      const kayit = t.acik[interaction.user.id];
-      const cid = typeof kayit === 'string' ? kayit : kayit?.kanal;
-      if (cid) {
-        const eski = interaction.guild.channels.cache.get(cid);
-        if (eski) return interaction.reply({ content: `❌ Zaten açık ticketın var: ${eski}`, ephemeral: true });
+      const limit = ticketLimiti(interaction.guild.id);
+      const dolu = kullaniciSlotlar(t, interaction.user.id)
+        .map((k) => (typeof t.acik[k] === 'string' ? t.acik[k] : t.acik[k]?.kanal))
+        .filter(Boolean)
+        .map((cid) => interaction.guild.channels.cache.get(cid))
+        .filter(Boolean);
+      if (dolu.length >= limit) {
+        const ek = limit < TICKET_PREM_LIMIT ? '\n👑 **Premium ile 3 açık ticketa çık!**' : '';
+        return interaction.reply({ content: `❌ Açık ticket limitin dolu (${dolu.length}/${limit})!${ek}`, ephemeral: true });
       }
+      const slot = bosSlot(t, interaction.user.id);
+      if (!slot) return interaction.reply({ content: '❌ Boş ticket slotu yok!', ephemeral: true }).catch(() => {});
       const bilgi = KONULAR[konu] || KONULAR.genel;
       const ac = ACILIYET[seviye];
       t.sayac = (t.sayac || 0) + 1;
@@ -457,7 +503,7 @@ module.exports = [
             ...(t.destekRol ? [{ id: t.destekRol, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] }] : []),
           ],
         });
-        t.acik[interaction.user.id] = { kanal: kanal.id, konu, aciliyet: seviye, devralan: null, durum: 'acik', acilma: Date.now(), sonAktivite: Date.now() };
+        t.acik[slot] = { kanal: kanal.id, konu, aciliyet: seviye, devralan: null, durum: 'acik', acilma: Date.now(), sonAktivite: Date.now(), sahip: interaction.user.id };
         save();
 
         const embed = new EmbedBuilder().setColor(ac.renk).setTitle(`🎫 ${isim}`)
@@ -506,7 +552,7 @@ module.exports = [
         if (!ekipMi(interaction.member, t)) return interaction.reply({ content: '❌ Sadece destek ekibi!', ephemeral: true }).catch(() => {});
         const kayit = typeof t.acik[bulunan.uid] === 'string' ? null : t.acik[bulunan.uid];
         if (kayit) { kayit.durum = 'beklemede'; save(); }
-        const sahip = await interaction.guild.members.fetch(bulunan.uid).catch(() => null);
+        const sahip = await interaction.guild.members.fetch(sahipUid(kayit, bulunan.uid)).catch(() => null);
         if (sahip) await interaction.channel.permissionOverwrites.edit(sahip, { ViewChannel: true, SendMessages: false, ReadMessageHistory: true }).catch(() => {});
         try {
           const suanki = interaction.channel.name;
@@ -518,7 +564,7 @@ module.exports = [
         if (!ekipMi(interaction.member, t)) return interaction.reply({ content: '❌ Sadece destek ekibi!', ephemeral: true }).catch(() => {});
         const kayit = typeof t.acik[bulunan.uid] === 'string' ? null : t.acik[bulunan.uid];
         if (kayit) { kayit.durum = 'acik'; save(); }
-        const sahip = await interaction.guild.members.fetch(bulunan.uid).catch(() => null);
+        const sahip = await interaction.guild.members.fetch(sahipUid(kayit, bulunan.uid)).catch(() => null);
         if (sahip) await interaction.channel.permissionOverwrites.edit(sahip, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true }).catch(() => {});
         try {
           const suanki = interaction.channel.name;
@@ -592,8 +638,9 @@ module.exports = [
           }
         } catch {}
         const eklenen = [];
+        const ticketSahibi = sahipUid(typeof t.acik[bulunan.uid] === 'object' ? t.acik[bulunan.uid] : null, bulunan.uid);
         for (const uid of interaction.values.slice(0, 5)) {
-          if (uid === bulunan.uid) continue;
+          if (uid === ticketSahibi) continue;
           const uye = await interaction.guild.members.fetch(uid).catch(() => null);
           if (!uye || uye.user.bot) continue;
           await interaction.channel.permissionOverwrites.edit(uye, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true }).catch(() => null);
@@ -735,3 +782,8 @@ module.exports = _CMDS;
 module.exports.ticketSlash = ticketSlash;
 module.exports.ticketKapatAkis = ticketKapatAkis;
 module.exports.ticketAyar = ticketAyar;
+module.exports.TICKET_FREE_LIMIT = TICKET_FREE_LIMIT;
+module.exports.TICKET_PREM_LIMIT = TICKET_PREM_LIMIT;
+module.exports.ticketLimiti = ticketLimiti;
+module.exports.sahipUid = sahipUid;
+module.exports.bosSlot = bosSlot;

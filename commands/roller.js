@@ -11,9 +11,19 @@ function rolMenuler(gid) {
   return g.rolMenuler;
 }
 
+// Free 5 buton, premium 20 buton (ticket-ekle modeli)
+const ROL_FREE_LIMIT = 5;
+const ROL_PREM_LIMIT = 20;
+function rolLimiti(gid) {
+  try {
+    if (require('../src/premium').premiumMu(gid)) return ROL_PREM_LIMIT;
+  } catch {}
+  return ROL_FREE_LIMIT;
+}
+
 function menuRow(menu) {
   const rows = [];
-  const ogeler = (menu.ogeler || []).slice(0, 20);
+  const ogeler = (menu.ogeler || []).slice(0, ROL_PREM_LIMIT);
   for (let i = 0; i < ogeler.length; i += 5) {
     const row = new ActionRowBuilder();
     for (const o of ogeler.slice(i, i + 5)) {
@@ -35,7 +45,7 @@ function menuEmbed(client, guild, menu) {
     baslik: `🎭 ${menu.baslik || 'Rol Al!'}`,
     aciklama: `İstediğin rollere bas, **anında** takılsın/çıkarılsın! ✨\n\n${satir}`.slice(0, 3900),
     kucukResim: guild.iconURL({ size: 256 }) || undefined,
-    altbilgi: `${menu.ogeler.length}/20 buton • EMOÇ Rol Sistemi`,
+    altbilgi: `${menu.ogeler.length} buton • Free 5 / Premium 20 • EMOÇ Rol Sistemi`,
   });
 }
 
@@ -84,13 +94,17 @@ const rolAlSlash = {
         return interaction.reply({ content: '❌ Bu rol benden üstte! Rolümü yükselt.', ephemeral: true });
       }
       if (rol.managed) return interaction.reply({ content: '❌ Bot rollerine buton olmaz!', ephemeral: true });
-      if (menu.ogeler.length >= 20) return interaction.reply({ content: '❌ Menü dolu (20/20)! Önce `/rol-al sil` ile çıkar.', ephemeral: true });
+      const limit = rolLimiti(interaction.guild.id);
+      if (menu.ogeler.length >= limit) {
+        const prem = limit >= ROL_PREM_LIMIT;
+        return interaction.reply({ content: prem ? `❌ Menü dolu (${menu.ogeler.length}/${limit})! Önce \`/rol-al sil\` ile çıkar.` : `❌ Free menü dolu (${menu.ogeler.length}/${limit})! 👑 **Premium ile 20 butona çık** (\`/premium bilgi\`) veya \`/rol-al sil\` ile çıkar.`, ephemeral: true });
+      }
       if (menu.ogeler.some((o) => o.rolId === rol.id)) return interaction.reply({ content: '❌ Bu rol zaten menüde!', ephemeral: true });
       const etiket = (interaction.options.getString('etiket') || rol.name).slice(0, 80);
       const emoji = (interaction.options.getString('emoji') || '').slice(0, 100) || null;
       menu.ogeler.push({ rolId: rol.id, etiket, emoji });
       save();
-      return interaction.reply({ content: `✅ Eklendi: ${emoji || '🔹'} **${etiket}** → ${rol} (${menu.ogeler.length}/20)\nGöndermek için: \`/rol-al gonder\``, ephemeral: true });
+      return interaction.reply({ content: `✅ Eklendi: ${emoji || '🔹'} **${etiket}** → ${rol} (${menu.ogeler.length}/${limit})${limit < ROL_PREM_LIMIT ? ' • 👑 Premium ile 20!' : ''}\nGöndermek için: \`/rol-al gonder\``, ephemeral: true });
     }
     if (alt === 'gonder') {
       if (!menu || !menu.ogeler.length) {
@@ -167,3 +181,6 @@ module.exports = [
 ];
 module.exports.rolAlSlash = rolAlSlash;
 module.exports.handleRolAlButton = handleRolAlButton;
+module.exports.ROL_FREE_LIMIT = ROL_FREE_LIMIT;
+module.exports.ROL_PREM_LIMIT = ROL_PREM_LIMIT;
+module.exports.rolLimiti = rolLimiti;

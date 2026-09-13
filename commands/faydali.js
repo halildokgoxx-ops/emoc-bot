@@ -22,7 +22,12 @@ module.exports = [
     usage: '!kura <seçenek1> <seçenek2> [...]',
     async run(message, args) {
       if (args.length < 2) return message.reply({ embeds: [err('En az 2 seçenek yaz! `!kura pizza hamburger pide`')] });
-      const sec = args.slice(0, 20);
+      let limit = 10;
+      try { if (require('../src/premium').premiumMu(message.guild.id)) limit = 20; } catch {}
+      if (args.length > limit) {
+        return message.reply({ embeds: [err(`❌ Free kura en fazla **${limit}** seçenek!${limit < 20 ? ' 👑 **Premium ile 20!** (`/premium bilgi`)' : ''}`)] });
+      }
+      const sec = args.slice(0, limit);
       const m = await message.reply('🎲 Çekiliyor...');
       await new Promise((r) => setTimeout(r, 1500));
       const kazanan = sec[rastgele(0, sec.length - 1)];

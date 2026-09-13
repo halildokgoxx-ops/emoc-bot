@@ -746,6 +746,19 @@ function startWeb(client) {
           for (const k of PREMIUM_AYARLAR) if (k in yama) { delete yama[k]; premEngel++; }
         }
       } catch {}
+      // Liste limitleri (ticket-ekle modeli: free 5, premium 20/25 — büyümeyi engelle, mevcutu koru)
+      try {
+        const prem = require('../src/premium').premiumMu(guild.id);
+        const LISTE_LIMIT = { gomuluMesajlar: [5, 25], emojiRoller: [5, 20] };
+        for (const [k, [f, p]] of Object.entries(LISTE_LIMIT)) {
+          if (!(k in yama) || !Array.isArray(yama[k])) continue;
+          const limit = prem ? p : f;
+          const mevcut = (getGuild(guild.id)[k] || []).length;
+          if (yama[k].length > limit && yama[k].length > mevcut) {
+            return res.status(403).json({ hata: 'premium-gerek', limit, alan: k });
+          }
+        }
+      } catch {}
       setGuild(guild.id, yama);
       save();
       res.json({ ok: true, sayi: Object.keys(yama).length, premEngel });

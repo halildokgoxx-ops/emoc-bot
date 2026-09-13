@@ -26,6 +26,7 @@ function hataMesaj(j,varsayilan){
   if(h==='mesaj-yok')return 'Mesaj bulunamadı! ID veya bağlantı doğru mu?';
   if(h==='tepki-olmadi')return 'Tepki konulamadı! Botun tepki izni ve emoji erişimi var mı?';
   if(h==='bos')return 'Boş mesaj gönderilemez!';
+  if(h==='premium-gerek')return '👑 Bu limit Premium! Free 5 kayıt, Premium ile 20-25 kayıt.';
   if(h==='bot-hatasi')return 'Bota ulaşılamadı! Bot çalışıyor mu? Birazdan tekrar dene.';
   if(h==='yok')return 'Sunucu bulunamadı! Bot o sunucuda mı?';
   return varsayilan||'Olmadı! Bot izinlerini kontrol et.';
@@ -330,7 +331,7 @@ function isimKelimeEkle(w){
 /* destek / ticket */
 function cizDestek(c){
   const f=FORM;
-  c.innerHTML='<div class="page-h">Destek / Ticket</div><div class="page-s">Ticket destek rolünü ve kategoriyi yönetin, paneli buradan tek tıkla gönderin</div>'
+  c.innerHTML='<div class="page-h">Destek / Ticket</div><div class="page-s">Ticket destek rolünü ve kategoriyi yönetin, paneli buradan tek tıkla gönderin (Açık ticket: Free 1 • 👑 Premium 3)</div>'
   +'<div class="panel"><div class="panel-top"><div><h3>🎫 Destek ekibi rolü</h3><p>Ticketları devralabilecek, bekletebilecek rol. Boşsa sadece Yönetici/Moderatör yetkisi geçer.</p></div></div>'
   +'<div class="field"><label>Destek rolü</label><select data-k="ticketDestekRol">'+secenek('rol',f.ticketDestekRol,'Seçilmedi')+'</select></div></div>'
   +'<div class="panel"><div class="panel-top"><div><h3>📁 Ticket kategori ID</h3><p>Ticket kanallarının açılacağı kategori. Boşsa bot 🎫-DESTEK kategorisini kullanır. Kategori ID\'sini Discord\'da sağ tık → ID Kopyala ile alın.</p></div></div>'
@@ -474,7 +475,7 @@ function cizDenetim(c){
 /* gömülü */
 function cizGomulu(c){
   const liste=Array.isArray(FORM.gomuluMesajlar)?FORM.gomuluMesajlar:[];
-  c.innerHTML='<div class="page-h">Gömülü Mesajlar</div><div class="page-s">Sunucunuzdaki gömülü mesajları yönetin</div>'
+  c.innerHTML='<div class="page-h">Gömülü Mesajlar</div><div class="page-s">Sunucunuzdaki gömülü mesajları yönetin (Free 5 • 👑 Premium 25)</div>'
     +'<div class="panel">'
     +'<div class="kv-list">'+(liste.length?liste.map((g,i)=>'<div class="liste-satir"><span><b>'+esc(g.baslik||('Mesaj '+(i+1)))+'</b> <span style="color:var(--mut)">'+esc(kanalAd(g.kanal))+'</span></span><span style="display:flex;gap:6px"><button class="btn sm" onclick="gomuluGonder('+i+')">Gönder</button><button class="btn sm" onclick="gomuluDuzenle('+i+')">Düzenle</button><button class="btn sm" onclick="gomuluSil('+i+')">Sil</button></span></div>').join(''):'<div class="bos">Henüz gömülü mesaj yok — aşağıdan oluştur.</div>')+'</div>'
     +'<div class="field"><button class="btn pri" style="width:100%;justify-content:space-between" onclick="gomuluDuzenle(-1)">Yeni gömülü mesaj <span style="font-size:18px">+</span></button></div>'
@@ -531,8 +532,11 @@ async function gomuluTaslak(){
   const v=gOku();
   if(!v.aciklama){toast('Açıklama yaz');return}
   if(GOMULU_IDX>=0)FORM.gomuluMesajlar[GOMULU_IDX]=v;
-  else FORM.gomuluMesajlar.push(v);
-  await formKaydet('Taslak kaydedildi!');
+  else {
+    if(!PREMIUM_AKTIF&&FORM.gomuluMesajlar.length>=5){toast('👑 Free en fazla 5 gömülü mesaj! Premium ile 25.');return}
+    FORM.gomuluMesajlar.push(v);
+  }
+  await kaydet('Taslak kaydedildi!');
   modalKapat();renderContent();
 }
 async function gomuluGonderModal(){
@@ -583,7 +587,7 @@ function erMesajId(url){
 }
 function cizEmojiRol(c){
   const liste=Array.isArray(FORM.emojiRoller)?FORM.emojiRoller:[];
-  c.innerHTML='<div class="page-h">Emoji Rol</div><div class="page-s">Üyelerin mesajlara tepki vererek rol almasını sağlar</div>'
+  c.innerHTML='<div class="page-h">Emoji Rol</div><div class="page-s">Üyelerin mesajlara tepki vererek rol almasını sağlar (Free 5 • 👑 Premium 20)</div>'
     +'<div class="panel"><div class="row3"><div><label>Kanal</label><select id="er-kanal">'+secenek('yazi','','Seçin')+'</select></div><div><label>Emoji</label><input type="text" id="er-emoji" placeholder="😀"></div><div><label>Rol</label><select id="er-rol">'+secenek('rol','','Seçin')+'</select></div></div>'
     +'<div class="field"><label>Mesaj (ID veya mesaj bağlantısı — bot tepkiyi bu mesajın altına koyar)</label><input type="text" id="er-mesaj" placeholder="örn: 123456789012345678"></div>'
     +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri sm" onclick="erEkle()">+ Ekle</button><button class="btn sm" onclick="erTepkiTumu()">Tümüne Tepki Koy</button></div>'
@@ -596,8 +600,9 @@ async function erEkle(){
   if(!e||!r){toast('Emoji ve rol gerekli');return}
   if(!m){toast('Mesaj ID gerekli');return}
   if(!Array.isArray(FORM.emojiRoller))FORM.emojiRoller=[];
+  if(!PREMIUM_AKTIF&&FORM.emojiRoller.length>=5){toast('👑 Free en fazla 5 emoji-rol! Premium ile 20.');return}
   FORM.emojiRoller.push({kanal:k||null,mesajId:m,emoji:e.slice(0,40),rol:r});
-  await formKaydet('Eklendi! Tepki konuluyor...');
+  await kaydet('Eklendi! Tepki konuluyor...');
   erTepki(FORM.emojiRoller.length-1,true);
 }
 function erSil(i){domKaydet();FORM.emojiRoller.splice(i,1);renderContent()}
