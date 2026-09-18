@@ -552,11 +552,9 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
       await k.permissionOverwrites.edit(boosterRol, { UseExternalEmojis: true, UseExternalStickers: true }).catch(() => {});
     }
   }
-  // Perks kanalı: SADECE booster + yönetim görür + avantaj yazısı
+  // Perks kanalı: herkes görebilir ama kimse yazamaz (vitrin)
   if (isaret.boosterPerks) {
-    await isaret.boosterPerks.permissionOverwrites.edit(guild.roles.everyone, { ViewChannel: false }).catch(() => {});
-    if (boosterRol) await isaret.boosterPerks.permissionOverwrites.edit(boosterRol, { ViewChannel: true }).catch(() => {});
-    for (const r of yonetimRolleri) await isaret.boosterPerks.permissionOverwrites.edit(r, { ViewChannel: true }).catch(() => {});
+    await isaret.boosterPerks.permissionOverwrites.edit(guild.roles.everyone, { ViewChannel: true, SendMessages: false }).catch(() => {});
     await isaret.boosterPerks.send({ content: PERKS_YAZI }).catch(() => {});
   }
 
