@@ -43,7 +43,8 @@ async function baslat(){
     duyuruYukle();
     const j=await api('/api/guilds');GUILDS=j.guilds||[];
     if(!GUILDS.length){
-      renderMisafir();document.getElementById('content').innerHTML='<div class="hata-kutu">Yönetebileceğin bir sunucu bulunamadı. Botun o sunucuda olduğundan emin ol.<br><br><a class="btn sm" href="/davet">Botu Ekle</a></div>';
+      renderMisafir();document.getElementById('content').innerHTML='<div class="hata-kutu">Yönetebileceğin bir sunucu bulunamadı. Botun o sunucuda olduğundan emin ol.<br><small style="color:var(--mut)">Discord yetki önbelleği 1-2 dk gecikebilir. Botu eklediysen 10 sn sonra otomatik yenilenecek.</small><br><br><a class="btn sm" href="/davet" target="_blank" onclick="return davetAc(event)">Botu Ekle</a> <button class="btn btn-ghost sm" onclick="baslat()">🔄 Yenile</button></div>';
+      setTimeout(()=>baslat(),10000);
       return;
     }
     renderMisafir();
@@ -52,6 +53,20 @@ async function baslat(){
     if(String((e&&e.message)||'')==='giris')return;
     document.getElementById('content').innerHTML='<div class="hata-kutu">😵 Panele ulaşılamadı! Bot çalışmıyor veya bağlantı koptu olabilir.<br><br><button class="btn sm" onclick="baslat()">🔄 Tekrar Dene</button> <a class="btn btn-ghost sm" href="/login">Giriş Yap</a></div>';
   }
+}
+function davetAc(e){
+  if(e) e.preventDefault();
+  window.open('/davet','_blank');
+  let den=0;
+  const iv=setInterval(async()=>{
+    den++;
+    if(den>20) clearInterval(iv);
+    try{
+      const j=await api('/api/guilds');
+      if(j.guilds&&j.guilds.length){ clearInterval(iv); GUILDS=j.guilds; renderMisafir(); serverList(); toast('Bot eklendi, liste yenilendi!'); }
+    }catch{}
+  },3000);
+  return false;
 }
 function renderMisafir(){
   document.getElementById('sidebar').innerHTML='<div class="side-logo"><div class="mark">✦</div><span>EMOÇ <small>PANEL</small></span></div>'
