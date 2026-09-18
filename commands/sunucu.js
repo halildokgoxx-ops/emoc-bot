@@ -304,7 +304,7 @@ async function oryantasyonKur(guild, rolMap, isaret) {
     PUBG: '🪂', Apex: '🔺', Roblox: '🟥', 'Brawl Stars': '⭐', 'Among Us': '🚀',
     'Rocket League': '🏎️', Overwatch: '🟠', 'Fall Guys': '🫘', 'PUBG Mobile': '📱', 'Free Fire': '🔥',
   };
-  const oyunlar = Object.keys(oyunEmo).filter((a) => rolId(a));
+  const oyunlar = Object.keys(oyunEmo).filter((a) => rolId(a)).slice(0, 10);
   if (oyunlar.length >= 2) {
     prompts.push({
       title: 'Hangi oyunları seversin?', singleSelect: false, required: false, inOnboarding: true,
