@@ -64,9 +64,17 @@ const ROLLER = [
   { ad: 'Sarı', renk: '#FFFF00', hosit: false },
   { ad: 'Gri', renk: '#808080', hosit: false },
   { ad: 'Beyaz', renk: '#FFFFFF', hosit: false },
-  { ad: '🚀 Sv.5', renk: '#57F287', hosit: true },
-  { ad: '🔥 Sv.10', renk: '#FF7300', hosit: true },
-  { ad: '👑 Sv.20', renk: '#FFD700', hosit: true },
+  { ad: 'Siyah', renk: '#000000', hosit: false },
+  { ad: '🚀 Sv.10', renk: '#57F287', hosit: true },
+  { ad: '🚀 Sv.20', renk: '#57F287', hosit: true },
+  { ad: '🚀 Sv.30', renk: '#FF7300', hosit: true },
+  { ad: '🚀 Sv.40', renk: '#FF7300', hosit: true },
+  { ad: '🚀 Sv.50', renk: '#FF7300', hosit: true },
+  { ad: '🔥 Sv.60', renk: '#FF0000', hosit: true },
+  { ad: '🔥 Sv.70', renk: '#FF0000', hosit: true },
+  { ad: '🔥 Sv.80', renk: '#FFD700', hosit: true },
+  { ad: '🔥 Sv.90', renk: '#FFD700', hosit: true },
+  { ad: '👑 Sv.100', renk: '#FFD700', hosit: true },
   { ad: '🏅 25 İtibar', renk: '#C0C0C0', hosit: true },
   { ad: '🥇 50 İtibar', renk: '#FFD700', hosit: true },
   { ad: '💎 100 İtibar', renk: '#00FFFF', hosit: true },
@@ -497,9 +505,16 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
     partnerBildirimRol: rolMap['🤝 Partner Bildirim']?.id || null,
     deadChatRol: rolMap['💀 Dead Chat']?.id || null,
     seviyeRoller: [
-      ...(rolMap['🚀 Sv.5'] ? [{ seviye: 5, rolId: rolMap['🚀 Sv.5'].id }] : []),
-      ...(rolMap['🔥 Sv.10'] ? [{ seviye: 10, rolId: rolMap['🔥 Sv.10'].id }] : []),
-      ...(rolMap['👑 Sv.20'] ? [{ seviye: 20, rolId: rolMap['👑 Sv.20'].id }] : []),
+      ...(rolMap['🚀 Sv.10'] ? [{ seviye: 10, rolId: rolMap['🚀 Sv.10'].id }] : []),
+      ...(rolMap['🚀 Sv.20'] ? [{ seviye: 20, rolId: rolMap['🚀 Sv.20'].id }] : []),
+      ...(rolMap['🚀 Sv.30'] ? [{ seviye: 30, rolId: rolMap['🚀 Sv.30'].id }] : []),
+      ...(rolMap['🚀 Sv.40'] ? [{ seviye: 40, rolId: rolMap['🚀 Sv.40'].id }] : []),
+      ...(rolMap['🚀 Sv.50'] ? [{ seviye: 50, rolId: rolMap['🚀 Sv.50'].id }] : []),
+      ...(rolMap['🔥 Sv.60'] ? [{ seviye: 60, rolId: rolMap['🔥 Sv.60'].id }] : []),
+      ...(rolMap['🔥 Sv.70'] ? [{ seviye: 70, rolId: rolMap['🔥 Sv.70'].id }] : []),
+      ...(rolMap['🔥 Sv.80'] ? [{ seviye: 80, rolId: rolMap['🔥 Sv.80'].id }] : []),
+      ...(rolMap['🔥 Sv.90'] ? [{ seviye: 90, rolId: rolMap['🔥 Sv.90'].id }] : []),
+      ...(rolMap['👑 Sv.100'] ? [{ seviye: 100, rolId: rolMap['👑 Sv.100'].id }] : []),
     ],
     repRoller: [
       ...(rolMap['🏅 25 İtibar'] ? [{ puan: 25, rolId: rolMap['🏅 25 İtibar'].id }] : []),
@@ -576,6 +591,50 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
       }).catch(() => {});
     } catch {}
   }
+
+  // ---- 🎭 Rol-al kanalı oto menüleri (anime/oyun/hobi/renk/seviye) ----
+  try {
+    const rk = isaret.rolAl || guild.channels.cache.find((k) => (k.name || '').includes('rol-al') && k.isTextBased() && !k.isThread() && !k.isVoiceBased());
+    if (rk) {
+      const g = getGuild(guild.id);
+      if (!Array.isArray(g.rolMenuler)) g.rolMenuler = [];
+      const { ActionRowBuilder: AR2, ButtonBuilder: BB2, ButtonStyle: BS2 } = require('discord.js');
+      const { kart: Kart2, RENK: Renk2 } = require('../src/tasarim');
+      const mkRow = (id, ogeler) => {
+        const rows = [];
+        for (let i = 0; i < ogeler.length; i += 5) {
+          const row = new AR2();
+          for (const o of ogeler.slice(i, i + 5)) {
+            const b = new BB2().setCustomId(`rolal_${id}_${o.rolId}`).setLabel(String(o.etiket).slice(0, 80)).setStyle(BS2.Secondary);
+            if (o.emoji) try { b.setEmoji(o.emoji); } catch {}
+            row.addComponents(b);
+          }
+          rows.push(row);
+        }
+        return rows;
+      };
+      const mkEmbed = (baslik, ogeler) => {
+        const satir = ogeler.map((o) => `${o.emoji || '🔹'} **${o.etiket}** → <@&${o.rolId}>`).join('\n');
+        return Kart2(null, { baslik: `🎭 ${baslik}`, aciklama: `İstediğin rollere bas, **anında** takılsın/çıkarılsın! ✨\n\n${satir}`.slice(0, 3900), altbilgi: `${ogeler.length} buton • EMOÇ Rol Sistemi` });
+      };
+      const menuler = [
+        { baslik: 'Anime Rolleri', ogeler: [['Anime', '⛩️'], ['Manga', '📚']].map(([a, e]) => rolMap[a] ? { rolId: rolMap[a].id, etiket: a, emoji: e } : null).filter(Boolean) },
+        { baslik: 'Hobi Rolleri', ogeler: [['Oyun', '🎮'], ['Müzik', '🎧'], ['Film', '🎬'], ['Kitap', '📖']].map(([a, e]) => rolMap[a] ? { rolId: rolMap[a].id, etiket: a, emoji: e } : null).filter(Boolean) },
+        { baslik: 'Oyun Rolleri', ogeler: ['Valorant', 'Minecraft', 'LoL', 'CS2', 'GTA V', 'Fortnite', 'PUBG', 'Apex', 'Roblox', 'Brawl Stars', 'Among Us', 'Rocket League', 'Overwatch', 'Fall Guys', 'PUBG Mobile', 'Free Fire'].map((a) => rolMap[a] ? { rolId: rolMap[a].id, etiket: a, emoji: '🎮' } : null).filter(Boolean) },
+        { baslik: 'Renk Rolleri', ogeler: [['Kırmızı', '🔴'], ['Mavi', '🔵'], ['Yeşil', '🟢'], ['Mor', '🟣'], ['Pembe', '💗'], ['Turuncu', '🟠'], ['Sarı', '🟡'], ['Gri', '⚪'], ['Beyaz', '⚫'], ['Siyah', '⬛']].map(([a, e]) => rolMap[a] ? { rolId: rolMap[a].id, etiket: a, emoji: e } : null).filter(Boolean) },
+        { baslik: 'Seviye Rolleri', ogeler: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((s) => rolMap[`🚀 Sv.${s}`] || rolMap[`🔥 Sv.${s}`] || rolMap[`👑 Sv.${s}`] ? { rolId: (rolMap[`🚀 Sv.${s}`] || rolMap[`🔥 Sv.${s}`] || rolMap[`👑 Sv.${s}`]).id, etiket: `Sv.${s}`, emoji: s >= 60 ? (s >= 100 ? '👑' : '🔥') : '🚀' } : null).filter(Boolean) },
+      ];
+      for (const m of menuler) {
+        if (!m.ogeler.length) continue;
+        const id = Math.random().toString(36).slice(2, 9);
+        const menu = { id, ogeler: m.ogeler, baslik: m.baslik, kanalId: rk.id, mesajId: null };
+        const msg = await rk.send({ embeds: [mkEmbed(m.baslik, m.ogeler)], components: mkRow(id, m.ogeler) }).catch(() => null);
+        if (msg) { menu.mesajId = msg.id; g.rolMenuler.push(menu); }
+        await sleep(600);
+      }
+      save();
+    }
+  } catch {}
 
   // ---- 🎫 Otomatik ticket paneli (destek kanalı) ----
   try {
