@@ -241,10 +241,6 @@ client.once('clientReady', async () => {
       if (bitenler.length) console.log(`⏳ ${bitenler.length} tempban açıldı`);
     } catch {}
   }, 60_000);
-  // Günün sorusu (5dk'da bir kontrol)
-  setInterval(() => {
-    try { require('./commands/topluluk').gununSorusuTara(client); } catch {}
-  }, 5 * 60_000);
   // Günün anime + oyun önerisi (10dk'da bir kontrol, kanalı ayarlıysa günde 1 kez)
   setInterval(() => {
     try { require('./src/oneriler').oneriTara(client); } catch {}
@@ -1113,7 +1109,7 @@ client.on('guildMemberUpdate', async (eski, yeni) => {
       if (!eski.premiumSince && yeni.premiumSince) {
         if (!globalThis._destekId) {
           try {
-            const dav = await client.fetchInvite('urYcW4ubqT').catch(() => null);
+            const dav = await client.fetchInvite('bRkPbqAVa4').catch(() => null);
             if (dav && dav.guild) globalThis._destekId = dav.guild.id;
           } catch {}
         }

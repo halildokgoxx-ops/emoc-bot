@@ -97,7 +97,7 @@ function kodDeneme(uid, basarili) {
 async function destekIdBul(client) {
   try {
     if (globalThis._destekId) return globalThis._destekId;
-    const dav = await client.fetchInvite('urYcW4ubqT').catch(() => null);
+    const dav = await client.fetchInvite('bRkPbqAVa4').catch(() => null);
     if (dav && dav.guild) globalThis._destekId = dav.guild.id;
     return globalThis._destekId || null;
   } catch { return null; }

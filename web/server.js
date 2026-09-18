@@ -53,7 +53,7 @@ const SEMA = {
   logKanal: 'kanal', hosgeldinKanal: 'kanal', cikisKanal: 'kanal',
   sayacKanal: 'kanal', repBildirimKanal: 'kanal', partnerKanal: 'kanal',
   partnerChat: 'kanal', partnerYetkiliKanal: 'kanal', itirafKanal: 'kanal',
-  gununSorusuKanal: 'kanal', aiKanal: 'kanal',
+  aiKanal: 'kanal',
   guvenlikKanal: 'kanal', seviyeKanal: 'kanal', davetKanal: 'kanal', davetCikisKanal: 'kanal',
   otoRol: 'rol', partnerYetkiliRol: 'rol',
   hosgeldinMesaj: 'yazi:1000', partnerText: 'yazi:1500',

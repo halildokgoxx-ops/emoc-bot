@@ -95,7 +95,7 @@ const KATEGORILER = [
   },
   {
     ad: '▬▬ ● ɢᴇɴᴇʟ ● ▬▬', kanallar: [
-      { ad: '💭・genel-sohbet', tip: 'yazi', isaret: 'gununSorusu' },
+      { ad: '💭・genel-sohbet', tip: 'yazi' },
       { ad: '🤖・komut', tip: 'yazi' },
       { ad: '📷・foto-sohbet', tip: 'yazi' },
       { ad: '📹・video-sohbet', tip: 'yazi' },
@@ -334,7 +334,7 @@ async function oryantasyonKur(guild, rolMap, isaret) {
     });
   }
   if (!prompts.length) return { ok: false, hata: 'Eşleşen rol bulunamadı' };
-  const varsayilan = [isaret.kurallar?.id, isaret.duyuru?.id, isaret.gununSorusu?.id].filter(Boolean).slice(0, 7);
+  const varsayilan = [isaret.kurallar?.id, isaret.duyuru?.id].filter(Boolean).slice(0, 7);
   try {
     await guild.editOnboarding({
       prompts,
@@ -496,8 +496,6 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
     oyunRol: rolMap['🎮 Oyun Bildirim']?.id || null,
     partnerBildirimRol: rolMap['🤝 Partner Bildirim']?.id || null,
     deadChatRol: rolMap['💀 Dead Chat']?.id || null,
-    gununSorusuKanal: isaret.gununSorusu?.id || null,
-    gununSorusuSon: Date.now(),
     seviyeRoller: [
       ...(rolMap['🚀 Sv.5'] ? [{ seviye: 5, rolId: rolMap['🚀 Sv.5'].id }] : []),
       ...(rolMap['🔥 Sv.10'] ? [{ seviye: 10, rolId: rolMap['🔥 Sv.10'].id }] : []),
@@ -718,7 +716,7 @@ async function handleSunucuButton(interaction, client) {
       for (const [, r] of interaction.guild.roles.cache) rolMap[r.name] = r;
       const bul = (parca) => interaction.guild.channels.cache.find((k) => (k.name || '').includes(parca) && k.isTextBased() && !k.isThread() && !k.isVoiceBased()) || null;
       const sonuc = await oryantasyonKur(interaction.guild, rolMap, {
-        kurallar: bul('kurallar'), duyuru: bul('duyuru'), gununSorusu: bul('genel-sohbet'),
+        kurallar: bul('kurallar'), duyuru: bul('duyuru'),
       });
       if (sonuc.ok) {
         await interaction.editReply({ content: `🎓 Oryantasyon kuruldu! **${sonuc.soru} soru** aktif (yaş + oyun + cinsiyet + ilgi)! 🎉`, components: [] }).catch(() => {});
