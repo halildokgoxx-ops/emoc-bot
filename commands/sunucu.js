@@ -328,20 +328,9 @@ async function oryantasyonKur(guild, rolMap, isaret) {
       options: hobiler.map((a) => secenek(a, hobiEmo[a], rolId(a))),
     });
   }
-  // 5) Bildirimler
-  const bildirimler = [
-    ['Anime', '🔔', '🔔 Anime Bildirim'],
-    ['Oyun', '🎮', '🎮 Oyun Bildirim'],
-    ['Partner', '🤝', '🤝 Partner Bildirim'],
-    ['Sohbet', '💀', '💀 Dead Chat'],
-  ].filter(([, , r]) => rolId(r));
-  if (bildirimler.length >= 2) {
-    prompts.push({
-      title: 'Hangi bildirimleri almak istersin?', singleSelect: false, required: false, inOnboarding: true,
-      options: bildirimler.map(([a, e, r]) => secenek(a, e, rolId(r))),
-    });
-  }
+  // Discord max 5 prompt, 5 olunca TOO_MANY hatası verebiliyor → 4'te tut (bildirimler webden/rol-al'dan alınır)
   if (!prompts.length) return { ok: false, hata: 'Eşleşen rol bulunamadı' };
+  if (prompts.length > 4) prompts.length = 4;
   const varsayilan = [isaret.kurallar?.id, isaret.duyuru?.id].filter(Boolean).slice(0, 7);
   try {
     await guild.editOnboarding({
@@ -620,7 +609,6 @@ async function buildEt(guild, client, interaction, ekstra = {}) {
         { baslik: 'Hobi Rolleri', ogeler: [['Oyun', '🎮'], ['Müzik', '🎧'], ['Film', '🎬'], ['Kitap', '📖']].map(([a, e]) => rolMap[a] ? { rolId: rolMap[a].id, etiket: a, emoji: e } : null).filter(Boolean) },
         { baslik: 'Oyun Rolleri', ogeler: ['Valorant', 'Minecraft', 'LoL', 'CS2', 'GTA V', 'Fortnite', 'PUBG', 'Apex', 'Roblox', 'Brawl Stars', 'Among Us', 'Rocket League', 'Overwatch', 'Fall Guys', 'PUBG Mobile', 'Free Fire'].map((a) => rolMap[a] ? { rolId: rolMap[a].id, etiket: a, emoji: '🎮' } : null).filter(Boolean) },
         { baslik: 'Renk Rolleri', ogeler: [['Kırmızı', '🔴'], ['Mavi', '🔵'], ['Yeşil', '🟢'], ['Mor', '🟣'], ['Pembe', '💗'], ['Turuncu', '🟠'], ['Sarı', '🟡'], ['Gri', '⚪'], ['Beyaz', '⚫'], ['Siyah', '⬛']].map(([a, e]) => rolMap[a] ? { rolId: rolMap[a].id, etiket: a, emoji: e } : null).filter(Boolean) },
-        { baslik: 'Seviye Rolleri', ogeler: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((s) => rolMap[`🚀 Sv.${s}`] || rolMap[`🔥 Sv.${s}`] || rolMap[`👑 Sv.${s}`] ? { rolId: (rolMap[`🚀 Sv.${s}`] || rolMap[`🔥 Sv.${s}`] || rolMap[`👑 Sv.${s}`]).id, etiket: `Sv.${s}`, emoji: s >= 60 ? (s >= 100 ? '👑' : '🔥') : '🚀' } : null).filter(Boolean) },
       ];
       for (const m of menuler) {
         if (!m.ogeler.length) continue;
