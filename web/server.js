@@ -718,12 +718,18 @@ function startWeb(client) {
     if (!s) return res.status(401).json({ hata: 'giris-yok' });
     try {
       const gs = await discordAPI(s.token, '/users/@me/guilds');
-      const liste = gs
-        .filter((x) => x.owner || (BigInt(x.permissions) & 0x20n))
+      const yonetilebilir = gs.filter((x) => x.owner || (BigInt(x.permissions) & 0x20n) || (BigInt(x.permissions) & 0x8n));
+      const bottaOlan = [...client.guilds.cache.keys()];
+      const liste = yonetilebilir
         .filter((x) => client.guilds.cache.has(x.id))
         .map((x) => ({ id: x.id, ad: x.name, ikon: x.icon, sahip: !!x.owner, prem: require('../src/premium').premiumMu(x.id) }));
-      res.json({ guilds: liste });
-    } catch { res.status(500).json({ hata: 'discord-erisilemedi' }); }
+      // Teşhis için ek bilgiler
+      const teshis = yonetilebilir.length === 0 ? 'yonetilebilir-sunucu-yok' :
+        !bottaOlan.length ? 'bot-hic-sunucuda-degil' :
+        liste.length === 0 ? 'yonetilebilir-sunucularda-bot-yok' : 'ok';
+      const bottaOlmayan = yonetilebilir.filter((x) => !client.guilds.cache.has(x.id)).slice(0, 5).map((x) => ({ id: x.id, ad: x.name }));
+      res.json({ guilds: liste, _debug: { teshis, yonetilebilir: yonetilebilir.length, botSunucu: bottaOlan.length, bottaOlmayan } });
+    } catch (e) { console.error('guilds hatası', e.message); res.status(500).json({ hata: 'discord-erisilemedi' }); }
   });
 
   app.get('/api/guild/:id', async (req, res) => {

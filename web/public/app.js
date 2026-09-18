@@ -42,8 +42,13 @@ async function baslat(){
     const me=await api('/api/me');ME=me.user;ADMIN=!!me.admin;
     duyuruYukle();
     const j=await api('/api/guilds');GUILDS=j.guilds||[];
+    const DBG = j._debug || {};
     if(!GUILDS.length){
-      renderMisafir();document.getElementById('content').innerHTML='<div class="hata-kutu">Yönetebileceğin bir sunucu bulunamadı. Botun o sunucuda olduğundan emin ol.<br><small style="color:var(--mut)">Discord yetki önbelleği 1-2 dk gecikebilir. Botu eklediysen 10 sn sonra otomatik yenilenecek.</small><br><br><a class="btn sm" href="/davet" target="_blank" onclick="return davetAc(event)">Botu Ekle</a> <button class="btn btn-ghost sm" onclick="baslat()">🔄 Yenile</button></div>';
+      let neden='';
+      if(DBG.teshis==='yonetilebilir-sunucu-yok') neden='<br><small style="color:#ffb86c">Discord\'a göre yönetebileceğin sunucu yok. O sunucuda <b>Sunucuyu Yönet</b> yetkin var mı? Varsa Discord\'dan çık-gir yap, tekrar dene.</small>';
+      else if(DBG.teshis==='bot-hic-sunucuda-degil') neden='<br><small style="color:#ff6b6b">Bot şu an hiçbir sunucuda görünmüyor! Bot çevrimdışı olabilir. Katabump loguna bak.</small>';
+      else if(DBG.teshis==='yonetilebilir-sunucularda-bot-yok') neden='<br><small style="color:var(--mut)">Yönetebileceğin '+DBG.yonetilebilir+' sunucu var ama bot bunlarda değil. Aşağıdan ekle. Botu eklediysen 10 sn sonra otomatik yenilenecek.</small>';
+      renderMisafir();document.getElementById('content').innerHTML='<div class="hata-kutu">Yönetebileceğin bir sunucu bulunamadı. Botun o sunucuda olduğundan emin ol.'+neden+'<br><br><a class="btn sm" href="/davet" target="_blank" onclick="return davetAc(event)">Botu Ekle</a> <button class="btn btn-ghost sm" onclick="baslat()">🔄 Yenile</button></div>';
       setTimeout(()=>baslat(),10000);
       return;
     }

@@ -282,7 +282,10 @@ function startKopru() {
       const liste = gs
         .filter((x) => yonetebilirMi(x) && botSunucu.includes(x.id))
         .map((x) => ({ id: x.id, ad: x.name, ikon: x.icon, sahip: !!x.owner, prem: premSet.has(x.id) }));
-      res.json({ guilds: liste });
+      const teshis = gs.filter((x) => yonetebilirMi(x)).length === 0 ? 'yonetilebilir-sunucu-yok' :
+        !botSunucu.length ? 'bot-hic-sunucuda-degil' :
+        liste.length === 0 ? 'yonetilebilir-sunucularda-bot-yok' : 'ok';
+      res.json({ guilds: liste, _debug: { teshis, yonetilebilir: gs.filter((x) => yonetebilirMi(x)).length, botSunucu: botSunucu.length } });
     } catch { res.status(500).json({ hata: 'discord-erisilemedi' }); }
   });
 
