@@ -341,7 +341,11 @@ async function oryantasyonKur(guild, rolMap, isaret) {
     });
     return { ok: true, soru: prompts.length };
   } catch (e) {
-    return { ok: false, hata: String((e && e.message) || e).slice(0, 120) };
+    const msg = String((e && e.message) || e);
+    if (msg.includes('requirements are not met')) {
+      return { ok: false, hata: 'Oryantasyon için Topluluk tam kurulu değil — Sunucu Ayarları → Topluluk → Etkinleştir: Kurallar kanalı = #kurallar, Güncelleme kanalı = #duyuru yapıp tekrar dene' };
+    }
+    return { ok: false, hata: msg.slice(0, 160) };
   }
 }
 
