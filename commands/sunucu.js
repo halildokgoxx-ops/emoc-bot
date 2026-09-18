@@ -98,7 +98,7 @@ const KATEGORILER = [
       { ad: '📃・duyuru', tip: 'yazi', isaret: 'duyuru', kilitli: true },
       { ad: '📮・öneri-şikayet', tip: 'yazi' },
       { ad: '💼・yetkili-alım', tip: 'yazi' },
-      { ad: '🪽・rol-al', tip: 'yazi', kilitli: true },
+      { ad: '🪽・rol-al', tip: 'yazi', isaret: 'rolAl', kilitli: true },
     ],
   },
   {
